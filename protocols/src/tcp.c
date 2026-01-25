@@ -8,6 +8,7 @@
 #define TCP_RESERVED_BITS 0
 #define TCP_DEFAULT_ACK_NUM 0
 #define TCP_DEFAULT_URGENT_PTR 0
+#define TCP_HEADER_SIZE 20
 
 
 int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_t *header)
@@ -17,7 +18,7 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
         return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < 20)
+    if (buffer_len < TCP_HEADER_SIZE)
     {
         return TCP_ERR_BUFFER_TOO_SMALL; // Buffer too small for minimum TCP header
     }
@@ -41,10 +42,10 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     *urgent_ptr = htons((header->flags & TCP_FLAG_URG) ? TCP_DEFAULT_URGENT_PTR : 0);
 
     // Calculate and set checksum
-    uint16_t calc_checksum = checksum(buffer, 20, 0);
+    uint16_t calc_checksum = checksum(buffer, TCP_HEADER_SIZE, 0);
     *checksum_ptr = htons(calc_checksum);
 
-    return 20;
+    return TCP_HEADER_SIZE;
 }
 
 int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *header)
@@ -54,7 +55,8 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
         return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < 20) {
+    if (buffer_len < TCP_HEADER_SIZE)
+    {
         return TCP_ERR_BUFFER_TOO_SMALL;
     }
 
@@ -69,15 +71,15 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     
     // Temporarily zero checksum for verification calculation
     // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
-    uint8_t buffer_copy[20];
+    uint8_t buffer_copy[TCP_HEADER_SIZE];
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
     uint16_t original_checksum = *checksum_ptr_temp;
     uint16_t calc_checksum;
 
-    memcpy(buffer_copy, buffer, 20);
+    memcpy(buffer_copy, buffer, TCP_HEADER_SIZE);
     *checksum_ptr_temp = 0;
     
-    calc_checksum = checksum(buffer_copy, 20, 0);
+    calc_checksum = checksum(buffer_copy, TCP_HEADER_SIZE, 0);
     
     if (calc_checksum != stored_checksum)
     {
@@ -89,5 +91,5 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     header->seq_num = ntohl(*seq_num_ptr);
     header->flags = *data_offset_flags_ptr & 0x0F;
 
-    return 20;
+    return TCP_HEADER_SIZE;
 }
