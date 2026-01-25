@@ -67,16 +67,17 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     // Verify checksum before parsing
     uint16_t stored_checksum = ntohs(*checksum_ptr);
     
-    // Temporarily zero checksum for verification
+    // Temporarily zero checksum for verification calculation
+    // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
     uint8_t buffer_copy[20];
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
     uint16_t original_checksum = *checksum_ptr_temp;
     uint16_t calc_checksum;
+
     memcpy(buffer_copy, buffer, 20);
     *checksum_ptr_temp = 0;
     
     calc_checksum = checksum(buffer_copy, 20, 0);
-    *checksum_ptr_temp = original_checksum;  // Restore original
     
     if (calc_checksum != stored_checksum)
     {
