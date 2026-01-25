@@ -1,5 +1,7 @@
 #include "tcp.h"
-#include "protcol_utils.h"
+#include "protocol_utils.h"
+#include <string.h>
+#include <netinet/in.h>
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
@@ -15,7 +17,8 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
         return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < 20) {
+    if (buffer_len < 20)
+    {
         return TCP_ERR_BUFFER_TOO_SMALL; // Buffer too small for minimum TCP header
     }
 
@@ -65,15 +68,18 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     uint16_t stored_checksum = ntohs(*checksum_ptr);
     
     // Temporarily zero checksum for verification
-    uint8_t *buffer_copy = (uint8_t *)buffer;
+    uint8_t buffer_copy[20];
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
     uint16_t original_checksum = *checksum_ptr_temp;
+    uint16_t calc_checksum;
+    memcpy(buffer_copy, buffer, 20);
     *checksum_ptr_temp = 0;
     
-    uint16_t calc_checksum = checksum(buffer, 20, 0);
+    calc_checksum = checksum(buffer_copy, 20, 0);
     *checksum_ptr_temp = original_checksum;  // Restore original
     
-    if (calc_checksum != stored_checksum) {
+    if (calc_checksum != stored_checksum)
+    {
         return TCP_ERR_CHECKSUM;  // Checksum verification failed
     }
 
