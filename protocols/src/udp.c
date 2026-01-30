@@ -61,9 +61,9 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 6);
     uint16_t original_checksum = *checksum_ptr_temp;
     uint16_t calc_checksum;
-    *checksum_ptr_temp = 0;
 
     memcpy(buffer_copy, buffer, UDP_HEADER_SIZE);
+    *checksum_ptr_temp = 0;  // Temporarily zero checksum for verification
     calc_checksum = checksum(buffer_copy, UDP_HEADER_SIZE, 0);
 
     if (calc_checksum != 0 && calc_checksum != original_checksum)
