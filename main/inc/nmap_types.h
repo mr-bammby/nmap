@@ -23,8 +23,8 @@ typedef struct nmap_types
     addr_node_t *next;
 } addr_node_t;
 
-typedef uint8_t port_bitmap_t[PORTMAP_BYTE_NUM];
+typedef uint8_t port_bitmap_t[PORT_BITMAP_BYTE_NUM];
 typedef uint8_t scan_bitmap_t;
-typedef *addr_node_t address_list_t;
+typedef addr_node_t* address_list_t;
 
 #endif /* NMAP_TYPES_H */
