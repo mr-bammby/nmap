@@ -24,12 +24,12 @@ typedef struct
 
 
 static const flag_t FLAG_TABLE[] = {
-    { "--help", help_handler},
-    { "--ip", address_handler},
-    { "--file", file_handler},
-    { "--port", help_handler},
-    { "--scan", address_handler},
-    { "--speedup", file_handler}
+    { "--help", argument_handler_help},
+    { "--ip", argument_handler_address},
+    { "--file", argument_handler_file},
+    { "--port", argument_handler_port},
+    { "--scan", argument_handler_scan},
+    { "--speedup", argument_handler_speedup}
 };
 
 #define FLAG_COUNT (sizeof(FLAG_TABLE) / sizeof(flag_t))

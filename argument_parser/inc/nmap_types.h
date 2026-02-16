@@ -17,10 +17,10 @@
 #define NUMBER_OF_PORTS 1024
 #define PORT_BITMAP_BYTE_NUM NUMBER_OF_PORTS/BITMAP_BYTE_SIZE
 
-typedef struct nmap_types
-{
-    char *addr;
-    addr_node_t *next;
+/* singly‑linked list node containing a fixed‑size IP string */
+typedef struct addr_node {
+    char addr[16];              /* IPv4 string, "xxx.xxx.xxx.xxx" + NUL */
+    struct addr_node *next;
 } addr_node_t;
 
 typedef uint8_t port_bitmap_t[PORT_BITMAP_BYTE_NUM];

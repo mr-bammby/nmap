@@ -8,14 +8,17 @@ typedef enum
     SECOND_NUMBER
 } state_t;
 
-static inline void bitset_set(port_bitmap_t bitset, uint16_t idx)
+/* set the bit corresponding to `idx` in the supplied port bitmap */
+static inline void port_bitmap_set(port_bitmap_t bitset, uint16_t idx)
 {
-	if (bitset != NULL)
-		bitset[idx / BITMAP_BYTE_SIZE] |= 1u << (idx % BITMAP_BYTE_SIZE);
+    if (bitset != NULL)
+        bitset[idx / BITMAP_BYTE_SIZE] |= 1u << (idx % BITMAP_BYTE_SIZE);
 }
 
-static int parse_range_bitmap(const char *s, port_bitmap_t *bits) {
-    memset(bits, 0, sizeof(port_bitmap_t));
+/* parse a comma‑separated list of port numbers and ranges into a
+   bitmap; returns 0 on success, negative codes on error */
+static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap) {
+    memset(bitmap, 0, sizeof(port_bitmap_t));
 
     state_t st = START;
     uint16_t num = 0;
@@ -24,7 +27,7 @@ static int parse_range_bitmap(const char *s, port_bitmap_t *bits) {
     uint32_t start_idx = 0;
     uint32_t idx = 0;
 
-    const char *p = s;
+    const char *p = input;
 
     while (*p != '\0')
     {
@@ -73,14 +76,15 @@ static int parse_range_bitmap(const char *s, port_bitmap_t *bits) {
                 if (num < 1 || num > NUMBER_OF_PORTS)
                     return -2;
 
-                bitset_set(*bits, num);
+                port_bitmap_set(*bitmap, num);
 
                 st = START;
 
                 if (c == '\0')
                     return 0;
             }
-            else {
+            else
+			{
                 return -3; /* invalid char */
             }
             break;
@@ -120,7 +124,7 @@ static int parse_range_bitmap(const char *s, port_bitmap_t *bits) {
 
                 for (int v = start; v <= end; v++)
                 {
-                    bitset_set(*bits, v);
+                    port_bitmap_set(*bitmap, v);
                 }
 
                 st = START;
@@ -142,7 +146,7 @@ static int parse_range_bitmap(const char *s, port_bitmap_t *bits) {
     return (0);
 }
 
-parse_return_e port_handler(params_t *param, const char *value)
+parse_return_e argument_handler_port(params_t *param, const char *value)
 {
     for (uint8_t i = 0; i < BITMAP_BYTE_SIZE; i++)
     {
@@ -151,7 +155,7 @@ parse_return_e port_handler(params_t *param, const char *value)
             return (PARSE_DOUBLE_VALUE);
         }
     }
-    if (parse_range_bitmap(value, &(param->ports)) == 0)
+    if (parse_port_range_bitmap(value, &(param->ports)) != 0)
     {
         return (PARSE_BAD_VALUE);
     }
