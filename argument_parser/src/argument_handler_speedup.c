@@ -1,4 +1,6 @@
 #include "argument_parser.h"
+#include <ctype.h>
+#include <stdlib.h>
 
 parse_return_e argument_handler_speedup(params_t *param, const char *value)
 {

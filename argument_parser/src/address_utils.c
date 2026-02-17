@@ -1,5 +1,5 @@
+#define _GNU_SOURCE
 #include "address_utils.h"
-
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>

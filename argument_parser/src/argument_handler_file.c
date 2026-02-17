@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "argument_parser.h"
 #include "address_utils.h"
 #include <stdio.h>

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <inttypes.h>
 
 uint16_t checksum(const void *data, uint32_t len, uint16_t start_val)
@@ -34,7 +35,7 @@ void print_bytes(const void *addr, uint32_t len)
 {
     const uint8_t *p = (const uint8_t *)addr;
 
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         printf("%02x ", p[i]);
     }
     printf("\n\n");

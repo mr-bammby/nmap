@@ -1,4 +1,6 @@
 #include "argument_parser.h"
+#include <string.h>
+#include <ctype.h>
 
 typedef enum
 {
@@ -17,7 +19,8 @@ static inline void port_bitmap_set(port_bitmap_t bitset, uint16_t idx)
 
 /* parse a comma‑separated list of port numbers and ranges into a
    bitmap; returns 0 on success, negative codes on error */
-static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap) {
+static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
+{
     memset(bitmap, 0, sizeof(port_bitmap_t));
 
     state_t st = START;
@@ -33,7 +36,8 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap) {
     {
         char c = *p;
 
-        switch (st) {
+        switch (st)
+        {
         /* --------------------------------------------- */
         case START:
             if (isdigit(c))
@@ -65,7 +69,7 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap) {
             if (isdigit(c))
             {
                 num = (num * 10) + (c - '0');
-            } 
+            }
             else if (c == '-')
             {
                 start = num;
@@ -84,7 +88,7 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap) {
                     return 0;
             }
             else
-			{
+            {
                 return -3; /* invalid char */
             }
             break;

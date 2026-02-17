@@ -1,25 +1,32 @@
+#define _GNU_SOURCE
 #include "argument_parser.h"
-
+#include <string.h>
+#include <stdlib.h>
 #define MAX_TOKENS 6
 
 /* allowed scan type keywords; index corresponds to bit position in
    scan_bitmap_t */
-static const char* const valid_tokens[MAX_TOKENS] =
-{
-    "SYN",
-	"ACK",
-    "NULL",
-    "FIN",
-    "XMAS",
-    "UDP"
-};
+static const char *const valid_tokens[MAX_TOKENS] =
+    {
+        "SYN",
+        "ACK",
+        "NULL",
+        "FIN",
+        "XMAS",
+        "UDP"};
 
-uint8_t parse_scan_tokens_to_bitmap(const char* input, scan_bitmap_t *bitmap)
+uint8_t parse_scan_tokens_to_bitmap(const char *input, scan_bitmap_t *bitmap)
 {
     if (!input)
         return 0;
 
-    char* token = strtok(input, ",");
+    /* Make a copy since strtok modifies the string */
+    char *input_copy = malloc(strlen(input) + 1);
+    if (!input_copy)
+        return -1;
+    strcpy(input_copy, input);
+
+    char *token = strtok(input_copy, ",");
 
     while (token != NULL)
     {
@@ -29,17 +36,19 @@ uint8_t parse_scan_tokens_to_bitmap(const char* input, scan_bitmap_t *bitmap)
         {
             if (strcmp(token, valid_tokens[i]) == 0)
             {
-                *bitmap |= (1 << i);   // set bit
+                *bitmap |= (1 << i); // set bit
                 break;
             }
         }
         if (i == MAX_TOKENS)
         {
+            free(input_copy);
             return (-1);
         }
         token = strtok(NULL, ",");
     }
 
+    free(input_copy);
     return 0;
 }
 
