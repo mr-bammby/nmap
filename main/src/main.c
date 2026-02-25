@@ -3,6 +3,15 @@
 #include "argument_parser.h"
 #include "nmap_types.h"
 
+static const char *const valid_tokens[6] =
+    {
+        "SYN",
+        "ACK",
+        "NULL",
+        "FIN",
+        "XMAS",
+        "UDP"};
+
 const char *parse_error_to_string(parse_return_e error)
 {
     switch (error)
@@ -31,6 +40,24 @@ const char *parse_error_to_string(parse_return_e error)
 void print_params(params_t *params)
 {
     printf("\nParsed Parameters:\n");
+    printf("  Scans:");
+    for (int i = 0; i < 6; i++)
+    {
+        if (params->scans & (1 << i))
+        {
+            printf(" %s", valid_tokens[i]);
+        }
+    }
+    printf("\n");
+    printf("  Ports: ");
+    for (int i = 0; i < 1024; i++)
+    {
+        if (params->ports[i / 8] & (1 << (i % 8)))
+        {
+            printf("%u ", i);
+        }
+    }
+    printf("\n");
     printf("  Threads: %u\n", params->thread_num);
     printf("  Addresses: ");
 

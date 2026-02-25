@@ -13,7 +13,8 @@ static const char *const valid_tokens[MAX_TOKENS] =
         "NULL",
         "FIN",
         "XMAS",
-        "UDP"};
+        "UDP"
+    };
 
 uint8_t parse_scan_tokens_to_bitmap(const char *input, scan_bitmap_t *bitmap)
 {

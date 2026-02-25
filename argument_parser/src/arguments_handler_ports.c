@@ -14,7 +14,9 @@ typedef enum
 static inline void port_bitmap_set(port_bitmap_t bitset, uint16_t idx)
 {
     if (bitset != NULL)
-        bitset[idx / BITMAP_BYTE_SIZE] |= 1u << (idx % BITMAP_BYTE_SIZE);
+    {
+        bitset[idx / BITMAP_BYTE_SIZE] |= (1u << (idx % BITMAP_BYTE_SIZE));
+    }
 }
 
 /* parse a comma‑separated list of port numbers and ranges into a
@@ -32,7 +34,7 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
 
     const char *p = input;
 
-    while (*p != '\0')
+    while (1)
     {
         char c = *p;
 
@@ -79,7 +81,6 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
             {
                 if (num < 1 || num > NUMBER_OF_PORTS)
                     return -2;
-
                 port_bitmap_set(*bitmap, num);
 
                 st = START;
@@ -143,6 +144,10 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
                 return -6;
             }
             break;
+        }
+        if (c == '\0')
+        {
+            return 0;
         }
         idx++;
         p++;
