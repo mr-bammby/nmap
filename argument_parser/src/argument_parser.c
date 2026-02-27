@@ -1,6 +1,15 @@
 #include <string.h>
 #include "argument_parser.h"
 
+static const params_t DEFAULT_PARAMS = {
+    .address = NULL,                                    /* no addresses by default, user must specify at least one */
+    .ports = {[0 ... PORT_BITMAP_BYTE_NUM - 1] = 0xff}, /* all ports enabled by default */
+    .thread_num = 1,                                    /* one thread by default */
+    .scans = 0x3f                                       /* all scan types enabled by default */
+};
+
+static const port_bitmap_t EMPTY_PORTS = {0};
+
 parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
 {
     int i = 1;
@@ -49,6 +58,24 @@ parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
         }
         i++;
     }
+
+    if (parameters->address == NULL)
+    {
+        return PARSE_MISSING_VALUE; /* at least one address is required */
+    }
+    if (parameters->thread_num == 0)
+    {
+        parameters->thread_num = DEFAULT_PARAMS.thread_num;
+    }
+    if (parameters->scans == 0)
+    {
+        parameters->scans = DEFAULT_PARAMS.scans;
+    }
+    if (memcmp(parameters->ports, EMPTY_PORTS, sizeof(port_bitmap_t)) == 0)
+    {
+        memcpy(parameters->ports, DEFAULT_PARAMS.ports, sizeof(parameters->ports));
+    }
+
     return PARSE_OK;
 }
 
