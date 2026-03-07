@@ -5,6 +5,8 @@
 
 /* Port states from RFC or nmap conventions */
 typedef enum {
+    PORT_STATE_INITIAL,        /* Initial state before scanning */
+    PORT_STATE_CONTACTED,      /* We sent a probe */
     PORT_STATE_OPEN,           /* Port is accepting connections */
     PORT_STATE_CLOSED,         /* Port is accessible but no service listening */
     PORT_STATE_FILTERED,       /* Firewall/filter blocking access */

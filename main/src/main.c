@@ -9,7 +9,36 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-char *target_ip = "8.8.8.8";
+// Port state definitions
+typedef enum {
+    PORT_STATE_INITIAL = 0,
+    PORT_STATE_CONTACTED,
+    PORT_STATE_OPEN,
+    PORT_STATE_CLOSED,
+    PORT_STATE_FILTERED,
+    PORT_STATE_OPEN_FILTERED,
+    PORT_STATE_UNFILTERED,
+    PORT_STATE_UNKNOWN
+} port_state_t;
+
+// Response type definitions
+typedef enum {
+    RESPONSE_NO_RESPONSE = 0,
+    RESPONSE_SYN_ACK,
+    RESPONSE_RST,
+    RESPONSE_ICMP_UNREACHABLE
+} response_type_t;
+
+// Scan result structure
+typedef struct {
+    int port;
+    int protocol;
+    port_state_t state;
+    response_type_t response;
+} scan_result_t;
+
+char *target_ip = "45.33.32.156";
+scan_result_t results[1024];
 
 // --- Helper: Get Local IP for Checksum ---
 char* get_local_ip(const char *iface_name)
@@ -124,7 +153,7 @@ void process_packet(const u_char *packet)
     struct ip *ip = (struct ip *)(packet + 14);
     int ip_hl = ip->ip_hl * 4;
 
-    printf("Received packet from %s\n", inet_ntoa(ip->ip_src));
+    //printf("Received packet from %s\n", inet_ntoa(ip->ip_src));
     if (ip->ip_p == IPPROTO_TCP)
     {
         struct tcphdr *tcp = (struct tcphdr *)(packet + 14 + ip_hl);
@@ -132,17 +161,66 @@ void process_packet(const u_char *packet)
         // th_flags is used in some headers, check bitmask for SYN+ACK or RST
         if ((tcp->syn) && (tcp->ack))
         {
-            printf("\n[!] Port %d is OPEN\n", ntohs(tcp->source));
+            results[ntohs(tcp->source) - 1].state = PORT_STATE_OPEN;
+            results[ntohs(tcp->source) - 1].response = RESPONSE_SYN_ACK;
+            //printf("[!] Port %d is OPEN\n\n", ntohs(tcp->source));
         } else if (tcp->rst)
         {
-            printf("\n[-] Port %d is CLOSED\n", ntohs(tcp->source));
+            results[ntohs(tcp->source) - 1].state = PORT_STATE_CLOSED;
+            results[ntohs(tcp->source) - 1].response = RESPONSE_RST;
+            //printf("\n[-] Port %d is CLOSED\n\n", ntohs(tcp->source));
         }
     }
-    else if (ip->ip_p == IPPROTO_ICMP)
+    else //if (ip->ip_p == IPPROTO_ICMP)
     {
-        printf("\n[-] Port Error (ICMP Unreachable)\n");
+        struct icmphdr *icmp = (struct icmphdr *)(packet + 14 + ip_hl);
+        if (icmp->type == 3) // Destination Unreachable
+        {
+            results[ntohs(icmp->un.gateway) - 1].state = PORT_STATE_FILTERED;
+            results[ntohs(icmp->un.gateway) - 1].response = RESPONSE_ICMP_UNREACHABLE;
+        }
+        //printf("\n[-] Port Error (ICMP Unreachable)\n");
     }
     fflush(stdout);
+}
+
+// --- Initialize Results Array ---
+void initialize_results(scan_result_t *results, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        results[i].port = i + 1;
+        results[i].protocol = 0;
+        results[i].state = PORT_STATE_INITIAL;
+        results[i].response = 0;
+    }
+}
+
+// --- Print Results ---
+void print_results(scan_result_t *results, int size)
+{
+    const char *state_strings[] = {
+        "INITIAL",
+        "CONTACTED",
+        "OPEN",
+        "CLOSED",
+        "FILTERED",
+        "OPEN/FILTERED",
+        "UNFILTERED",
+        "UNKNOWN"
+    };
+    
+    printf("\n%-6s | %s\n", "PORT", "STATE");
+    printf("-------|----------------\n");
+    
+    for (int i = 0; i < size; i++)
+    {
+        // Only print ports that have been scanned (not in INITIAL state)
+        if (results[i].state != PORT_STATE_INITIAL)
+        {
+            printf("%-6d | %s\n", results[i].port, state_strings[results[i].state]);
+        }
+    }
 }
 
 int main()
@@ -154,6 +232,9 @@ int main()
     pcap_if_t *alldevs;
     char *device_name;
     char *local_ip;
+
+    // Initialize results array
+    initialize_results(results, 1024);
 
     sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     if (sock < 0)
@@ -190,10 +271,11 @@ int main()
     pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
     pcap_setfilter(handle, &fp);
 
-    for (int port = 440; port <= 445; port++)
+    for (int port = 1; port <= 150; port++)
     {
         send_syn(sock, target_ip, port, local_ip);
-        printf("Sent SYN to %d... ", port);
+        //printf("Sent SYN to %d... ", port);
+        results[port - 1].state = PORT_STATE_CONTACTED;
         fflush(stdout);
 
         int attempts = 0;
@@ -207,12 +289,21 @@ int main()
             {
                 process_packet(packet);
             }
-            usleep(1000); 
+            usleep(1); 
             attempts++;
         }
-        printf("Done.\n");
+        //printf("Done for port %d.\n", port);
     }
-
+    for (int port = 1; port <= 150; port++)
+    {
+        if (results[port - 1].state == PORT_STATE_INITIAL)
+        {
+            results[port - 1].state = PORT_STATE_OPEN_FILTERED;
+            results[port - 1].response = RESPONSE_NO_RESPONSE;
+            //printf("[?] Port %d is FILTERED (no response)\n", port);
+        }
+    }
+    print_results(results, 150);
     pcap_close(handle);
     close(sock);
     return 0;
