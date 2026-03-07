@@ -12,19 +12,24 @@
 char *target_ip = "8.8.8.8";
 
 // --- Helper: Get Local IP for Checksum ---
-char* get_local_ip(const char *iface_name) {
+char* get_local_ip(const char *iface_name)
+{
     struct ifaddrs *ifaddr, *ifa;
     static char ip_addr[INET_ADDRSTRLEN];
 
-    if (getifaddrs(&ifaddr) == -1) {
+    if (getifaddrs(&ifaddr) == -1)
+    {
         perror("getifaddrs");
         return NULL;
     }
 
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+    {
         if (ifa->ifa_addr == NULL) continue;
-        if (ifa->ifa_addr->sa_family == AF_INET) {
-            if (strcmp(ifa->ifa_name, iface_name) == 0) {
+        if (ifa->ifa_addr->sa_family == AF_INET)
+        {
+            if (strcmp(ifa->ifa_name, iface_name) == 0)
+            {
                 struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
                 strcpy(ip_addr, inet_ntoa(sa->sin_addr));
                 freeifaddrs(ifaddr);
@@ -37,16 +42,19 @@ char* get_local_ip(const char *iface_name) {
 }
 
 // --- Helper: Checksum Calculation ---
-unsigned short calculate_checksum(unsigned short *ptr, int nbytes) {
+unsigned short calculate_checksum(unsigned short *ptr, int nbytes)
+{
     long sum = 0;
     unsigned short oddbyte;
     unsigned short answer;
 
-    while (nbytes > 1) {
+    while (nbytes > 1)
+    {
         sum += *ptr++;
         nbytes -= 2;
     }
-    if (nbytes == 1) {
+    if (nbytes == 1)
+    {
         oddbyte = 0;
         *((u_char *)&oddbyte) = *(u_char *)ptr;
         sum += oddbyte;
@@ -57,7 +65,8 @@ unsigned short calculate_checksum(unsigned short *ptr, int nbytes) {
     return answer;
 }
 
-struct pseudo_header {
+struct pseudo_header
+{
     u_int32_t source_address;
     u_int32_t dest_address;
     u_int8_t placeholder;
@@ -66,7 +75,8 @@ struct pseudo_header {
 };
 
 // --- Sender Logic ---
-void send_syn(int sockfd, char *target_ip, int port, char *local_ip) {
+void send_syn(int sockfd, char *target_ip, int port, char *local_ip)
+{
     char datagram[4096];
     struct tcphdr *tcph = (struct tcphdr *) datagram;
     struct sockaddr_in sin;
@@ -102,33 +112,41 @@ void send_syn(int sockfd, char *target_ip, int port, char *local_ip) {
     tcph->check = calculate_checksum((unsigned short *)pseudogram, psize);
     free(pseudogram);
 
-    if (sendto(sockfd, datagram, sizeof(struct tcphdr), 0, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+    if (sendto(sockfd, datagram, sizeof(struct tcphdr), 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
+    {
         perror("sendto failed");
     }
 }
 
 // --- Receiver Logic ---
-void process_packet(const u_char *packet) {
+void process_packet(const u_char *packet)
+{
     struct ip *ip = (struct ip *)(packet + 14);
     int ip_hl = ip->ip_hl * 4;
 
     printf("Received packet from %s\n", inet_ntoa(ip->ip_src));
-    if (ip->ip_p == IPPROTO_TCP) {
+    if (ip->ip_p == IPPROTO_TCP)
+    {
         struct tcphdr *tcp = (struct tcphdr *)(packet + 14 + ip_hl);
         
         // th_flags is used in some headers, check bitmask for SYN+ACK or RST
-        if ((tcp->syn) && (tcp->ack)) {
+        if ((tcp->syn) && (tcp->ack))
+        {
             printf("\n[!] Port %d is OPEN\n", ntohs(tcp->source));
-        } else if (tcp->rst) {
+        } else if (tcp->rst)
+        {
             printf("\n[-] Port %d is CLOSED\n", ntohs(tcp->source));
         }
-    } else if (ip->ip_p == IPPROTO_ICMP) {
+    }
+    else if (ip->ip_p == IPPROTO_ICMP)
+    {
         printf("\n[-] Port Error (ICMP Unreachable)\n");
     }
     fflush(stdout);
 }
 
-int main() {
+int main()
+{
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *handle;
     struct bpf_program fp;
@@ -138,23 +156,33 @@ int main() {
     char *local_ip;
 
     sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-    if (sock < 0) { perror("Socket error"); return 1; }
+    if (sock < 0)
+    {
+        perror("Socket error"); return 1;
+    }
 
-    if (pcap_findalldevs(&alldevs, errbuf) == -1) return 1;
+    if (pcap_findalldevs(&alldevs, errbuf) == -1)
+    {
+        return 1;
+    }
     if (alldevs == NULL) return 1;
     device_name = alldevs->name;
     printf("Using device: %s\n", device_name);
 
     // Get the IP for this specific device
     local_ip = get_local_ip(device_name);
-    if (!local_ip) {
+    if (!local_ip)
+    {
         fprintf(stderr, "Could not find IP for %s\n", device_name);
         return 1;
     }
     printf("Using Local IP: %s\n", local_ip);
 
     handle = pcap_open_live(device_name, BUFSIZ, 1, 10, errbuf);
-    if (handle == NULL) return 1;
+    if (handle == NULL)
+    {
+        return 1;
+    }
     pcap_setnonblock(handle, 1, errbuf);
 
     char filter[100];
@@ -162,17 +190,21 @@ int main() {
     pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
     pcap_setfilter(handle, &fp);
 
-    for (int port = 440; port <= 445; port++) {
+    for (int port = 440; port <= 445; port++)
+    {
         send_syn(sock, target_ip, port, local_ip);
         printf("Sent SYN to %d... ", port);
         fflush(stdout);
 
         int attempts = 0;
-        while (attempts < 500) { // 500ms wait per port
+        while (attempts < 500)
+        {
+            // 500ms wait per port
             struct pcap_pkthdr *header;
             const u_char *packet;
             int res = pcap_next_ex(handle, &header, &packet);
-            if (res == 1) {
+            if (res == 1)
+            {
                 process_packet(packet);
             }
             usleep(1000); 
