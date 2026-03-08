@@ -132,7 +132,15 @@ int main(int argc, const char *argv[])
             fprintf(stderr, "Multi-threading is not supported in current implementation.\n");
             return EXIT_FAILURE;
         }
-        exec_result = single_thread_exec(params.address->addr, params.ports, params.scans);
+        for (addr_node_t *current = params.address; current != NULL; current = current->next)
+        {
+            printf("Scanning %s...\n", current->addr);
+            exec_result = single_thread_exec(current->addr, params.ports, params.scans);
+            if (exec_result != 0)
+            {
+                fprintf(stderr, "Error scanning %s\n", current->addr);
+            }
+        }
     }
 
     free_arguments(&params);
