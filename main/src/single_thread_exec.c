@@ -9,7 +9,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "nmap_types.h"
+#include "ip.h"
+#include "tcp.h"
+#include "exec.h"
 
+#define NUMBER_OF_SCAN_TYPES 6
 
 // --- Helper: Get Local IP for Checksum ---
 char* get_local_ip(const char *iface_name)
@@ -75,44 +79,59 @@ struct pseudo_header
 };
 
 // --- Sender Logic ---
-void send_syn(int sockfd, char *target_ip, int port, char *local_ip)
+void send_packet(int sockfd, const char *target_ip, int port, const char *local_ip, uint8_t scan_type)
 {
-    char datagram[4096];
-    struct tcphdr *tcph = (struct tcphdr *) datagram;
+    uint8_t packet[128];
+    ip_header_t ip_header;
+    tcp_header_t tcp_header;
+
     struct sockaddr_in sin;
     struct pseudo_header psh;
 
-    memset(datagram, 0, 4096);
-
+    memset(packet, 0, 128);
+    ip_header.id = htons(rand() % 65536);
+    ip_header.protocol = IPPROTO_TCP;
+    ip_header.src = inet_addr(local_ip);
+    ip_header.dst = inet_addr(target_ip);
     sin.sin_family = AF_INET;
     sin.sin_port = htons(port);
     sin.sin_addr.s_addr = inet_addr(target_ip);
 
-    tcph->source = htons(12345);
-    tcph->dest = htons(port);
-    tcph->seq = htonl(rand());
-    tcph->ack_seq = 0;
-    tcph->doff = 5;
-    tcph->syn = 1;
-    tcph->window = htons(65535);
-    tcph->check = 0;
-    tcph->urg_ptr = 0;
+    tcp_header.src_port = rand() % 65536;
+    tcp_header.dst_port = port;
+    tcp_header.seq_num = rand() % 4294967296;
+    switch (scan_type)
+    {
+        case SCAN_FLG_SYN:
+            tcp_header.flags = TCP_FLAG_SYN;
+            break;
+        case SCAN_FLG_ACK:
+            tcp_header.flags = TCP_FLAG_ACK;
+            break;
+        case SCAN_FLG_NULL:
+            tcp_header.flags = 0;
+            break;
+        case SCAN_FLG_FIN:
+            tcp_header.flags = TCP_FLAG_FIN;
+            break;
+        case SCAN_FLG_XMAS:
+            tcp_header.flags = TCP_FLAG_FIN | TCP_FLAG_PSH | TCP_FLAG_URG;
+            break;
+        default:
+            perror("Unsupported scan type");
+            return;
+            break;
+    }
+    int16_t tcp_packet_len = tcp_packet_create(packet, sizeof(packet), &ip_header, &tcp_header);
+    if (tcp_packet_len < 0)
+    {
+        perror("Packet creation failed");
+        return;
+    }
 
-    psh.source_address = inet_addr(local_ip);
-    psh.dest_address = sin.sin_addr.s_addr;
-    psh.placeholder = 0;
-    psh.protocol = IPPROTO_TCP;
-    psh.tcp_length = htons(sizeof(struct tcphdr));
+     // Prepare pseudo header for checksum
 
-    int psize = sizeof(struct pseudo_header) + sizeof(struct tcphdr);
-    char *pseudogram = malloc(psize);
-    memcpy(pseudogram, (char *)&psh, sizeof(struct pseudo_header));
-    memcpy(pseudogram + sizeof(struct pseudo_header), tcph, sizeof(struct tcphdr));
-
-    tcph->check = calculate_checksum((unsigned short *)pseudogram, psize);
-    free(pseudogram);
-
-    if (sendto(sockfd, datagram, sizeof(struct tcphdr), 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
+    if (sendto(sockfd, packet, tcp_packet_len, 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
     {
         perror("sendto failed");
     }
@@ -200,23 +219,28 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     {
         if (ports[port_i / 8] & (1 << (port_i % 8)))
         {
-            send_syn(sock, target_ip, port_i, local_ip);
-            printf("Sent SYN to %d... ", port_i);
-            fflush(stdout);
-
-            for (int attempt = 0; attempt < 500; attempt++)
+            for (int scan_i = 0; scan_i < NUMBER_OF_SCAN_TYPES; scan_i++)
             {
-                // 500ms wait per port
-                struct pcap_pkthdr *header;
-                const u_char *packet;
-                int res = pcap_next_ex(handle, &header, &packet);
-                if (res == 1)
+                if (scans & (1 << scan_i))
                 {
-                    process_packet(packet);
+                    printf("Scanning port %d with scan type %d...\n", port_i, scan_i);
+                    fflush(stdout);
+                    send_packet(sock, target_ip, port_i, local_ip, 1 << scan_i);
+                    for (int attempt = 0; attempt < 500; attempt++)
+                    {
+                        // 500ms wait per port
+                        struct pcap_pkthdr *header;
+                        const u_char *packet;
+                        int res = pcap_next_ex(handle, &header, &packet);
+                        if (res == 1)
+                        {
+                            process_packet(packet);
+                        }
+                        usleep(1000); 
+                    }
+                    printf("Done.\n");
                 }
-                usleep(1000); 
             }
-            printf("Done.\n");
         }
     }
 
