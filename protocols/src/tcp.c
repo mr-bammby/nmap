@@ -5,7 +5,6 @@
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
-#define TCP_RESERVED_BITS 0
 #define TCP_DEFAULT_ACK_NUM 0
 #define TCP_DEFAULT_URGENT_PTR 0
 
@@ -26,7 +25,8 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     uint16_t *dst_port_ptr = (uint16_t *)(buffer + 2);
     uint32_t *seq_num_ptr = (uint32_t *)(buffer + 4);
     uint32_t *ack_num_ptr = (uint32_t *)(buffer + 8);
-    uint8_t *data_offset_flags_ptr = buffer + 12;
+    uint8_t *data_offset_ptr = buffer + 12;
+    uint8_t *flags_ptr = buffer + 13;
     uint16_t *window_ptr = (uint16_t *)(buffer + 14);
     uint16_t *checksum_ptr = (uint16_t *)(buffer + 16);
     uint16_t *urgent_ptr = (uint16_t *)(buffer + 18);
@@ -35,7 +35,8 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     *dst_port_ptr = htons(header->dst_port);
     *seq_num_ptr = htonl(header->seq_num);
     *ack_num_ptr = htonl((header->flags & TCP_FLAG_ACK) ? TCP_DEFAULT_ACK_NUM : 0);
-    *data_offset_flags_ptr = (TCP_DATA_OFFSET << 4) | header->flags;
+    *data_offset_ptr = (TCP_DATA_OFFSET << 4);
+    *flags_ptr = header->flags;
     *window_ptr = htons(TCP_WINDOW_SIZE);
     *checksum_ptr = 0;  // Temporarily zero for checksum calculation
     *urgent_ptr = htons((header->flags & TCP_FLAG_URG) ? TCP_DEFAULT_URGENT_PTR : 0);
@@ -61,33 +62,19 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     const uint16_t *src_port_ptr = (const uint16_t *)buffer;
     const uint16_t *dst_port_ptr = (const uint16_t *)(buffer + 2);
     const uint32_t *seq_num_ptr = (const uint32_t *)(buffer + 4);
-    const uint8_t *data_offset_flags_ptr = buffer + 12;
-    const uint16_t *checksum_ptr = (const uint16_t *)(buffer + 16);
+    const uint8_t *flags_ptr = buffer + 13;
 
-    // Verify checksum before parsing
-    uint16_t stored_checksum = ntohs(*checksum_ptr);
-    
-    // Temporarily zero checksum for verification calculation
-    // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
-    uint8_t buffer_copy[20] = {0};
-    
-    memcpy(buffer_copy, buffer, 20);
-    uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
-    uint16_t original_checksum __attribute__((unused)) = *checksum_ptr_temp;
-    uint16_t calc_checksum;
-    *checksum_ptr_temp = 0;
-    
-    calc_checksum = checksum(buffer_copy, 20, 0);
-    
-    if (calc_checksum != stored_checksum)
-    {
-        return TCP_ERR_CHECKSUM;  // Checksum verification failed
-    }
+    /*
+     * Do not validate checksum here.
+     * TCP checksum validation requires the IPv4 pseudo-header, which this
+     * parser does not receive. Parse-only behavior is required for sniffed
+     * on-wire packets in receiver logic.
+     */
 
     header->src_port = ntohs(*src_port_ptr);
     header->dst_port = ntohs(*dst_port_ptr);
     header->seq_num = ntohl(*seq_num_ptr);
-    header->flags = *data_offset_flags_ptr & 0x0F;
+    header->flags = *flags_ptr;
 
     return 20;
 }

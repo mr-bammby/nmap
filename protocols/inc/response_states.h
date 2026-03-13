@@ -17,9 +17,9 @@ typedef enum {
 
 /* What caused us to determine this state */
 typedef enum {
+    RESPONSE_NO_RESPONSE,      /* Timeout, no reply */
     RESPONSE_SYN_ACK,          /* SYN scan: got SYN/ACK */
     RESPONSE_RST,              /* Got TCP RST packet */
-    RESPONSE_NO_RESPONSE,      /* Timeout, no reply */
     RESPONSE_ICMP_UNREACHABLE, /* ICMP dest/port unreachable */
     RESPONSE_UDP_REPLY,        /* UDP scan: got UDP response */
     RESPONSE_ERROR             /* Local error (send failed, etc) */

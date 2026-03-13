@@ -48,7 +48,7 @@ int16_t icmp_header_encapsulate(uint8_t *buffer, uint16_t payload_length)
     return total_length;
 }
 
-uint16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header_t *header)
+int16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header_t *header)
 {
     if (buffer == NULL || header == NULL)
     {

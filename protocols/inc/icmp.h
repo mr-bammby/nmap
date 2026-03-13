@@ -25,4 +25,23 @@ typedef struct icmp_header {
  */
 int16_t icmp_header_init(uint8_t *buffer, uint8_t buffer_len, const icmp_header_t *header);
 
+/**
+ * Finalize ICMP header by setting checksum over header + payload.
+ *
+ * @param buffer Pointer to the ICMP header buffer.
+ * @param payload_length Length of payload in bytes.
+ * @return Total ICMP length (header + payload), or a negative error code.
+ */
+int16_t icmp_header_encapsulate(uint8_t *buffer, uint16_t payload_length);
+
+/**
+ * Parse an ICMP header from a buffer.
+ *
+ * @param buffer Pointer to buffer containing the ICMP header.
+ * @param buffer_len Length of the buffer in bytes.
+ * @param header Output structure for parsed fields.
+ * @return Number of bytes read, or a negative error code.
+ */
+int16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header_t *header);
+
 #endif // ICMP_H
