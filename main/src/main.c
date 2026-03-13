@@ -15,12 +15,10 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include "response_states.h"
-
-#define PORT_START 1
-#define PORT_END 150
+#include "scan_context.h"
 
 char *target_ip = "45.33.32.156";
-scan_result_t results[1024];
+scan_result_t results[RESULTS_CAPACITY];
 uint32_t g_link_header_len = 14;
 
 static int get_link_header_len(int datalink)
@@ -153,8 +151,20 @@ void send_syn(int sockfd, char *target_ip, int port, char *local_ip)
     }
 }
 
+int8_t udp_response_process(const uint8_t *transport)
+{
+    // For UDP, check if there is a response (open) or no response (filtered)
+    uint16_t port = ntohs(*(const uint16_t *)(transport + 2)); // Destination port
+    if (port < PORT_START || port > PORT_END)
+        return 0;
+
+    results[port - 1].state = PORT_STATE_OPEN;
+    results[port - 1].response = RESPONSE_UDP_REPLY;
+    return 1;
+}
+
 // --- Receiver Logic ---
-int process_packet(const unsigned char *packet, uint32_t packet_len)
+int8_t process_packet(const unsigned char *packet, uint32_t packet_len)
 {
     //g_link_header_len is the number of bytes in the link-layer (L2) header of captured packets.
     //Captured packets start with L2 header (Ethernet/Linux cooked/etc), not IP directly.
@@ -179,79 +189,19 @@ int process_packet(const unsigned char *packet, uint32_t packet_len)
     transport = (const uint8_t *)(packet + g_link_header_len + ip_hl);
     ip_payload_len = packet_len - g_link_header_len - (uint32_t)ip_hl;
 
-    if (ip_hdr.protocol == IPPROTO_TCP)
+    switch (ip_hdr.protocol)
     {
-        tcp_header_t tcp_hdr;
-        int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr);
-        if (tcp_len < 0)
-            return 0;
-
-        if (tcp_hdr.src_port < PORT_START || tcp_hdr.src_port > PORT_END)
-            return 0;
-
-        if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
-        {
-            results[tcp_hdr.src_port - 1].state = PORT_STATE_OPEN;
-            results[tcp_hdr.src_port - 1].response = RESPONSE_SYN_ACK;
-            return 1;
-        }
-        else if (tcp_hdr.flags & TCP_FLAG_RST)
-        {
-            results[tcp_hdr.src_port - 1].state = PORT_STATE_CLOSED;
-            results[tcp_hdr.src_port - 1].response = RESPONSE_RST;
-            return 1;
-        }
+    case IPPROTO_TCP:
+        return tcp_response_process(transport, ip_payload_len, &ip_hdr);
+    
+    case IPPROTO_ICMP:
+        return icmp_response_process(transport, ip_payload_len, &ip_hdr);
+    
+    case IPPROTO_UDP:
+        return udp_response_process(transport);
+    default:
+        return 0;
     }
-    else if (ip_hdr.protocol == IPPROTO_ICMP)
-    {
-        icmp_header_t icmp_hdr;
-        int16_t icmp_len = icmp_header_parse(transport, (uint8_t)ip_payload_len, &icmp_hdr);
-        if (icmp_len < 0)
-            return 0;
-
-        if (icmp_hdr.type == 3) // Destination Unreachable
-        {
-            ip_header_t inner_ip_hdr;
-            // The ICMP payload embeds the original IP header + first 8 bytes
-            // of the original transport header. The original destination port
-            // (probe target) sits at byte offset 2 of that embedded header.
-            const uint8_t *orig_ip = (const uint8_t *)(transport + ICMP_HEADER_LEN);
-            int16_t orig_ip_hl;
-
-            if (ip_payload_len < ICMP_HEADER_LEN + IP_MIN_HEADER_LEN + 4)
-                return 0;
-
-            orig_ip_hl = ip_header_parse(orig_ip,
-                                         (uint8_t)(ip_payload_len - ICMP_HEADER_LEN),
-                                         &inner_ip_hdr);
-            if (orig_ip_hl < 0)
-                return 0;
-
-            if (ip_payload_len < (uint32_t)(ICMP_HEADER_LEN + orig_ip_hl + 4))
-                return 0;
-
-            uint16_t port = ntohs(*(const uint16_t *)(transport + ICMP_HEADER_LEN + orig_ip_hl + 2));
-            if (port < PORT_START || port > PORT_END)
-                return 0;
-
-            results[port - 1].state = PORT_STATE_FILTERED;
-            results[port - 1].response = RESPONSE_ICMP_UNREACHABLE;
-            return 1;
-        }
-    }
-    else if (ip_hdr.protocol == IPPROTO_UDP)
-    {
-        // For UDP, check if there is a response (open) or no response (filtered)
-        uint16_t port = ntohs(*(const uint16_t *)(transport + 2)); // Destination port
-        if (port < PORT_START || port > PORT_END)
-            return 0;
-
-        results[port - 1].state = PORT_STATE_OPEN;
-        results[port - 1].response = RESPONSE_UDP_REPLY;
-        return 1;
-    }
-    fflush(stdout);
-    return 0;
 }
 
 // --- Initialize Results Array ---
@@ -336,15 +286,14 @@ int main()
     }
 
     int datalink = pcap_datalink(handle);
-    int link_header_len = get_link_header_len(datalink);
-    if (link_header_len < 0)
+    int g_link_header_len = (uint32_t)get_link_header_len(datalink);
+    if (g_link_header_len < 0)
     {
         fprintf(stderr, "Unsupported datalink type: %d\n", datalink);
         pcap_close(handle);
         close(sock);
         return 1;
     }
-    g_link_header_len = (uint32_t)link_header_len;
 
     pcap_setnonblock(handle, 1, errbuf);
 

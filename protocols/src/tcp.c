@@ -2,6 +2,8 @@
 #include "protocol_utils.h"
 #include <string.h>
 #include <netinet/in.h>
+#include "response_states.h"
+#include "scan_context.h"
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
@@ -77,4 +79,28 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     header->flags = *flags_ptr;
 
     return 20;
+}
+
+int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
+{
+    tcp_header_t tcp_hdr;
+    int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr);
+    if (tcp_len < 0)
+        return 0;
+
+    if (tcp_hdr.src_port < PORT_START || tcp_hdr.src_port > PORT_END)
+        return 0;
+
+    if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
+    {
+        results[tcp_hdr.src_port - 1].state = PORT_STATE_OPEN;
+        results[tcp_hdr.src_port - 1].response = RESPONSE_SYN_ACK;
+        return 1;
+    }
+    else if (tcp_hdr.flags & TCP_FLAG_RST)
+    {
+        results[tcp_hdr.src_port - 1].state = PORT_STATE_CLOSED;
+        results[tcp_hdr.src_port - 1].response = RESPONSE_RST;
+        return 1;
+    }
 }
