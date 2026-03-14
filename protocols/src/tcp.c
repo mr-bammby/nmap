@@ -81,6 +81,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     return 20;
 }
 
+//TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
 int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
 {
     tcp_header_t tcp_hdr;
@@ -93,14 +94,13 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
 
     if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
     {
-        results[tcp_hdr.src_port - 1].state = PORT_STATE_OPEN;
-        results[tcp_hdr.src_port - 1].response = RESPONSE_SYN_ACK;
+        results[tcp_hdr.src_port - 1].response_syn = RESPONSE_SYN_ACK;
         return 1;
     }
     else if (tcp_hdr.flags & TCP_FLAG_RST)
     {
-        results[tcp_hdr.src_port - 1].state = PORT_STATE_CLOSED;
-        results[tcp_hdr.src_port - 1].response = RESPONSE_RST;
+
+        results[tcp_hdr.src_port - 1].response_syn = RESPONSE_RST;
         return 1;
     }
 }

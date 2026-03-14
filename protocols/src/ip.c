@@ -83,26 +83,12 @@ int16_t ip_header_parse(const uint8_t *buffer, uint8_t buffer_len, ip_header_t *
     {
         return IP_ERR_BUFFER_TOO_SMALL;
     }
-
-    // Verify checksum before parsing
-    uint16_t original_checksum = ntohs(*ip_hdr_checksum);
     
-    // Temporarily zero checksum for verification calculation
-    // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
-    uint8_t buffer_copy[60] = {0};
-    memcpy(buffer_copy, buffer, ihl);
-    uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 10);
-    *checksum_ptr_temp = 0;
-    uint16_t calc_checksum = checksum(buffer_copy, ihl, 0);
-    
-    if (calc_checksum != original_checksum)
-    {
-        /*
-         * Captured packets can present checksum mismatches because of NIC/
-         * kernel offload. Parse the header anyway so receiver logic can still
-         * inspect protocol/src/dst fields.
-         */
-    }
+    /*
+    * Captured packets can present checksum mismatches because of NIC/
+    * kernel offload. Parse the header anyway so receiver logic can still
+    * inspect protocol/src/dst fields. Therefore no checksum validation needed.
+    */
 
     header->id = ntohs(*ip_hdr_id);
     header->protocol = *ip_hdr_protocol;

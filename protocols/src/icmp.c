@@ -75,6 +75,7 @@ int16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header
     return ICMP_HEADER_LEN;
 }
 
+//TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
 int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
 {
     icmp_header_t icmp_hdr;
@@ -107,8 +108,7 @@ int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, con
         if (port < PORT_START || port > PORT_END)
             return 0;
 
-        results[port - 1].state = PORT_STATE_FILTERED;
-        results[port - 1].response = RESPONSE_ICMP_UNREACHABLE;
+        results[port - 1].response_syn = RESPONSE_ICMP_UNREACHABLE;
         return 1;
     }
 }

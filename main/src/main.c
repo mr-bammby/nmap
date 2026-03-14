@@ -151,6 +151,7 @@ void send_syn(int sockfd, char *target_ip, int port, char *local_ip)
     }
 }
 
+//TODO Move to UDP Protocol File
 int8_t udp_response_process(const uint8_t *transport)
 {
     // For UDP, check if there is a response (open) or no response (filtered)
@@ -158,8 +159,7 @@ int8_t udp_response_process(const uint8_t *transport)
     if (port < PORT_START || port > PORT_END)
         return 0;
 
-    results[port - 1].state = PORT_STATE_OPEN;
-    results[port - 1].response = RESPONSE_UDP_REPLY;
+    results[port - 1].response_udp = RESPONSE_UDP_REPLY;
     return 1;
 }
 
@@ -211,8 +211,12 @@ void initialize_results(scan_result_t *results, int size)
     {
         results[i].port = i + 1;
         results[i].protocol = 0;
-        results[i].state = PORT_STATE_INITIAL;
-        results[i].response = 0;
+        results[i].response_syn = RESPONSE_NOT_EXPECTED;
+        results[i].response_null = RESPONSE_NOT_EXPECTED;
+        results[i].response_ack = RESPONSE_NOT_EXPECTED;
+        results[i].response_fin = RESPONSE_NOT_EXPECTED;
+        results[i].response_xmas = RESPONSE_NOT_EXPECTED;
+        results[i].response_udp = RESPONSE_NOT_EXPECTED;
     }
 }
 
@@ -220,14 +224,13 @@ void initialize_results(scan_result_t *results, int size)
 void print_results(scan_result_t *results, int start, int end)
 {
     const char *state_strings[] = {
-        "INITIAL",
-        "FILTERED/CONTACTED",
-        "OPEN",
-        "CLOSED",
-        "FILTERED",
-        "OPEN/FILTERED",
-        "UNFILTERED",
-        "UNKNOWN"
+        [RESPONSE_NOT_EXPECTED] = "NOT SCANNED",
+        [RESPONSE_NO_RESPONSE] = "FILTERED",
+        [RESPONSE_SYN_ACK] = "OPEN",
+        [RESPONSE_RST] = "CLOSED",
+        [RESPONSE_ICMP_UNREACHABLE] = "FILTERED",
+        [RESPONSE_UDP_REPLY] = "OPEN/FILTERED",
+        [RESPONSE_ERROR] = "UNKNOWN"
     };
     
     printf("\n%-6s | %s\n", "PORT", "STATE");
@@ -235,10 +238,10 @@ void print_results(scan_result_t *results, int start, int end)
     
     for (int i = start; i < end; i++)
     {
-        // Only print ports that have been scanned (not in INITIAL state)
-        if (results[i].state != PORT_STATE_INITIAL && results[i].state != PORT_STATE_CLOSED)
+        // Only print ports that have been scanned
+        if (results[i].response_syn != RESPONSE_NOT_EXPECTED && results[i].response_syn != RESPONSE_RST)
         {
-            printf("%-6d | %s\n", results[i].port, state_strings[results[i].state]);
+            printf("%-6d | %s\n", results[i].port, state_strings[results[i].response_syn]);
         }
     }
 }
@@ -286,7 +289,7 @@ int main()
     }
 
     int datalink = pcap_datalink(handle);
-    int g_link_header_len = (uint32_t)get_link_header_len(datalink);
+    g_link_header_len = (uint32_t)get_link_header_len(datalink);
     if (g_link_header_len < 0)
     {
         fprintf(stderr, "Unsupported datalink type: %d\n", datalink);
@@ -306,11 +309,11 @@ int main()
     {
         send_syn(sock, target_ip, port, local_ip);
         //printf("Sent SYN to %d... ", port);
-        results[port - 1].state = PORT_STATE_CONTACTED;
+        results[port - 1].response_syn = RESPONSE_NO_RESPONSE;
         fflush(stdout);
 
         int attempts = 0;
-        while (attempts < 400)
+        while (attempts < 500)
         {
             // 500ms wait per port
             struct pcap_pkthdr *header;
@@ -321,21 +324,12 @@ int main()
                 if (process_packet(packet, header->caplen))
                     break;
             }
-            usleep(800); 
+            usleep(500); 
             attempts++;
         }
         printf("Done for port %d.\n", port);
     }
-    for (int port = PORT_START; port <= PORT_END; port++)
-    {
-        if (results[port - 1].state == PORT_STATE_INITIAL ||
-            results[port - 1].state == PORT_STATE_CONTACTED)
-        {
-            results[port - 1].state = PORT_STATE_OPEN_FILTERED;
-            results[port - 1].response = RESPONSE_NO_RESPONSE;
-            //printf("[?] Port %d is FILTERED (no response)\n", port);
-        }
-    }
+
     print_results(results, PORT_START - 1, PORT_END);
     pcap_close(handle);
     close(sock);
