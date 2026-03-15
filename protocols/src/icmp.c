@@ -42,7 +42,7 @@ int16_t icmp_header_encapsulate(uint8_t *buffer, uint16_t payload_length)
     
     *icmp_checksum = 0; // Reset checksum before calculation
     uint16_t total_length = ICMP_HEADER_LEN + payload_length;
-    uint16_t calc_checksum = checksum(buffer, total_length, 0);
+    uint16_t calc_checksum = checksum_final(buffer, total_length, 0);
     *icmp_checksum = htons(calc_checksum);
 
     return total_length;

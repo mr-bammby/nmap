@@ -1,5 +1,6 @@
 #include "tcp.h"
 #include "protocol_utils.h"
+#include "ip.h"
 #include <string.h>
 #include <netinet/in.h>
 
@@ -9,15 +10,40 @@
 #define TCP_DEFAULT_ACK_NUM 0
 #define TCP_DEFAULT_URGENT_PTR 0
 
+typedef struct {
+    uint32_t src_ip;
+    uint32_t dst_ip;
+    uint8_t reserved;
+    uint8_t protocol;
+    uint16_t tcp_length;
+} tcp_pseudo_header_t;
 
-int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_t *header)
+int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length, const ip_header_t *ip_header)
 {
-    if (buffer == NULL || header == NULL)
+    tcp_pseudo_header_t pseudo_header;
+    pseudo_header.src_ip = ip_header->src;
+    pseudo_header.dst_ip = ip_header->dst;
+    pseudo_header.reserved = 0;
+    pseudo_header.protocol = ip_header->protocol;
+    pseudo_header.tcp_length = htons(tcp_length * 4); // TCP length in bytes
+
+    // Calculate checksum over pseudo-header and TCP segment
+    uint32_t sum_accum = 0;
+    uint16_t sum_final;
+    sum_accum = checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
+    sum_final = checksum_final(tcp_segment, tcp_length * 4, sum_accum);
+    
+    return sum_final;
+}
+
+int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_t *tcp_header, const ip_header_t *ip_header, const uint32_t *payload, uint16_t payload_len)
+{
+    if (buffer == NULL || tcp_header == NULL || ip_header == NULL)
     {
         return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < 20)
+    if (buffer_len < (20 + payload_len * 4)) // Minimum TCP header + payload
     {
         return TCP_ERR_BUFFER_TOO_SMALL; // Buffer too small for minimum TCP header
     }
@@ -26,30 +52,34 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     uint16_t *dst_port_ptr = (uint16_t *)(buffer + 2);
     uint32_t *seq_num_ptr = (uint32_t *)(buffer + 4);
     uint32_t *ack_num_ptr = (uint32_t *)(buffer + 8);
-    uint8_t *data_offset_flags_ptr = buffer + 12;
+    uint16_t *data_offset_flags_ptr = (uint16_t *)(buffer + 12);
     uint16_t *window_ptr = (uint16_t *)(buffer + 14);
     uint16_t *checksum_ptr = (uint16_t *)(buffer + 16);
     uint16_t *urgent_ptr = (uint16_t *)(buffer + 18);
 
-    *src_port_ptr = htons(header->src_port);
-    *dst_port_ptr = htons(header->dst_port);
-    *seq_num_ptr = htonl(header->seq_num);
-    *ack_num_ptr = htonl((header->flags & TCP_FLAG_ACK) ? TCP_DEFAULT_ACK_NUM : 0);
-    *data_offset_flags_ptr = (TCP_DATA_OFFSET << 4) | header->flags;
+    *src_port_ptr = htons(tcp_header->src_port);
+    *dst_port_ptr = htons(tcp_header->dst_port);
+    *seq_num_ptr = htonl(tcp_header->seq_num);
+    *ack_num_ptr = htonl((tcp_header->flags & TCP_FLAG_ACK) ? TCP_DEFAULT_ACK_NUM : 0);
+    *data_offset_flags_ptr = htons(((TCP_DATA_OFFSET + payload_len) << 12) | (tcp_header->flags & 0x00FF));
     *window_ptr = htons(TCP_WINDOW_SIZE);
     *checksum_ptr = 0;  // Temporarily zero for checksum calculation
-    *urgent_ptr = htons((header->flags & TCP_FLAG_URG) ? TCP_DEFAULT_URGENT_PTR : 0);
+    *urgent_ptr = htons((tcp_header->flags & TCP_FLAG_URG) ? TCP_DEFAULT_URGENT_PTR : 0);
 
-    // Calculate and set checksum
-    uint16_t calc_checksum = checksum(buffer, 20, 0);
-    *checksum_ptr = htons(calc_checksum);
+    if (payload && payload_len > 0)
+    {
+        memcpy(buffer + 20, payload, payload_len * 4); // Copy payload after TCP header
+    }
 
-    return 20;
+    uint16_t calc_checksum = tcp_checksum(buffer, 5 + payload_len, ip_header);
+    *checksum_ptr = calc_checksum;
+
+    return 20 + payload_len * 4; // Total length of TCP header + payload
 }
 
-int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *header)
+int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *tcp_header, ip_header_t *ip_header)
 {
-    if (buffer == NULL || header == NULL)
+    if (buffer == NULL || tcp_header == NULL || ip_header == NULL)
     {
         return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
@@ -77,17 +107,17 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     uint16_t calc_checksum;
     *checksum_ptr_temp = 0;
     
-    calc_checksum = checksum(buffer_copy, 20, 0);
+    calc_checksum = tcp_checksum(buffer_copy, buffer_len, ip_header);
     
     if (calc_checksum != stored_checksum)
     {
         return TCP_ERR_CHECKSUM;  // Checksum verification failed
     }
 
-    header->src_port = ntohs(*src_port_ptr);
-    header->dst_port = ntohs(*dst_port_ptr);
-    header->seq_num = ntohl(*seq_num_ptr);
-    header->flags = *data_offset_flags_ptr & 0x0F;
+    tcp_header->src_port = ntohs(*src_port_ptr);
+    tcp_header->dst_port = ntohs(*dst_port_ptr);
+    tcp_header->seq_num = ntohl(*seq_num_ptr);
+    tcp_header->flags = *data_offset_flags_ptr & 0x0F;
 
     return 20;
 }

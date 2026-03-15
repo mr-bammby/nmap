@@ -15,6 +15,16 @@
 
 #define NUMBER_OF_SCAN_TYPES 6
 
+static const char *const valid_tokens[6] =
+    {
+        "SYN",
+        "ACK",
+        "NULL",
+        "FIN",
+        "XMAS",
+        "UDP"
+    };
+
 // --- Helper: Get Local IP for Checksum ---
 char* get_local_ip(const char *iface_name)
 {
@@ -43,30 +53,6 @@ char* get_local_ip(const char *iface_name)
     }
     freeifaddrs(ifaddr);
     return NULL;
-}
-
-// --- Helper: Checksum Calculation ---
-unsigned short calculate_checksum(unsigned short *ptr, int nbytes)
-{
-    long sum = 0;
-    unsigned short oddbyte;
-    unsigned short answer;
-
-    while (nbytes > 1)
-    {
-        sum += *ptr++;
-        nbytes -= 2;
-    }
-    if (nbytes == 1)
-    {
-        oddbyte = 0;
-        *((u_char *)&oddbyte) = *(u_char *)ptr;
-        sum += oddbyte;
-    }
-    sum = (sum >> 16) + (sum & 0xffff);
-    sum += (sum >> 16);
-    answer = (unsigned short)~sum;
-    return answer;
 }
 
 struct pseudo_header
@@ -100,6 +86,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     tcp_header.src_port = rand() % 65536;
     tcp_header.dst_port = port;
     tcp_header.seq_num = rand() % 4294967296;
+    uint32_t payload[1] = {0xb4050402}; // Example payload for SYN+ACK response
     switch (scan_type)
     {
         case SCAN_FLG_SYN:
@@ -122,7 +109,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
             return;
             break;
     }
-    int16_t tcp_packet_len = tcp_packet_create(packet, sizeof(packet), &ip_header, &tcp_header);
+    int16_t tcp_packet_len = tcp_packet_create(packet, sizeof(packet), &ip_header, &tcp_header, payload, 1);
     if (tcp_packet_len < 0)
     {
         perror("Packet creation failed");
@@ -136,6 +123,8 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
         perror("sendto failed");
     }
 }
+
+int offset = 0;
 
 // --- Receiver Logic ---
 void process_packet(const u_char *packet)
@@ -174,16 +163,16 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     char *device_name;
     char *local_ip;
 
-    if (scans != SCAN_FLG_SYN)
-    {
-        fprintf(stderr, "Only SYN scan is supported in current single-threaded implementation.\n");
-        return 1;
-    }
-
     sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     if (sock < 0)
     {
         perror("Socket error"); return 1;
+    }
+    int one = 1;
+    const int *val = &one;
+    if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0) {
+        perror("Error setting IP_HDRINCL");
+        exit(1);
     }
 
     if (pcap_findalldevs(&alldevs, errbuf) == -1)
@@ -210,6 +199,14 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     }
     pcap_setnonblock(handle, 1, errbuf);
 
+    int link_type = pcap_datalink(handle);
+
+    if (link_type == DLT_EN10MB) {
+        offset = 14; // Standard Ethernet
+    } else if (link_type == DLT_NULL) {
+        offset = 4;  // Loopback (lo)
+    }
+
     char filter[100];
     sprintf(filter, "(src host %s) or icmp", target_ip);
     pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
@@ -223,7 +220,7 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
             {
                 if (scans & (1 << scan_i))
                 {
-                    printf("Scanning port %d with scan type %d...\n", port_i, scan_i);
+                    printf("Scanning port %d with scan type %s...\n", port_i, valid_tokens[scan_i]);
                     fflush(stdout);
                     send_packet(sock, target_ip, port_i, local_ip, 1 << scan_i);
                     for (int attempt = 0; attempt < 500; attempt++)

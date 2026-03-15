@@ -12,7 +12,8 @@
  * @param start_val Initial checksum value (usually 0)
  * @return Calculated 16-bit checksum value
  */
-uint16_t checksum(const void *data, uint32_t len, uint16_t start_val);
+uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val);
+uint16_t checksum_final(const void *data, uint32_t len, uint32_t start_val);
 
 /**
  * Print byte data in hexadecimal format

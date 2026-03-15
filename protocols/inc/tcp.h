@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h> 
 #include <inttypes.h>
+#include "ip.h"
 
 /* TCP Flag definitions */
 #define TCP_FLAG_FIN 0x01
@@ -42,8 +43,7 @@ typedef struct {
 * @param header Pointer to the tcp_header_t structure containing header fields.
 * @return Number of bytes written to the buffer, or a negative error code.
 */
-int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_t *header);
-
+int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_t *tcp_header, const ip_header_t *ip_header, const uint32_t *payload, uint16_t payload_len);
 /**
 * Parse a TCP header from the provided buffer.
 *
@@ -52,6 +52,5 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
 * @param header Pointer to the tcp_header_t structure where parsed fields will be stored.
 * @return Number of bytes read from the buffer, or a negative error code.
 */
-int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *header);
-
+int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *tcp_header, ip_header_t *ip_header);
 #endif // TCP_H
