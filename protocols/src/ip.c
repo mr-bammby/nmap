@@ -3,6 +3,9 @@
 #include <arpa/inet.h>
 #include <ip.h>
 #include <protocol_utils.h>
+#include "scan_context.h"
+
+scan_result_t results[RESULTS_CAPACITY];
 
 int16_t ip_header_init(uint8_t *buffer, uint8_t buffer_len, const ip_header_t *header)
 {
@@ -72,32 +75,28 @@ int16_t ip_header_parse(const uint8_t *buffer, uint8_t buffer_len, ip_header_t *
         return IP_ERR_BUFFER_TOO_SMALL;
     }
 
-    uint16_t *ip_hdr_id = (uint16_t *)(buffer + 4);
-    uint8_t *ip_hdr_protocol = (uint8_t *)(buffer + 9);
-    uint16_t *ip_hdr_checksum = (uint16_t *)(buffer + 10);
-    uint32_t *ip_hdr_src = (uint32_t *)(buffer + 12);
-    uint32_t *ip_hdr_dst = (uint32_t *)(buffer + 16);
+    const uint16_t *ip_hdr_id = (const uint16_t *)(buffer + 4);
+    const uint8_t *ip_hdr_protocol = (const uint8_t *)(buffer + 9);
+    const uint16_t *ip_hdr_checksum = (const uint16_t *)(buffer + 10);
+    const uint32_t *ip_hdr_src = (const uint32_t *)(buffer + 12);
+    const uint32_t *ip_hdr_dst = (const uint32_t *)(buffer + 16);
+    uint8_t ihl = (buffer[0] & 0x0F) * 4;
 
-    // Verify checksum before parsing
-    uint16_t original_checksum = ntohs(*ip_hdr_checksum);
-    
-    // Temporarily zero checksum for verification calculation
-    // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
-    uint8_t buffer_copy[IP_MIN_HEADER_LEN];
-    memcpy(buffer_copy, buffer, IP_MIN_HEADER_LEN);
-    uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 10);
-    *checksum_ptr_temp = 0;
-    uint16_t calc_checksum = checksum_final(buffer_copy, IP_MIN_HEADER_LEN, 0);
-    
-    if (calc_checksum != original_checksum)
+    if (ihl < IP_MIN_HEADER_LEN || buffer_len < ihl)
     {
-        return IP_ERR_CHECKSUM;  // Checksum verification failed
+        return IP_ERR_BUFFER_TOO_SMALL;
     }
+    
+    /*
+    * Captured packets can present checksum mismatches because of NIC/
+    * kernel offload. Parse the header anyway so receiver logic can still
+    * inspect protocol/src/dst fields. Therefore no checksum validation needed.
+    */
 
     header->id = ntohs(*ip_hdr_id);
     header->protocol = *ip_hdr_protocol;
     header->src = ntohl(*ip_hdr_src);
     header->dst = ntohl(*ip_hdr_dst);
 
-    return IP_MIN_HEADER_LEN;
+    return ihl;
 }
