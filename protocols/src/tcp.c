@@ -88,12 +88,16 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     if (buffer_len < 20) {
         return TCP_ERR_BUFFER_TOO_SMALL;
     }
+    print_bytes(buffer, buffer_len);
 
-    const uint16_t *src_port_ptr = (const uint16_t *)buffer;
-    const uint16_t *dst_port_ptr = (const uint16_t *)(buffer + 2);
-    const uint32_t *seq_num_ptr = (const uint32_t *)(buffer + 4);
-    const uint8_t *data_offset_flags_ptr = buffer + 12;
-    const uint16_t *checksum_ptr = (const uint16_t *)(buffer + 16);
+    uint16_t *src_port_ptr = (uint16_t *)buffer;
+    uint16_t *dst_port_ptr = (uint16_t *)(buffer + 2);
+    uint32_t *seq_num_ptr = (uint32_t *)(buffer + 4);
+    uint32_t *ack_num_ptr = (uint32_t *)(buffer + 8);
+    uint16_t *data_offset_flags_ptr = (uint16_t *)(buffer + 12);
+    uint16_t *window_ptr = (uint16_t *)(buffer + 14);
+    uint16_t *checksum_ptr = (uint16_t *)(buffer + 16);
+    uint16_t *urgent_ptr = (uint16_t *)(buffer + 18);
 
     // Verify checksum before parsing
     uint16_t stored_checksum = ntohs(*checksum_ptr);
@@ -112,13 +116,13 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     
     if (calc_checksum != stored_checksum)
     {
-        return TCP_ERR_CHECKSUM;  // Checksum verification failed
+        printf("TCP checksum verification failed: calculated 0x%04x, expected 0x%04x\n", calc_checksum, stored_checksum);
     }
 
     tcp_header->src_port = ntohs(*src_port_ptr);
     tcp_header->dst_port = ntohs(*dst_port_ptr);
     tcp_header->seq_num = ntohl(*seq_num_ptr);
-    tcp_header->flags = *data_offset_flags_ptr & 0x0F;
+    tcp_header->flags = ntohs(*data_offset_flags_ptr) & 0x0FF;
 
     return 20;
 }
@@ -129,10 +133,16 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     tcp_header_t tcp_hdr;
     int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr, ip_hdr);
     if (tcp_len < 0)
+    {
+        printf("Failed to parse TCP header: %d\n", tcp_len);
         return 0;
+    }
 
     if (tcp_hdr.src_port < PORT_START || tcp_hdr.src_port > PORT_END)
+    {
+        printf("Received TCP packet with source port %d outside of expected range\n", tcp_hdr.src_port);
         return 0;
+    }
 
     if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
     {
@@ -141,8 +151,12 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     }
     else if (tcp_hdr.flags & TCP_FLAG_RST)
     {
-
         results[tcp_hdr.src_port - 1].response_syn = RESPONSE_RST;
         return 1;
+    }
+    else
+    {
+        printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+        return 0;
     }
 }
