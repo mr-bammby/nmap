@@ -309,7 +309,7 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
     pcap_setfilter(handle, &fp);
 
-    for (int port_i = 0; port_i < NUMBER_OF_PORTS; port_i++)
+    for (int port_i = 1; port_i < NUMBER_OF_PORTS; port_i++)
     {
         if (ports[port_i / 8] & (1 << (port_i % 8)))
         {

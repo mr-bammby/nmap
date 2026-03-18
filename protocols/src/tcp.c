@@ -28,10 +28,17 @@ int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length, const ip_h
     pseudo_header.protocol = ip_header->protocol;
     pseudo_header.tcp_length = htons(tcp_length * 4); // TCP length in bytes
 
+    printf("Calculating TCP checksum with pseudo-header: src_ip=%s, dst_ip=%s, protocol=%d, tcp_length=%d\n",
+           inet_ntoa(*(struct in_addr *)&pseudo_header.src_ip),
+           inet_ntoa(*(struct in_addr *)&pseudo_header.dst_ip),
+           pseudo_header.protocol,
+           tcp_length * 4);
+
     // Calculate checksum over pseudo-header and TCP segment
     uint32_t sum_accum = 0;
     uint16_t sum_final;
     sum_accum = checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
+    printf("Pseudo-header checksum accumulation: 0x%08x\n", sum_accum);
     sum_final = checksum_final(tcp_segment, tcp_length * 4, sum_accum);
     
     return sum_final;

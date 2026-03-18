@@ -72,7 +72,7 @@ int16_t ip_header_parse(const uint8_t *buffer, uint8_t buffer_len, ip_header_t *
     if (buffer_len < IP_MIN_HEADER_LEN) {
         return IP_ERR_BUFFER_TOO_SMALL;
     }
-
+    print_bytes(buffer, buffer_len);
     const uint16_t *ip_hdr_id = (const uint16_t *)(buffer + 4);
     const uint8_t *ip_hdr_protocol = (const uint8_t *)(buffer + 9);
     const uint16_t *ip_hdr_checksum = (const uint16_t *)(buffer + 10);
