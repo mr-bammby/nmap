@@ -28,17 +28,10 @@ int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length, const ip_h
     pseudo_header.protocol = ip_header->protocol;
     pseudo_header.tcp_length = htons(tcp_length * 4); // TCP length in bytes
 
-    printf("Calculating TCP checksum with pseudo-header: src_ip=%s, dst_ip=%s, protocol=%d, tcp_length=%d\n",
-           inet_ntoa(*(struct in_addr *)&pseudo_header.src_ip),
-           inet_ntoa(*(struct in_addr *)&pseudo_header.dst_ip),
-           pseudo_header.protocol,
-           tcp_length * 4);
-
     // Calculate checksum over pseudo-header and TCP segment
     uint32_t sum_accum = 0;
     uint16_t sum_final;
     sum_accum = checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
-    printf("Pseudo-header checksum accumulation: 0x%08x\n", sum_accum);
     sum_final = checksum_final(tcp_segment, tcp_length * 4, sum_accum);
     
     return sum_final;
@@ -95,7 +88,6 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     if (buffer_len < 20) {
         return TCP_ERR_BUFFER_TOO_SMALL;
     }
-    print_bytes(buffer, buffer_len);
 
     uint16_t *src_port_ptr = (uint16_t *)buffer;
     uint16_t *dst_port_ptr = (uint16_t *)(buffer + 2);
@@ -111,7 +103,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     
     // Temporarily zero checksum for verification calculation
     // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
-    uint8_t buffer_copy[20] = {0};
+    uint8_t buffer_copy[256] = {0};
     
     memcpy(buffer_copy, buffer, 20);
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
@@ -138,7 +130,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
 int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
 {
     tcp_header_t tcp_hdr;
-    int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr, ip_hdr);
+    int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len/4, &tcp_hdr, ip_hdr); // ip_payload_len is in bytes, tcp_header_parse expects length in 32-bit words
     if (tcp_len < 0)
     {
         printf("Failed to parse TCP header: %d\n", tcp_len);
