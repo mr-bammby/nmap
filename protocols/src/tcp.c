@@ -85,7 +85,8 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
         return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < 20) {
+    if (buffer_len < TCP_HEADER_SIZE)
+    {
         return TCP_ERR_BUFFER_TOO_SMALL;
     }
 
@@ -113,7 +114,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     
     calc_checksum = tcp_checksum(buffer_copy, buffer_len, ip_header);
     
-    if (calc_checksum != stored_checksum)
+    if (calc_checksum != 0 && calc_checksum != original_checksum)
     {
         printf("TCP checksum verification failed: calculated 0x%04x, expected 0x%04x\n", calc_checksum, stored_checksum);
     }
