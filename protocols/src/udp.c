@@ -1,9 +1,10 @@
 #include "udp.h"
+#include "ip.h"
 #include "protocol_utils.h"
 #include <string.h>
 #include <netinet/in.h>
 
-#define UDP_HEADER_SIZE 8
+
 
 int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_t *header)
 {
@@ -28,7 +29,7 @@ int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_
     *checksum_ptr = 0;  // Temporarily zero for checksum calculation
 
     // Calculate and set checksum
-    uint16_t calc_checksum = checksum(buffer, 8, 0);
+    uint16_t calc_checksum = checksum_final(buffer, 8, 0);
     *checksum_ptr = htons(calc_checksum);
 
     return UDP_HEADER_SIZE;
@@ -53,7 +54,7 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
     header->src_port = ntohs(*src_port_ptr);
     header->dst_port = ntohs(*dst_port_ptr);
     header->length = ntohs(*length_ptr);
-    header->checksum = ntohs(*checksum_ptr);
+
 
     // Temporarily zero checksum for verification calculation
     // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
@@ -64,7 +65,7 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
 
     memcpy(buffer_copy, buffer, UDP_HEADER_SIZE);
     *checksum_ptr_temp = 0;  // Temporarily zero checksum for verification
-    calc_checksum = checksum(buffer_copy, UDP_HEADER_SIZE, 0);
+    calc_checksum = checksum_final(buffer_copy, UDP_HEADER_SIZE, 0);
 
     if (calc_checksum != 0 && calc_checksum != original_checksum)
     {

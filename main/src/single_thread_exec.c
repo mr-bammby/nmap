@@ -13,6 +13,7 @@
 #include "tcp.h"
 #include "exec.h"
 #include "icmp.h"
+#include "udp.h"
 #include "scan_context.h"
 
 scan_result_t results[RESULTS_CAPACITY];
@@ -90,54 +91,82 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     uint8_t packet[128];
     ip_header_t ip_header;
     tcp_header_t tcp_header;
+    udp_header_t udp_header;
+    int16_t packet_len;
 
     struct sockaddr_in sin;
 
     memset(packet, 0, 128);
     ip_header.id = htons(rand() % 65536);
-    ip_header.protocol = IPPROTO_TCP;
     ip_header.src = inet_addr(local_ip);
     ip_header.dst = inet_addr(target_ip);
     sin.sin_family = AF_INET;
     sin.sin_port = htons(port);
     sin.sin_addr.s_addr = inet_addr(target_ip);
 
-    tcp_header.src_port = rand() % 65536;
-    tcp_header.dst_port = port;
-    tcp_header.seq_num = rand() % 4294967296;
     uint32_t payload[1] = {0xb4050402}; // Example payload for SYN+ACK response
     switch (scan_type)
     {
         case SCAN_FLG_SYN:
+            ip_header.protocol = IPPROTO_TCP;
             tcp_header.flags = TCP_FLAG_SYN;
             break;
         case SCAN_FLG_ACK:
+            ip_header.protocol = IPPROTO_TCP;
             tcp_header.flags = TCP_FLAG_ACK;
             break;
         case SCAN_FLG_NULL:
+            ip_header.protocol = IPPROTO_TCP;
             tcp_header.flags = 0;
             break;
         case SCAN_FLG_FIN:
+            ip_header.protocol = IPPROTO_TCP;
             tcp_header.flags = TCP_FLAG_FIN;
             break;
         case SCAN_FLG_XMAS:
+            ip_header.protocol = IPPROTO_TCP;
             tcp_header.flags = TCP_FLAG_FIN | TCP_FLAG_PSH | TCP_FLAG_URG;
+            break;
+        case SCAN_FLG_UDP:
+            ip_header.protocol = IPPROTO_UDP;
             break;
         default:
             perror("Unsupported scan type");
             return;
             break;
     }
-    int16_t tcp_packet_len = tcp_packet_create(packet, sizeof(packet), &ip_header, &tcp_header, payload, 1);
-    if (tcp_packet_len < 0)
+    if (ip_header.protocol == IPPROTO_UDP)
     {
-        perror("Packet creation failed");
-        return;
+        udp_header.src_port = rand() % 65536;
+        udp_header.dst_port = port;
+        udp_header.length = UDP_HEADER_SIZE;
+        int16_t udp_packet_len = udp_packet_create(packet, sizeof(packet), &ip_header, &udp_header, payload, sizeof(payload));
+        if (udp_packet_len < 0)        {
+            perror("Packet creation failed");
+            return;
+        }
+        packet_len = udp_packet_len;
     }
+    else
+    {
+        tcp_header.src_port = rand() % 65536;
+        tcp_header.dst_port = port;
+        tcp_header.seq_num = rand() % 4294967296;
+        
+        int16_t tcp_packet_len = tcp_packet_create(packet, sizeof(packet), &ip_header, &tcp_header, payload, 1);
+        if (tcp_packet_len < 0)
+        {
+            perror("Packet creation failed");
+            return;
+        }
+
+        packet_len = tcp_packet_len;
+    }
+    
 
      // Prepare pseudo header for checksum
 
-    if (sendto(sockfd, packet, tcp_packet_len, 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
+    if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
     {
         perror("sendto failed");
     }
@@ -252,7 +281,6 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     pcap_if_t *alldevs;
     char *device_name;
     char *local_ip;
-
 
     // Initialize results array
     initialize_results(results, PORT_END + 1);

@@ -8,6 +8,8 @@
 #define UDP_ERR_CHECKSUM -2
 #define UDP_ERR_INVALID_ARGUMENT -3
 
+#define UDP_HEADER_SIZE 8
+
 /**
  * UDP Header structure
  *
@@ -20,7 +22,6 @@ typedef struct {
     uint16_t src_port;
     uint16_t dst_port;
     uint16_t length;
-    uint16_t checksum;
 } udp_header_t;
 
 /**

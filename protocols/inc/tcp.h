@@ -20,6 +20,8 @@
 #define TCP_ERR_CHECKSUM -2
 #define TCP_ERR_INVALID_ARGUMENT -3
 
+#define TCP_HEADER_SIZE 20
+
 /**
  * TCP Header structure
  * 
