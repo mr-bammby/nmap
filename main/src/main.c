@@ -123,7 +123,13 @@ int main(int argc, const char *argv[])
         #ifndef DEBUG_ARGUMENTS
         main_argumnts(argc, argv, parse_result, &params);
         #endif
-        return (parse_result == PARSE_HELP_REQUEST) ? EXIT_SUCCESS : EXIT_FAILURE;
+        if (parse_result == PARSE_HELP_REQUEST)
+        {
+            display_help();
+            return EXIT_SUCCESS;
+        }
+
+        return EXIT_FAILURE;
     }
     else
     {
