@@ -21,6 +21,9 @@ uint32_t g_link_header_len = 14;
 
 #define NUMBER_OF_SCAN_TYPES 6
 
+#define COOKIE_MAKE(scan_id, port) \
+    ((COOKIE_MAGIC << 16) | (((uint32_t)(scan_id) & 0x7) << 13) | ((port) & 0x1FFF))
+
 static const char *const valid_tokens[6] =
     {
         "SYN",
@@ -174,18 +177,6 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
 
 int offset = 0;
 
-//TODO Move to UDP Protocol File
-int8_t udp_response_process(const uint8_t *transport)
-{
-    // For UDP, check if there is a response (open) or no response (filtered)
-    uint16_t port = ntohs(*(const uint16_t *)(transport + 2)); // Destination port
-    if (port < PORT_START || port > PORT_END)
-        return 0;
-
-    results[port - 1].response_udp = RESPONSE_UDP_REPLY;
-    return 1;
-}
-
 // --- Receiver Logic ---
 int8_t process_packet(const unsigned char *packet, uint32_t packet_len)
 {
@@ -259,6 +250,7 @@ void print_results(scan_result_t *results, int start, int end)
         [RESPONSE_ERROR] = "UNKNOWN"
     };
     
+    printf("\n***** SYN *****\n");
     printf("\n%-6s | %s\n", "PORT", "STATE");
     printf("-------|----------------\n");
     
@@ -268,6 +260,19 @@ void print_results(scan_result_t *results, int start, int end)
         if (results[i].response_syn != RESPONSE_NOT_EXPECTED && results[i].response_syn != RESPONSE_RST)
         {
             printf("%-6d | %s\n", results[i].port, state_strings[results[i].response_syn]);
+        }
+    }
+
+    printf("\n***** ACK *****\n");
+    printf("\n%-6s | %s\n", "PORT", "STATE");
+    printf("-------|----------------\n");
+    
+    for (int i = start; i < end; i++)
+    {
+        // Only print ports that have been scanned
+        if (results[i].response_ack != RESPONSE_NOT_EXPECTED && results[i].response_ack != RESPONSE_RST)
+        {
+            printf("%-6d | %s\n", results[i].port, state_strings[results[i].response_ack]);
         }
     }
 }
@@ -353,7 +358,7 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
                     {
                         // 500ms wait per port
                         struct pcap_pkthdr *header;
-                        const u_char *packet;
+                        const unsigned char *packet;
                         int res = pcap_next_ex(handle, &header, &packet);
                         if (res == 1)
                         {

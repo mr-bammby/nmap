@@ -3,6 +3,8 @@
 #include "protocol_utils.h"
 #include <string.h>
 #include <netinet/in.h>
+#include "response_states.h"
+#include "scan_context.h"
 
 
 
@@ -73,4 +75,15 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
     }
 
     return UDP_HEADER_SIZE;
+}
+
+int8_t udp_response_process(const uint8_t *transport)
+{
+    // For UDP, check if there is a response (open) or no response (filtered)
+    uint16_t port = ntohs(*(const uint16_t *)(transport + 2)); // Destination port
+    if (port < PORT_START || port > PORT_END)
+        return 0;
+
+    results[port - 1].response_udp = RESPONSE_UDP_REPLY;
+    return 1;
 }

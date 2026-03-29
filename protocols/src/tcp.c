@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include "response_states.h"
 #include "scan_context.h"
+#include "nmap_types.h"
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
@@ -131,6 +132,9 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
 int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
 {
     tcp_header_t tcp_hdr;
+    uint32_t cookie = 0;
+    uint32_t ack_num;
+
     int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len/4, &tcp_hdr, ip_hdr); // ip_payload_len is in bytes, tcp_header_parse expects length in 32-bit words
     if (tcp_len < 0)
     {
@@ -143,6 +147,88 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
         printf("Received TCP packet with source port %d outside of expected range\n", tcp_hdr.src_port);
         return 0;
     }
+
+    ack_num = ntohl(*(const uint32_t *)(transport + 8));
+
+    if (tcp_hdr.flags & TCP_FLAG_ACK)
+    {
+        cookie = ack_num - 1;   // SYN / NULL / FIN / XMAS replies
+    }
+    else if (tcp_hdr.flags & TCP_FLAG_RST)
+    {
+        cookie = tcp_hdr.seq_num;        // ACK scan RST reply
+    }
+
+    if (!COOKIE_VALID(cookie)) return 0;
+
+    uint8_t scan_id = COOKIE_SCAN(cookie);
+    uint16_t port   = COOKIE_PORT(cookie);
+    // now write results[port - 1].response_<scan_id>
+
+    switch (scan_id)
+    {
+    case SCAN_FLG_SYN:
+        if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
+        {
+            results[port - 1].response_syn = RESPONSE_SYN_ACK;
+            return 1;
+        }
+        else if (tcp_hdr.flags & TCP_FLAG_RST)
+        {
+            results[port - 1].response_syn = RESPONSE_RST;
+            return 1;
+        }
+        else
+        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_ACK:
+        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+            results[port - 1].response_ack = RESPONSE_RST;
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_NULL:
+        if (tcp_hdr.flags == 0)        {
+            results[port - 1].response_null = RESPONSE_SYN_ACK; // Reuse RESPONSE_SYN_ACK to indicate open for NULL scan
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_FIN:
+        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+            results[port - 1].response_fin = RESPONSE_RST;
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_XMAS:
+        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+            results[port - 1].response_xmas = RESPONSE_RST;
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    default:
+        printf("Received TCP packet with unknown scan ID %d from %s:%d\n", scan_id, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+        return 0;
+    }
+
 
     if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
     {
