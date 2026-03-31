@@ -28,11 +28,8 @@ int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_
     *src_port_ptr = htons(header->src_port);
     *dst_port_ptr = htons(header->dst_port);
     *length_ptr = htons(header->length);
-    *checksum_ptr = 0;  // Temporarily zero for checksum calculation
-
-    // Calculate and set checksum
-    uint16_t calc_checksum = checksum_final(buffer, 8, 0);
-    *checksum_ptr = htons(calc_checksum);
+    /* IPv4 UDP checksum of 0 means "not used" and avoids invalid pseudo-header checksum here. */
+    *checksum_ptr = 0;
 
     return UDP_HEADER_SIZE;
 }
@@ -80,7 +77,7 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
 int8_t udp_response_process(const uint8_t *transport)
 {
     // For UDP, check if there is a response (open) or no response (filtered)
-    uint16_t port = ntohs(*(const uint16_t *)(transport + 2)); // Destination port
+    uint16_t port = ntohs(*(const uint16_t *)(transport)); // Source port
     if (port < PORT_START || port > PORT_END)
         return 0;
 

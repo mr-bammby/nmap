@@ -92,8 +92,8 @@ int16_t ip_header_parse(const uint8_t *buffer, uint8_t buffer_len, ip_header_t *
 
     header->id = ntohs(*ip_hdr_id);
     header->protocol = *ip_hdr_protocol;
-    header->src = ntohl(*ip_hdr_src);
-    header->dst = ntohl(*ip_hdr_dst);
+    header->src = *ip_hdr_src;
+    header->dst = *ip_hdr_dst;
 
     return ihl;
 }

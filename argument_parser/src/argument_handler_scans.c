@@ -9,8 +9,8 @@
 static const char *const valid_tokens[MAX_TOKENS] =
     {
         "SYN",
-        "ACK",
         "NULL",
+        "ACK",
         "FIN",
         "XMAS",
         "UDP"
