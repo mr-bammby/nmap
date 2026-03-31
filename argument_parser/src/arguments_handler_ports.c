@@ -1,4 +1,6 @@
 #include "argument_parser.h"
+#include "nmap_types.h"
+#include "port_utils.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -11,20 +13,18 @@ typedef enum
 } state_t;
 
 /* set the bit corresponding to `idx` in the supplied port bitmap */
-static inline void port_bitmap_set(port_bitmap_t bitset, uint16_t idx)
+static inline void port_bitmap_set(port_set_t *set, uint16_t idx)
 {
-    if (bitset != NULL)
+    if (set != NULL)
     {
-        bitset[idx / BITMAP_BYTE_SIZE] |= (1u << (idx % BITMAP_BYTE_SIZE));
+        add_port(set,idx);
     }
 }
 
 /* parse a comma‑separated list of port numbers and ranges into a
    bitmap; returns 0 on success, negative codes on error */
-static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
+static int parse_port_range_set(const char *input, port_set_t *set)
 {
-    memset(bitmap, 0, sizeof(port_bitmap_t));
-
     state_t st = START;
     uint16_t num = 0;
     int32_t start = -1;
@@ -33,6 +33,8 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
     uint32_t idx = 0;
 
     const char *p = input;
+
+    init_port_set(set);
 
     while (1)
     {
@@ -81,7 +83,7 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
             {
                 if (num < 1 || num > NUMBER_OF_PORTS)
                     return -2;
-                port_bitmap_set(*bitmap, num);
+                port_bitmap_set(set, num);
 
                 st = START;
 
@@ -129,7 +131,7 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
 
                 for (int v = start; v <= end; v++)
                 {
-                    port_bitmap_set(*bitmap, v);
+                    port_bitmap_set(set, v);
                 }
 
                 st = START;
@@ -157,14 +159,13 @@ static int parse_port_range_bitmap(const char *input, port_bitmap_t *bitmap)
 
 parse_return_e argument_handler_port(params_t *param, const char *value)
 {
-    for (uint8_t i = 0; i < BITMAP_BYTE_SIZE; i++)
+    static int reenter = 0;
+    if (reenter)
     {
-        if (param->ports[i] != 0u)
-        {
-            return (PARSE_DOUBLE_VALUE);
-        }
+        return (PARSE_DOUBLE_VALUE);
     }
-    if (parse_port_range_bitmap(value, &(param->ports)) != 0)
+    reenter = 1;
+    if (parse_port_range_set(value, &(param->ports)) != 0)
     {
         return (PARSE_BAD_VALUE);
     }

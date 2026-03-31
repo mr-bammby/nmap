@@ -1,18 +1,23 @@
 #include <string.h>
 #include "argument_parser.h"
+#include "nmap_types.h"
+#include "port_utils.h"
 
 static const params_t DEFAULT_PARAMS = {
     .address = NULL,                                    /* no addresses by default, user must specify at least one */
-    .ports = {[0 ... PORT_BITMAP_BYTE_NUM - 1] = 0xff}, /* all ports enabled by default */
+    .ports = {0}, /* all ports enabled by default */
     .thread_num = 1,                                    /* one thread by default */
     .scans = 0x3f                                       /* all scan types enabled by default */
 };
 
-static const port_bitmap_t EMPTY_PORTS = {0};
+#define DEFAULT_PORTS_STR "1-1024"
+
 
 parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
 {
     int i = 1;
+
+    init_port_set(&parameters->ports);
 
     while (i < arg)
     {
@@ -71,9 +76,13 @@ parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
     {
         parameters->scans = DEFAULT_PARAMS.scans;
     }
-    if (memcmp(parameters->ports, EMPTY_PORTS, sizeof(port_bitmap_t)) == 0)
+    if (parameters->ports.count == 0)
     {
-        memcpy(parameters->ports, DEFAULT_PARAMS.ports, sizeof(parameters->ports));
+        parse_return_e res = argument_handler_port(parameters, DEFAULT_PORTS_STR);
+        if (res != PARSE_OK)
+        {
+            return res;
+        }
     }
 
     return PARSE_OK;
@@ -90,7 +99,7 @@ void free_arguments(params_t *parameters)
     }
 
     /* clear other fields */
-    memset(parameters->ports, 0, sizeof(parameters->ports));
+    parameters->ports.count = 0;
     parameters->thread_num = 0;
     parameters->scans = 0;
 }

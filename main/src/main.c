@@ -3,6 +3,7 @@
 #include "argument_parser.h"
 #include "nmap_types.h"
 #include "exec.h"
+#include "port_utils.h"
 
 static const char *const valid_tokens[6] =
     {
@@ -41,6 +42,9 @@ const char *parse_error_to_string(parse_return_e error)
 
 void print_params(const params_t *params)
 {
+    port_set_iterator_t port_it;
+    init_port_iterator(&port_it, &params->ports);
+
     printf("\nParsed Parameters:\n");
     printf("  Scans:");
     for (int i = 0; i < 6; i++)
@@ -52,12 +56,10 @@ void print_params(const params_t *params)
     }
     printf("\n");
     printf("  Ports: ");
-    for (int i = 0; i < 1024; i++)
+    unsigned int port;
+    while (port_iterator_next(&port_it, &port) == 0)
     {
-        if (params->ports[i / 8] & (1 << (i % 8)))
-        {
-            printf("%u ", i);
-        }
+        printf("%u ", port);
     }
     printf("\n");
     printf("  Threads: %u\n", params->thread_num);

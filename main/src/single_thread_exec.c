@@ -15,6 +15,7 @@
 #include "icmp.h"
 #include "udp.h"
 #include "scan_context.h"
+#include "port_utils.h"
 
 scan_result_t results[RESULTS_CAPACITY];
 uint32_t g_link_header_len = 14;
@@ -272,7 +273,7 @@ void print_results(scan_result_t *results, int start, int end)
     }
 }
 
-int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t scans)
+int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t scans)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *handle;
@@ -281,6 +282,9 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     pcap_if_t *alldevs;
     char *device_name;
     char *local_ip;
+    
+    port_set_iterator_t port_it;
+    init_port_iterator(&port_it, &ports);
 
     // Initialize results array
     initialize_results(results, PORT_END + 1);
@@ -337,33 +341,31 @@ int single_thread_exec(const char *target_ip, port_bitmap_t ports, scan_bitmap_t
     pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
     pcap_setfilter(handle, &fp);
 
-    for (int port_i = 1; port_i < NUMBER_OF_PORTS; port_i++)
+    unsigned int port_i;
+    while (port_iterator_next(&port_it, &port_i) == 0)
     {
-        if (ports[port_i / 8] & (1 << (port_i % 8)))
+        for (int scan_i = 0; scan_i < NUMBER_OF_SCAN_TYPES; scan_i++)
         {
-            for (int scan_i = 0; scan_i < NUMBER_OF_SCAN_TYPES; scan_i++)
+            if (scans & (1 << scan_i))
             {
-                if (scans & (1 << scan_i))
+                printf("Scanning port %d with scan type %s...\n", port_i, valid_tokens[scan_i]);
+                fflush(stdout);
+                send_packet(sock, target_ip, port_i, local_ip, 1 << scan_i);
+                results[port_i - 1].response_syn = RESPONSE_NO_RESPONSE;
+                for (int attempt = 0; attempt < 500; attempt++)
                 {
-                    printf("Scanning port %d with scan type %s...\n", port_i, valid_tokens[scan_i]);
-                    fflush(stdout);
-                    send_packet(sock, target_ip, port_i, local_ip, 1 << scan_i);
-                    results[port_i - 1].response_syn = RESPONSE_NO_RESPONSE;
-                    for (int attempt = 0; attempt < 500; attempt++)
+                    // 500ms wait per port
+                    struct pcap_pkthdr *header;
+                    const u_char *packet;
+                    int res = pcap_next_ex(handle, &header, &packet);
+                    if (res == 1)
                     {
-                        // 500ms wait per port
-                        struct pcap_pkthdr *header;
-                        const u_char *packet;
-                        int res = pcap_next_ex(handle, &header, &packet);
-                        if (res == 1)
-                        {
-                            if (process_packet(packet, header->caplen))
-                            break;
-                        }
-                        usleep(1000); 
+                        if (process_packet(packet, header->caplen))
+                        break;
                     }
-                    printf("Done for port %d.\n", port_i);
+                    usleep(1000); 
                 }
+                printf("Done for port %d.\n", port_i);
             }
         }
     }

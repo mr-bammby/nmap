@@ -7,7 +7,7 @@
 typedef struct params
 {
     address_list_t address;
-    port_bitmap_t ports;
+    port_set_t ports;
     uint16_t thread_num;
     scan_bitmap_t scans;
 } params_t;

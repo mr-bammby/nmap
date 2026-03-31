@@ -11,11 +11,8 @@
 #define SCAN_FLG_UDP 0x20
 
 #define SCAN_FLG_ALL 0xff
-
-#define BITMAP_BYTE_SIZE 8
-
 #define NUMBER_OF_PORTS 1024
-#define PORT_BITMAP_BYTE_NUM NUMBER_OF_PORTS / BITMAP_BYTE_SIZE
+
 
 /* singly‑linked list node containing a fixed‑size IP string */
 typedef struct addr_node
@@ -24,7 +21,19 @@ typedef struct addr_node
     struct addr_node *next;
 } addr_node_t;
 
-typedef uint8_t port_bitmap_t[PORT_BITMAP_BYTE_NUM];
+typedef struct
+{
+    unsigned int data[NUMBER_OF_PORTS];
+    unsigned short index[NUMBER_OF_PORTS];
+    int count;
+} port_set_t;
+
+// The Iterator Structure
+typedef struct {
+    const port_set_t *set;
+    int index;
+} port_set_iterator_t;
+
 typedef uint8_t scan_bitmap_t;
 typedef addr_node_t *address_list_t;
 
