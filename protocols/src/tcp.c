@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include "response_states.h"
 #include "scan_context.h"
+#include "nmap_types.h"
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
@@ -61,7 +62,8 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     *src_port_ptr = htons(tcp_header->src_port);
     *dst_port_ptr = htons(tcp_header->dst_port);
     *seq_num_ptr = htonl(tcp_header->seq_num);
-    *ack_num_ptr = htonl((tcp_header->flags & TCP_FLAG_ACK) ? TCP_DEFAULT_ACK_NUM : 0);
+    /* For ACK probes, reuse seq_num as ACK cookie so RST replies can be correlated. */
+    *ack_num_ptr = htonl((tcp_header->flags & TCP_FLAG_ACK) ? tcp_header->seq_num : TCP_DEFAULT_ACK_NUM);
     *data_offset_flags_ptr = htons(((TCP_DATA_OFFSET + payload_len) << 12) | (tcp_header->flags & 0x00FF));
     *window_ptr = htons(TCP_WINDOW_SIZE);
     *checksum_ptr = 0;  // Temporarily zero for checksum calculation
@@ -106,13 +108,13 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
     uint8_t buffer_copy[256] = {0};
     
-    memcpy(buffer_copy, buffer, 20);
+    memcpy(buffer_copy, buffer, buffer_len);
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
     uint16_t original_checksum __attribute__((unused)) = *checksum_ptr_temp;
     uint16_t calc_checksum;
     *checksum_ptr_temp = 0;
     
-    calc_checksum = tcp_checksum(buffer_copy, buffer_len, ip_header);
+    calc_checksum = tcp_checksum(buffer_copy, buffer_len / 4, ip_header);
     
     if (calc_checksum != 0 && calc_checksum != original_checksum)
     {
@@ -131,7 +133,10 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
 int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
 {
     tcp_header_t tcp_hdr;
-    int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len/4, &tcp_hdr, ip_hdr); // ip_payload_len is in bytes, tcp_header_parse expects length in 32-bit words
+    uint32_t cookie = 0;
+    uint32_t ack_num;
+
+    int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr, ip_hdr);
     if (tcp_len < 0)
     {
         printf("Failed to parse TCP header: %d\n", tcp_len);
@@ -144,19 +149,84 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
         return 0;
     }
 
-    if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
+    ack_num = ntohl(*(const uint32_t *)(transport + 8));
+    if (tcp_hdr.flags & TCP_FLAG_ACK)
     {
-        results[tcp_hdr.src_port - 1].response_syn = RESPONSE_SYN_ACK;
-        return 1;
+        cookie = ack_num - 1;   // SYN / NULL / FIN / XMAS replies
     }
     else if (tcp_hdr.flags & TCP_FLAG_RST)
     {
-        results[tcp_hdr.src_port - 1].response_syn = RESPONSE_RST;
-        return 1;
+        cookie = tcp_hdr.seq_num;        // ACK scan RST reply
     }
-    else
+
+    if (!COOKIE_VALID(cookie)) return 0;
+
+    uint8_t scan_id = COOKIE_SCAN(cookie);
+    uint8_t scan_flag = (uint8_t)(1u << scan_id);
+    uint16_t port   = COOKIE_PORT(cookie);
+    // now write results[port - 1].response_<scan_id>
+
+    switch (scan_flag)
     {
-        printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+    case SCAN_FLG_SYN:
+        if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
+        {
+            results[port - 1].response_syn = RESPONSE_SYN_ACK;
+            return 1;
+        }
+        else if (tcp_hdr.flags & TCP_FLAG_RST)
+        {
+            results[port - 1].response_syn = RESPONSE_RST;
+            return 1;
+        }
+        else
+        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_ACK:
+        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+            results[port - 1].response_ack = RESPONSE_RST;
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_NULL:
+        if (tcp_hdr.flags == 0)        {
+            results[port - 1].response_null = RESPONSE_SYN_ACK; // Reuse RESPONSE_SYN_ACK to indicate open for NULL scan
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_FIN:
+        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+            results[port - 1].response_fin = RESPONSE_RST;
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    case SCAN_FLG_XMAS:
+        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+            results[port - 1].response_xmas = RESPONSE_RST;
+            return 1;
+        }
+        else        {
+            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            return 0;
+        }
+        break;
+    default:
+        printf("Received TCP packet with unknown scan ID %d from %s:%d\n", scan_id, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
         return 0;
     }
 }

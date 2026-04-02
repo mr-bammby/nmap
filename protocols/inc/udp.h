@@ -44,4 +44,5 @@ int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_
 */
 int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t *header);
 
+int8_t udp_response_process(const uint8_t *transport);
 #endif // UDP_H

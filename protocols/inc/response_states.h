@@ -20,6 +20,7 @@ typedef enum {
     RESPONSE_SYN_ACK,          /* SYN scan: got SYN/ACK */
     RESPONSE_RST,              /* Got TCP RST packet */
     RESPONSE_ICMP_UNREACHABLE, /* ICMP dest/port unreachable */
+    RESPONSE_ICMP_FILTERED,    /* ICMP unreachable code indicates filtering */
     RESPONSE_UDP_REPLY,        /* UDP scan: got UDP response */
     RESPONSE_ERROR             /* Local error (send failed, etc) */
 } response_type_t;

@@ -21,12 +21,18 @@ scan_result_t results[RESULTS_CAPACITY];
 uint32_t g_link_header_len = 14;
 
 #define NUMBER_OF_SCAN_TYPES 6
+#define RESPONSE_WAIT_ATTEMPTS 500
+#define RESPONSE_POLL_SLEEP_US 1000
+#define UDP_TOTAL_PROBES 3
+
+#define COOKIE_MAKE(scan_id, port) \
+    ((COOKIE_MAGIC << 16) | (((uint32_t)(scan_id) & 0x7) << 13) | ((port) & 0x1FFF))
 
 static const char *const valid_tokens[6] =
     {
         "SYN",
-        "ACK",
         "NULL",
+        "ACK",
         "FIN",
         "XMAS",
         "UDP"
@@ -106,6 +112,16 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     sin.sin_addr.s_addr = inet_addr(target_ip);
 
     uint32_t payload[1] = {0xb4050402}; // Example payload for SYN+ACK response
+    uint8_t scan_id = 0;
+    uint8_t scan_type_tmp = scan_type;
+    uint32_t cookie;
+
+    while ((scan_type_tmp & 1u) == 0u && scan_id < 7)
+    {
+        scan_type_tmp >>= 1;
+        scan_id++;
+    }
+    cookie = COOKIE_MAKE(scan_id, port);
     switch (scan_type)
     {
         case SCAN_FLG_SYN:
@@ -140,7 +156,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     {
         udp_header.src_port = rand() % 65536;
         udp_header.dst_port = port;
-        udp_header.length = UDP_HEADER_SIZE;
+        udp_header.length = UDP_HEADER_SIZE + sizeof(payload);
         int16_t udp_packet_len = udp_packet_create(packet, sizeof(packet), &ip_header, &udp_header, payload, sizeof(payload));
         if (udp_packet_len < 0)        {
             perror("Packet creation failed");
@@ -152,7 +168,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     {
         tcp_header.src_port = rand() % 65536;
         tcp_header.dst_port = port;
-        tcp_header.seq_num = rand() % 4294967296;
+        tcp_header.seq_num = cookie;
         
         int16_t tcp_packet_len = tcp_packet_create(packet, sizeof(packet), &ip_header, &tcp_header, payload, 1);
         if (tcp_packet_len < 0)
@@ -174,18 +190,6 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
 }
 
 int offset = 0;
-
-//TODO Move to UDP Protocol File
-int8_t udp_response_process(const uint8_t *transport)
-{
-    // For UDP, check if there is a response (open) or no response (filtered)
-    uint16_t port = ntohs(*(const uint16_t *)(transport + 2)); // Destination port
-    if (port < PORT_START || port > PORT_END)
-        return 0;
-
-    results[port - 1].response_udp = RESPONSE_UDP_REPLY;
-    return 1;
-}
 
 // --- Receiver Logic ---
 int8_t process_packet(const unsigned char *packet, uint32_t packet_len)
@@ -247,30 +251,126 @@ void initialize_results(scan_result_t *results, int size)
     }
 }
 
+static const char *state_label_syn(response_type_t response)
+{
+    if (response == RESPONSE_SYN_ACK)
+        return "OPEN";
+    if (response == RESPONSE_RST)
+        return "CLOSED";
+    if (response == RESPONSE_NO_RESPONSE || response == RESPONSE_ICMP_UNREACHABLE)
+        return "FILTERED";
+    return "UNKNOWN";
+}
+
+static const char *state_label_ack(response_type_t response)
+{
+    if (response == RESPONSE_RST)
+        return "UNFILTERED";
+    if (response == RESPONSE_NO_RESPONSE || response == RESPONSE_ICMP_UNREACHABLE)
+        return "FILTERED";
+    return "UNKNOWN";
+}
+
+static const char *state_label_null_fin_xmas(response_type_t response)
+{
+    if (response == RESPONSE_RST)
+        return "CLOSED";
+    if (response == RESPONSE_NO_RESPONSE)
+        return "OPEN|FILTERED";
+    if (response == RESPONSE_ICMP_UNREACHABLE)
+        return "FILTERED";
+    return "UNKNOWN";
+}
+
+static const char *state_label_udp(response_type_t response)
+{
+    if (response == RESPONSE_UDP_REPLY)
+        return "OPEN";
+    if (response == RESPONSE_ICMP_UNREACHABLE)
+        return "CLOSED";
+    if (response == RESPONSE_ICMP_FILTERED)
+        return "FILTERED";
+    if (response == RESPONSE_NO_RESPONSE)
+        return "OPEN|FILTERED";
+    return "UNKNOWN";
+}
+
+static void print_scan_block(const char *title,
+                             scan_result_t *results,
+                             int start,
+                             int end,
+                             response_type_t (*get_response)(const scan_result_t *),
+                             const char *(*state_label)(response_type_t))
+{
+    int i;
+    printf("\n***** %s *****\n", title);
+    printf("\n%-6s | %s\n", "PORT", "STATE");
+    printf("-------|----------------\n");
+
+    for (i = start; i < end; i++)
+    {
+        response_type_t response = get_response(&results[i]);
+        if (response != RESPONSE_NOT_EXPECTED)
+            printf("%-6d | %s\n", results[i].port, state_label(response));
+    }
+}
+
+static response_type_t get_syn_response(const scan_result_t *result)
+{
+    return result->response_syn;
+}
+
+static response_type_t get_ack_response(const scan_result_t *result)
+{
+    return result->response_ack;
+}
+
+static response_type_t get_null_response(const scan_result_t *result)
+{
+    return result->response_null;
+}
+
+static response_type_t get_fin_response(const scan_result_t *result)
+{
+    return result->response_fin;
+}
+
+static response_type_t get_xmas_response(const scan_result_t *result)
+{
+    return result->response_xmas;
+}
+
+static response_type_t get_udp_response(const scan_result_t *result)
+{
+    return result->response_udp;
+}
+
+static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t scan_flag)
+{
+    if (scan_flag == SCAN_FLG_SYN)
+        return &result->response_syn;
+    if (scan_flag == SCAN_FLG_ACK)
+        return &result->response_ack;
+    if (scan_flag == SCAN_FLG_NULL)
+        return &result->response_null;
+    if (scan_flag == SCAN_FLG_FIN)
+        return &result->response_fin;
+    if (scan_flag == SCAN_FLG_XMAS)
+        return &result->response_xmas;
+    if (scan_flag == SCAN_FLG_UDP)
+        return &result->response_udp;
+    return NULL;
+}
+
 // --- Print Results ---
 void print_results(scan_result_t *results, int start, int end)
 {
-    const char *state_strings[] = {
-        [RESPONSE_NOT_EXPECTED] = "NOT SCANNED",
-        [RESPONSE_NO_RESPONSE] = "FILTERED",
-        [RESPONSE_SYN_ACK] = "OPEN",
-        [RESPONSE_RST] = "CLOSED",
-        [RESPONSE_ICMP_UNREACHABLE] = "FILTERED",
-        [RESPONSE_UDP_REPLY] = "OPEN/FILTERED",
-        [RESPONSE_ERROR] = "UNKNOWN"
-    };
-    
-    printf("\n%-6s | %s\n", "PORT", "STATE");
-    printf("-------|----------------\n");
-    
-    for (int i = start; i < end; i++)
-    {
-        // Only print ports that have been scanned
-        if (results[i].response_syn != RESPONSE_NOT_EXPECTED && results[i].response_syn != RESPONSE_RST)
-        {
-            printf("%-6d | %s\n", results[i].port, state_strings[results[i].response_syn]);
-        }
-    }
+    print_scan_block("SYN", results, start, end, get_syn_response, state_label_syn);
+    print_scan_block("ACK", results, start, end, get_ack_response, state_label_ack);
+    print_scan_block("NULL", results, start, end, get_null_response, state_label_null_fin_xmas);
+    print_scan_block("FIN", results, start, end, get_fin_response, state_label_null_fin_xmas);
+    print_scan_block("XMAS", results, start, end, get_xmas_response, state_label_null_fin_xmas);
+    print_scan_block("UDP", results, start, end, get_udp_response, state_label_udp);
 }
 
 int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t scans)
@@ -289,7 +389,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     // Initialize results array
     initialize_results(results, PORT_END + 1);
 
-    sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0)
     {
         perror("Socket error"); return 1;
@@ -337,7 +437,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     pcap_setnonblock(handle, 1, errbuf);
 
     char filter[100];
-    sprintf(filter, "(src host %s) or icmp", target_ip);
+    sprintf(filter, "src host %s", target_ip);
     pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
     pcap_setfilter(handle, &fp);
 
@@ -348,22 +448,46 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
         {
             if (scans & (1 << scan_i))
             {
+                uint8_t scan_flag = (uint8_t)(1u << scan_i);
+                response_type_t *response_slot;
                 printf("Scanning port %d with scan type %s...\n", port_i, valid_tokens[scan_i]);
                 fflush(stdout);
-                send_packet(sock, target_ip, port_i, local_ip, 1 << scan_i);
-                results[port_i - 1].response_syn = RESPONSE_NO_RESPONSE;
-                for (int attempt = 0; attempt < 500; attempt++)
+                send_packet(sock, target_ip, port_i, local_ip, scan_flag);
+                response_slot = response_slot_for_scan(&results[port_i - 1], scan_flag);
+                if (response_slot == NULL)
                 {
-                    // 500ms wait per port
+                    printf("Done for port %d.\n", port_i);
+                    continue;
+                }
+
+                *response_slot = RESPONSE_NO_RESPONSE;
+
+                int max_attempts = RESPONSE_WAIT_ATTEMPTS;
+                if (scan_flag == SCAN_FLG_UDP)
+                    max_attempts = RESPONSE_WAIT_ATTEMPTS * UDP_TOTAL_PROBES;
+
+                for (int attempt = 0; attempt < max_attempts; attempt++)
+                {
+                    if (scan_flag == SCAN_FLG_UDP &&
+                        attempt > 0 &&
+                        (attempt % RESPONSE_WAIT_ATTEMPTS) == 0 &&
+                        *response_slot == RESPONSE_NO_RESPONSE)
+                    {
+                        send_packet(sock, target_ip, port_i, local_ip, scan_flag);
+                    }
+
+                    // Wait in 1ms polls; UDP may span multiple windows via retries.
                     struct pcap_pkthdr *header;
-                    const u_char *packet;
+                    const unsigned char *packet;
                     int res = pcap_next_ex(handle, &header, &packet);
                     if (res == 1)
                     {
-                        if (process_packet(packet, header->caplen))
-                        break;
+                        process_packet(packet, header->caplen);
+                        /* Only stop when this specific probe got a conclusive response. */
+                        if (*response_slot != RESPONSE_NO_RESPONSE)
+                            break;
                     }
-                    usleep(1000); 
+                    usleep(RESPONSE_POLL_SLEEP_US);
                 }
                 printf("Done for port %d.\n", port_i);
             }

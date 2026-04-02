@@ -5,6 +5,7 @@
 #include <protocol_utils.h>
 #include "response_states.h"
 #include "scan_context.h"
+#include "nmap_types.h"
 
 int16_t icmp_header_init(uint8_t *buffer, uint8_t buffer_len, const icmp_header_t *header)
 {
@@ -78,6 +79,7 @@ int16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header
 //TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
 int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
 {
+    (void)ip_hdr;
     icmp_header_t icmp_hdr;
     int16_t icmp_len = icmp_header_parse(transport, (uint8_t)ip_payload_len, &icmp_hdr);
     if (icmp_len < 0)
@@ -86,13 +88,15 @@ int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, con
     if (icmp_hdr.type == 3) // Destination Unreachable
     {
         ip_header_t inner_ip_hdr;
-        // The ICMP payload embeds the original IP header + first 8 bytes
-        // of the original transport header. The original destination port
-        // (probe target) sits at byte offset 2 of that embedded header.
+        // The ICMP payload embeds original IP header + first 8 bytes of
+        // original transport header. For TCP, those 8 bytes include seq_num,
+        // which carries our scan cookie.
         const uint8_t *orig_ip = (const uint8_t *)(transport + ICMP_HEADER_LEN);
+        const uint8_t *orig_transport;
         int16_t orig_ip_hl;
+        uint16_t port;
 
-        if (ip_payload_len < ICMP_HEADER_LEN + IP_MIN_HEADER_LEN + 4)
+        if (ip_payload_len < ICMP_HEADER_LEN + IP_MIN_HEADER_LEN + 8)
             return 0;
 
         orig_ip_hl = ip_header_parse(orig_ip,
@@ -101,14 +105,60 @@ int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, con
         if (orig_ip_hl < 0)
             return 0;
 
-        if (ip_payload_len < (uint32_t)(ICMP_HEADER_LEN + orig_ip_hl + 4))
+        if (ip_payload_len < (uint32_t)(ICMP_HEADER_LEN + orig_ip_hl + 8))
             return 0;
 
-        uint16_t port = ntohs(*(const uint16_t *)(transport + ICMP_HEADER_LEN + orig_ip_hl + 2));
-        if (port < PORT_START || port > PORT_END)
+        orig_transport = transport + ICMP_HEADER_LEN + orig_ip_hl;
+
+        if (inner_ip_hdr.protocol == IPPROTO_TCP)
+        {
+            uint32_t cookie = ntohl(*(const uint32_t *)(orig_transport + 4));
+            uint8_t scan_id;
+            uint8_t scan_flag;
+
+            if (!COOKIE_VALID(cookie))
+                return 0;
+
+            port = COOKIE_PORT(cookie);
+            if (port < PORT_START || port > PORT_END)
+                return 0;
+
+            scan_id = COOKIE_SCAN(cookie);
+            scan_flag = (uint8_t)(1u << scan_id);
+
+            if (scan_flag == SCAN_FLG_SYN)
+                results[port - 1].response_syn = RESPONSE_ICMP_UNREACHABLE;
+            else if (scan_flag == SCAN_FLG_ACK)
+                results[port - 1].response_ack = RESPONSE_ICMP_UNREACHABLE;
+            else if (scan_flag == SCAN_FLG_NULL)
+                results[port - 1].response_null = RESPONSE_ICMP_UNREACHABLE;
+            else if (scan_flag == SCAN_FLG_FIN)
+                results[port - 1].response_fin = RESPONSE_ICMP_UNREACHABLE;
+            else if (scan_flag == SCAN_FLG_XMAS)
+                results[port - 1].response_xmas = RESPONSE_ICMP_UNREACHABLE;
+            else
+                return 0;
+        }
+        else if (inner_ip_hdr.protocol == IPPROTO_UDP)
+        {
+            port = ntohs(*(const uint16_t *)(orig_transport + 2));
+            if (port < PORT_START || port > PORT_END)
+                return 0;
+
+            if (icmp_hdr.code == 3)
+                results[port - 1].response_udp = RESPONSE_ICMP_UNREACHABLE;
+            else if (icmp_hdr.code == 1 || icmp_hdr.code == 2 ||
+                     icmp_hdr.code == 9 || icmp_hdr.code == 10 ||
+                     icmp_hdr.code == 13)
+                results[port - 1].response_udp = RESPONSE_ICMP_FILTERED;
+            else
+                return 0;
+        }
+        else
             return 0;
 
-        results[port - 1].response_syn = RESPONSE_ICMP_UNREACHABLE;
         return 1;
     }
+
+    return 0;
 }

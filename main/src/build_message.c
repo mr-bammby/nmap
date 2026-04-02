@@ -65,7 +65,10 @@ int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     {
         return UDP_ERR_BUFFER_TOO_SMALL; // Buffer too small for payload
     }
-    //memcpy(buffer + ip_header_len + udp_header_len, payload, payload_len);
+    if (payload != NULL && payload_len > 0)
+    {
+        memcpy(buffer + ip_header_len + udp_header_len, payload, payload_len);
+    }
 
     // Encapsulate the packet (finalize IP header)
     int16_t full_packet_len = ip_header_encapsulate(buffer, udp_header_len + payload_len);
