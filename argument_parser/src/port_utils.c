@@ -12,7 +12,8 @@ short add_port(port_set_t *set, unsigned int value)
 {
     for (int i = 0; i < set->count; i++)
     {
-        if (set->data[i] == value) return 0; // Ignore duplicate
+        if (set->data[i] == value)
+            return 0; // Ignore duplicate
     }
 
     if (set->count >= NUMBER_OF_PORTS)
@@ -23,7 +24,8 @@ short add_port(port_set_t *set, unsigned int value)
 
     if (set->data[set->count - 1] < value)
     {
-        set->data[set->count++] = value; // Add at the end
+        set->data[set->count] = value; // Add at the end
+        set->count++;
         return 0; // Success
     }
     

@@ -24,7 +24,6 @@ typedef struct addr_node
 typedef struct
 {
     unsigned int data[NUMBER_OF_PORTS];
-    unsigned short index[NUMBER_OF_PORTS];
     int count;
 } port_set_t;
 
