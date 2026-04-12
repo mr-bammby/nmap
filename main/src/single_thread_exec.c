@@ -26,7 +26,7 @@ uint32_t g_link_header_len = 14;
 #define UDP_TOTAL_PROBES 3
 
 #define COOKIE_MAKE(scan_id, port) \
-    ((COOKIE_MAGIC << 16) | (((uint32_t)(scan_id) & 0x7) << 13) | ((port) & 0x1FFF))
+    ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0x7) << 16) | ((port) & 0xFFFF))
 
 static const char *const valid_tokens[6] =
     {
