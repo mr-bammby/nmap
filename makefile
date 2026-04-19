@@ -9,6 +9,17 @@ MAIN_DIR			= main
 PROTOCOLS_DIR		= protocols
 SCANS_DIR			= scans
 
+SRCD = $(ARG_PARSER_DIR)/src \
+		  $(MAIN_DIR)/src \
+		  $(PROTOCOLS_DIR)/src \
+
+SRCS	= $(foreach dir,$(SRCD),$(wildcard $(dir)/*.c))
+
+OBJD		= ./obj/
+
+OBJF	= $(patsubst %.c,$(OBJD)%.o,$(SRCS))
+HDRS	= $(foreach dir,$(SRCD),$(wildcard $(dir)/../inc/*.h $(dir)/../inc_priv/*.h))
+
 # Include Flags
 INCLUDES = -I$(ARG_PARSER_DIR)/inc -I$(ARG_PARSER_DIR)/inc_priv \
            -I$(MAIN_DIR)/inc -I$(PROTOCOLS_DIR)/inc -I$(SCANS_DIR)/inc
@@ -17,17 +28,17 @@ LIBS = -lpcap
 
 NAME = ft_nmap.out
 
-$(NAME):
-	${CC} ${CCFLAGS} ${INCLUDES} -o ${NAME} \
-	${ARG_PARSER_DIR}/src/*.c \
-	${MAIN_DIR}/src/*.c \
-	${PROTOCOLS_DIR}/src/*.c \
-	${LIBS} 
+$(OBJD)%.o: %.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CCFLAGS) $(INCLUDES) -c -o $@ $<
+
+$(NAME): $(OBJF)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $(NAME) $(OBJF) $(LIBS)
 
 all: fclean ${NAME} 
 
 clean:
-	${RM} *.o 
+	${RM} -r ${OBJD}
 
 fclean: clean
 	${RM} ${NAME} 
