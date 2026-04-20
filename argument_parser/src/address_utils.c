@@ -3,6 +3,28 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <arpa/inet.h> // Required for inet_ntop
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <stdio.h>
+
+unsigned short fqdn_resolve(const char *fqdn, char *ip_buffer) //buffer needs to be at least 16 bytes
+{
+    struct addrinfo hints;
+    struct addrinfo *info;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;       // Strictly IPv4
+    hints.ai_socktype = 0;           // Returns results for all supported protocols (TCP & UDP)
+
+    if (getaddrinfo(fqdn, NULL, &hints, &info) != 0)
+        return 0;
+    if (inet_ntop(info->ai_family, &((struct sockaddr_in *)info->ai_addr)->sin_addr, ip_buffer, 16) == NULL)
+        return 0;
+    freeaddrinfo(info);
+    return 1;
+}
 
 uint8_t isnum(const char *str)
 {
@@ -116,6 +138,7 @@ int parse_address_list(const char *input, addr_node_t **head_p)
 {
     addr_node_t *head = *head_p;
     char buffer[256];
+    char fqdn_buffer[16]; // Buffer for resolved IPs from FQDNs, IPv4 max length is 15 + null terminator
 
     strncpy(buffer, input, sizeof(buffer));
     buffer[sizeof(buffer) - 1] = '\0';
@@ -129,6 +152,15 @@ int parse_address_list(const char *input, addr_node_t **head_p)
         if (address_is_valid(token))
         {
             if (address_list_prepend(&head, token) != 0)
+            {
+                address_list_free(&head);
+                return -1; /* allocation failure */
+            }
+        }
+        else if (fqdn_resolve(token, fqdn_buffer))
+        {
+            printf("Resolved FQDN '%s' to IP '%s'\n", token, fqdn_buffer); // Debug print
+            if (address_list_prepend(&head, fqdn_buffer) != 0)
             {
                 address_list_free(&head);
                 return -1; /* allocation failure */

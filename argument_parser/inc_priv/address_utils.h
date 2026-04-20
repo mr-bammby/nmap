@@ -23,4 +23,11 @@ int address_list_prepend(addr_node_t **head, const char *ip);
    failure. */
 int parse_address_list(const char *input, addr_node_t **head_p);
 
+/* resolve an FQDN to an IPv4 address string; returns 1 on success and fills
+   `ip_buffer` with the resolved IP, or returns 0 if resolution fails;
+   `ip_buffer` must be at least 16 bytes to hold the longest possible
+   IPv4 address string ("<IPV4_ADDRESS>") plus the null terminator) */
+unsigned short fqdn_resolve(const char *fqdn, char *ip_buffer);
+
+
 #endif /* ADDRESS_UTILS_H */

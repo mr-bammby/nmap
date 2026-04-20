@@ -1,9 +1,11 @@
 #include "argument_parser.h"
 #include "address_utils.h"
 #include <stddef.h>  /* common helpers for address handling */
+#include <stdio.h>
 
 parse_return_e argument_handler_address(params_t *param, const char *value)
 {
+    printf("Processing token"); // Debug print
     if (param->address != NULL)
     {
         return (PARSE_DOUBLE_VALUE);

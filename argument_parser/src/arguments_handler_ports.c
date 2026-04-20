@@ -66,7 +66,7 @@ static int parse_port_range_set(const char *input, port_set_t *set)
 
         /* --------------------------------------------- */
         case NUMBER:
-            if (idx > (start_idx + 4))
+            if (idx > (start_idx + 6))
             {
                 return -7;
             }
@@ -112,7 +112,7 @@ static int parse_port_range_set(const char *input, port_set_t *set)
 
         /* --------------------------------------------- */
         case SECOND_NUMBER:
-            if (idx > (start_idx + 4))
+            if (idx > (start_idx + 6))
             {
                 return -7;
             }
