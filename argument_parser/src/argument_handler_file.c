@@ -43,7 +43,7 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
                 return PARSE_INTRNAL_ERROR;
             }
         }
-        else if (fqdn_resolve(addr, fqdn_buffer))
+        else if (fqdn_resolve(addr, fqdn_buffer) == 0u)
         {
             if (address_list_prepend(&head, fqdn_buffer) != 0)
             {

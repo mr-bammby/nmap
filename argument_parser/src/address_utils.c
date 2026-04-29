@@ -19,11 +19,11 @@ unsigned short fqdn_resolve(const char *fqdn, char *ip_buffer) //buffer needs to
     hints.ai_socktype = 0;           // Returns results for all supported protocols (TCP & UDP)
 
     if (getaddrinfo(fqdn, NULL, &hints, &info) != 0)
-        return 0;
+        return 1;
     if (inet_ntop(info->ai_family, &((struct sockaddr_in *)info->ai_addr)->sin_addr, ip_buffer, 16) == NULL)
-        return 0;
+        return 1;
     freeaddrinfo(info);
-    return 1;
+    return 0;
 }
 
 uint8_t isnum(const char *str)
@@ -157,7 +157,7 @@ int parse_address_list(const char *input, addr_node_t **head_p)
                 return -1; /* allocation failure */
             }
         }
-        else if (fqdn_resolve(token, fqdn_buffer))
+        else if (fqdn_resolve(token, fqdn_buffer) == 0u)
         {
             printf("Resolved FQDN '%s' to IP '%s'\n", token, fqdn_buffer); // Debug print
             if (address_list_prepend(&head, fqdn_buffer) != 0)
