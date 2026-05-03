@@ -108,8 +108,8 @@ static const port_payload_t PAYLOADS[] = {
     { payload_ts3, sizeof(payload_ts3) },                           // 35: TeamSpeak3 | Service: TS3
     { payload_freelancer, sizeof(payload_freelancer) },             // 36: FreelancerStatus | Service: Freelancer
     { payload_ase, sizeof(payload_ase) },                           // 37: ASE | Service: All-Seeing Eye
-    { payload_andromouse, sizeof(payload_andromouse) },                // 38: AndroMouse | Service: AndroMouse
-    { payload_airhid, sizeof(payload_airhid) },                                   // 39: AirHID | Service: AirHID
+    { payload_andromouse, sizeof(payload_andromouse) },             // 38: AndroMouse | Service: AndroMouse
+    { payload_airhid, sizeof(payload_airhid) },                     // 39: AirHID | Service: AirHID
     { payload_netmotion, sizeof(payload_netmotion) },               // 40: NetMotionMobility | Service: NetMotion
     { payload_openvpn, sizeof(payload_openvpn) },                   // 41: OpenVPN | Service: OpenVPN
     { payload_ipmi, sizeof(payload_ipmi) },                         // 42: ipmi-rmcp | Service: IPMI
@@ -6693,7 +6693,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [120] = { 107, 0 }, // cfdptkt
     [121] = { 108, 0 }, // erpc
     [122] = { 109, 0 }, // smakynet
-    [123] = { 110, 0 }, // ntp
+    [123] = { 110, 9 }, // ntp
     [124] = { 111, 0 }, // ansatrader
     [125] = { 112, 0 }, // locus-map
     [126] = { 113, 0 }, // unitary
@@ -6707,7 +6707,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [134] = { 121, 0 }, // ingres-net
     [135] = { 122, 0 }, // msrpc
     [136] = { 123, 0 }, // profile
-    [137] = { 124, 0 }, // netbios-ns
+    [137] = { 124, 4 }, // netbios-ns
     [138] = { 125, 0 }, // netbios-dgm
     [139] = { 126, 0 }, // netbios-ssn
     [140] = { 127, 0 }, // emfis-data
@@ -6731,7 +6731,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [158] = { 145, 0 }, // pcmail-srv
     [159] = { 146, 0 }, // nss-routing
     [160] = { 147, 0 }, // sgmp-traps
-    [161] = { 148, 0 }, // snmp
+    [161] = { 148, 11 },// snmp
     [162] = { 149, 0 }, // snmptrap
     [163] = { 150, 0 }, // cmip-man
     [164] = { 151, 0 }, // cmip-agent
@@ -7477,7 +7477,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [1191] = { 944, 0 }, // gpfs
     [1192] = { 945, 0 }, // caids-sensor
     [1193] = { 946, 0 }, // fiveacross
-    [1194] = { 947, 0 }, // openvpn
+    [1194] = { 947, 41 },// openvpn
     [1195] = { 948, 0 }, // rsf-1
     [1196] = { 949, 0 }, // netmagic
     [1197] = { 950, 0 }, // carrius-rshell
