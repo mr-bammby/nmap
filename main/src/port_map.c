@@ -1,124 +1,110 @@
-#ifndef PORT_MAP_H
-#define PORT_MAP_H
+#include "port_map.h"
 
-/*
- * Auto-generated from /mnt/data/services.
- * TIER 1 contains unique service-name strings only.
- * TIER 2 maps all 65536 ports to indices into TIER 1.
- */
-
-#include <stdint.h>
-#include <stddef.h>
-
-typedef struct {
-    const uint8_t *payload_data;
-    const uint8_t len; // Smallest type for current list (< 256 bytes)
-} port_payload_t;
-
-typedef struct {
-    uint16_t name_idx;
-    uint8_t payload_idx; 
-} port_map_entry_t;
-
-static const uint8_t payload_rpc[] = {0x72,0xFE,0x1D,0x13,0,0,0,0,0,0,0,0x02,0,0x01,0x86,0xA0,0,0x01,0x97,0x7C,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const uint8_t payload_dns_bind[] = {0,0x06,0x01,0,0,0x01,0,0,0,0,0,0,0x07,'v','e','r','s','i','o','n',0x04,'b','i','n','d',0,0,0x10,0,0x03};
+static const uint8_t payload_echo[] = {0x0d,0x0a,0x0d,0x0a};
 static const uint8_t payload_dns_stat[] = {0,0,0x10,0,0,0,0,0,0,0,0,0};
-static const uint8_t payload_nbt[] = {0x80,0xf0,0,0x10,0,0x01,0,0,0,0,0,0,0x20,0x43,0x4b,'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',0,0,0x21,0,0x01};
-static const uint8_t payload_help[] = {'h','e','l','p','\r','\n','\r','\n'};
-static const uint8_t payload_ldap[] = {0x30,0x84,0,0,0,0x2d,0x02,0x01,0x07,0x63,0x84,0,0,0,0x24,0x04,0,0x0a,0x01,0,0x0a,0x01,0,0x02,0x01,0,0x02,0x01,0x64,0x01,0x01,0,0x87,0x0b,'o','b','j','e','c','t','C','l','a','s','s',0x30,0x84,0,0,0,0};
-static const uint8_t payload_sip[] = "OPTIONS sip:nm SIP/2.0\r\nVia: SIP/2.0/UDP nm;branch=foo;rport\r\nFrom: <sip:nm@nm>;tag=root\r\nTo: <sip:nm2@nm2>\r\nCall-ID: 50000\r\nCSeq: 42 OPTIONS\r\nMax-Forwards: 70\r\nContent-Length: 0\r\nContact: <sip:nm@nm>\r\nAccept: application/sdp\r\n\r\n";
-static const uint8_t payload_sqlping[] = {0x02};
+static const uint8_t payload_quic[] = {'\r','1','2','3','4','5','6','7','8','Q','9','9','9',0};
+static const uint8_t payload_rpc[] = {0x72,0xFE,0x1D,0x13,0,0,0,0,0,0,0,0x02,0,0x01,0x86,0xA0,0,0x01,0x97,0x7C,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static const uint8_t payload_ntp[] = {0xe3,0,0x04,0xfa,0,0x01,0,0,0,0x01,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xc5,0x4f,0x23,0x4b,0x71,0xb1,0x52,0xf3};
-static const uint8_t payload_snmpv1[] = {0x30,0x82,0,0x2f,0x02,0x01,0,0x04,0x06,'p','u','b','l','i','c',0xa0,0x82,0,0x20,0x02,0x04,0x4c,0x33,0xa7,0x56,0x02,0x01,0,0x02,0x01,0,0x30,0x82,0,0x10,0x30,0x82,0,0x0c,0x06,0x08,0x2b,0x06,0x01,0x02,0x01,0x01,0x05,0,0x05,0};
+static const uint8_t payload_nbt[] = {0x80,0xf0,0,0x10,0,0x01,0,0,0,0,0,0,0x20,0x43,0x4b,'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',0,0,0x21,0,0x01};
 static const uint8_t payload_snmpv3[] = {0x30,0x3a,0x02,0x01,0x03,0x30,0x0f,0x02,0x02,0x4a,0x69,0x02,0x03,0,0xff,0xe3,0x04,0x01,0x04,0x02,0x01,0x03,0x04,0x10,0x30,0x0e,0x04,0,0x02,0x01,0,0x02,0x01,0,0x04,0,0x04,0,0x04,0,0x30,0x12,0x04,0,0x04,0,0xa0,0x0c,0x02,0x02,0x37,0xf0,0x02,0x01,0,0x02,0x01,0,0x30,0};
 static const uint8_t payload_xdmcp[] = {0,0x01,0,0x02,0,0x01,0};
-static const uint8_t payload_afs[] = {0,0,0x03,0xe7,0,0,0,0,0,0,0,0x65,0,0,0,0,0,0,0,0,0x0d,0x05,0,0,0,0,0,0,0,0,0,0};
-static const uint8_t payload_db2[] = "DB2GETADDR\0SQL08010\0";
-static const uint8_t payload_mdns[] = {0,0,0,0,0,0x01,0,0,0,0,0,0,0x09,'_','s','e','r','v','i','c','e','s',0x07,'_','d','n','s','-','s','d',0x04,'_','u','d','p',0x05,'l','o','c','a','l',0,0,0x0c,0,0x01};
+static const uint8_t payload_ldap[] = {0x30,0x84,0,0,0,0x2d,0x02,0x01,0x07,0x63,0x84,0,0,0,0x24,0x04,0,0x0a,0x01,0,0x0a,0x01,0,0x02,0x01,0,0x02,0x01,0x64,0x01,0x01,0,0x87,0x0b,'o','b','j','e','c','t','C','l','a','s','s',0x30,0x84,0,0,0,0};
+static const uint8_t payload_svrloc[] = {0x02,0x01,0,0,0x36,' ',0,0,0,0,0,0x01,0,0x02,'e','n',0,0,0,0x15,'s','e','r','v','i','c','e',':','s','e','r','v','i','c','e','-','a','g','e','n','t',0,0x07,'d','e','f','a','u','l','t',0,0,0,0};
+static const uint8_t payload_dtls[] = {0x16,0xfe,0xff,0,0,0,0,0,0,0,0,0,0x36,0x01,0,0,0x2a,0,0,0,0,0,0,0,0x2a,0xfe,0xfd,0,0,0,0,0x7c,0x77,0x40,0x1e,0x8a,0xc8,0x22,0xa0,0xa0,0x18,0xff,0x93,0x08,0xca,0xac,0x0a,0x64,0x2f,0xc9,0x22,0x64,0xbc,0x08,0xa8,0x16,0x89,0x19,0x30,0,0,0,0x02,0,0x2f,0x01,0};
+static const uint8_t payload_ike[] = {  // Initiator cookie & Responder cookie
+                                            0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                            // Version 1, Main Mode, flags 0x00, message ID 0x00000000, length 192 (0xC0)
+                                            0x01, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0,
+                                            // Security Association payload, length 164 (0xA4), IPSEC, IDENTITY
+                                            0x00, 0x00, 0x00, 0xA4, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+                                            // Proposal 1, length 152 (0x98), ISAKMP, 4 transforms
+                                            0x00, 0x00, 0x00, 0x98, 0x01, 0x01, 0x00, 0x04,
+                                            // Transform 1: 3DES-CBC, SHA, PSK, group 2
+                                            0x03, 0x00, 0x00, 0x24, 0x01, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00, 0x05, 0x80, 0x02, 0x00, 0x02,
+                                            0x80, 0x03, 0x00, 0x01, 0x80, 0x04, 0x00, 0x02, 0x80, 0x0B, 0x00, 0x01, 0x00, 0x0C, 0x00, 0x04,
+                                            0x00, 0x00, 0x00, 0x01,
+                                            // Transform 2: 3DES-CBC, MD5, PSK, group 2
+                                            0x03, 0x00, 0x00, 0x24, 0x02, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00, 0x05, 0x80, 0x02, 0x00, 0x01,
+                                            0x80, 0x03, 0x00, 0x01, 0x80, 0x04, 0x00, 0x02, 0x80, 0x0B, 0x00, 0x01, 0x00, 0x0C, 0x00, 0x04,
+                                            0x00, 0x00, 0x00, 0x01,
+                                            // Transform 3: DES-CBC, SHA, PSK, group 2
+                                            0x03, 0x00, 0x00, 0x24, 0x03, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00, 0x01, 0x80, 0x02, 0x00, 0x02,
+                                            0x80, 0x03, 0x00, 0x01, 0x80, 0x04, 0x00, 0x02, 0x80, 0x0B, 0x00, 0x01, 0x00, 0x0C, 0x00, 0x04,
+                                            0x00, 0x00, 0x00, 0x01,
+                                            // Transform 4: DES-CBC, MD5, PSK, group 2
+                                            0x00, 0x00, 0x00, 0x24, 0x04, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00, 0x01, 0x80, 0x02, 0x00, 0x01,
+                                            0x80, 0x03, 0x00, 0x01, 0x80, 0x04, 0x00, 0x02, 0x80, 0x0B, 0x00, 0x01, 0x00, 0x0C, 0x00, 0x04,
+                                            0x00, 0x00, 0x00, 0x01
+                                        };
+static const uint8_t payload_rip[] = {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10};
+static const uint8_t payload_ipmi[] = {0x06,0,0xff,0x07,0,0,0,0,0,0,0,0,0,0x09,0x20,0x18,0xc8,0x81,0,0x38,0x8e,0x04,0xb5};
+static const uint8_t payload_snquery[] = "SNQUERY: 127.0.0.1:AAAAAA:xsvr";
+static const uint8_t payload_openvpn[] = {0x8d,0xc1,0x78,0x01,0xb8,0x9b,0xcb,0x8f,0,0,0,0,0};
 static const uint8_t payload_citrix[] = {0x1e,0,0x01,0x30,0x02,0xfd,0xa8,0xe3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const uint8_t payload_kerberos[] = {0x6a,0x81,0x6e,0x30,0x81,0x6b,0xa1,0x03,0x02,0x01,0x05,0xa2,0x03,0x02,0x01,0x0a,0xa4,0x81,0x5e,0x30,0x5c,0xa0,0x07,0x03,0x05,0,0x50,0x80,0,0x10,0xa2,0x04,0x1b,0x02,'N','M',0xa3,0x17,0x30,0x15,0xa0,0x03,0x02,0x01,0,0xa1,0x0e,0x30,0x0c,0x1b,0x06,'k','r','b','t','g','t',0x1b,0x02,'N','M',0xa5,0x11,0x18,0x0f,'1','9','7','0','0','1','0','1','0','0','0','0','0','0','Z',0xa7,0x06,0x02,0x04,0x1f,0x1e,0xb9,0xd9,0xa8,0x17,0x30,0x15,0x02,0x01,0x12,0x02,0x01,0x11,0x02,0x01,0x10,0x02,0x01,0x17,0x02,0x01,0x01,0x02,0x01,0x03,0x02,0x01,0x02};
-static const uint8_t payload_lms[] = "eIPAD\0NAME\0JSON\0VERS\0UUID\0JVID\x06\x12\x34\x56\x78\x12\x34";
-static const uint8_t payload_quake1[] = {0x80,0,0,0x0c,0x02,'Q','U','A','K','E',0,0x03};
+static const uint8_t payload_radius[] = {0x01,0x00,0x00,0x14,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+static const uint8_t payload_nfs[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02,0x00,0x01,0x86,0xa3,0x00,0x00,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+static const uint8_t payload_gtp[] = {0x32,0x01,0x00,0x04,0x00,0x00,0x42,0x00,0x13,0x37,0x00,0x00};
+static const uint8_t payload_gtp_prime[] = {0x4e,0x01,0x00,0x04,0xde,0xfe,0xc8,0x00};
+static const uint8_t payload_freelancer[] = {0,0x02,0xf1,0x26,0x01,0x26,0xf0,0x90,0xa6,0xf0,0x26,0x57,0x4e,0xac,0xa0,0xec,0xf8,0x68,0xe4,0x8d,0x21};
+static const uint8_t payload_ard[] = {0,0x14,0,0x01,0x03};
+static const uint8_t payload_stun[] = {0x00,0x01,0x00,0x00,0x21,0x12,0xa4,0x42,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+static const uint8_t payload_stdiscover[] = {'[','P','R','O','B','E',']',' ','0','0','0','0'};
+static const uint8_t payload_nat_pmp[] = {0x00,0x00};
+static const uint8_t payload_dnssd[] = {0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x09,'_','s','e','r','v','i','c','e','s',0x07,'_','d','n','s','-','s','d',0x04,'_','u','d','p',0x05,'l','o','c','a','l',0x00,0x00,0x0C,0x00,0x01};
+static const uint8_t payload_coap[] = {'@',0x01,0x01,0xce,0xbb,'.','w','e','l','l','-','k','n','o','w','n',0x04,'c','o','r','e'};
+static const uint8_t payload_ubiq1[] = {0x01,0,0,0};
+static const uint8_t payload_amanda[] = {'A','m','a','n','d','a',' ','2','.','6',' ','R','E','Q',' ','H','A','N','D','L','E',' ','0','0','0','-','0','0','0','0','0','0','0','0',' ','S','E','Q',' ','0',0x0a,'S','E','R','V','I','C','E',' ','n','o','o','p',0x0a};
+static const uint8_t payload_vxworks[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02,0x55,0x55,0x55,0x55,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xff,0xff,0x55,0x13,0x00,0x00,0x00,0x30,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 static const uint8_t payload_quake2[] = {0xff,0xff,0xff,0xff,'s','t','a','t','u','s'};
 static const uint8_t payload_quake3[] = {0xff,0xff,0xff,0xff,'g','e','t','s','t','a','t','u','s'};
-static const uint8_t payload_quake3m[] = {0xff,0xff,0xff,0xff,'g','e','t','s','e','r','v','e','r','s',' ','6','8',' ','e','m','p','t','y',' ','f','u','l','l'};
-static const uint8_t payload_snquery[] = "SNQUERY: 127.0.0.1:AAAAAA:xsvr";
-static const uint8_t payload_bo[] = {0xCE,0x63,0xD1,0xD2,0x16,0xE7,0x13,0xCF,0x38,0xA5,0xA5,0x86,0xB2,0x75,0x4B,0x99,0xAA,0x32,0x58};
-static const uint8_t payload_sybase[] = {0x1b,0,0,0x3d,0,0,0,0,0x12,'C','O','N','N','E','C','T','I','O','N','L','E','S','S','_','T','D','S',0,0,0,0x01,0,0,0x04,0,0x05,0,0x05,0,0,0x01,0x02,0,0,0x03,0x01,0x01,0x04,0x08,0,0,0,0,0,0,0,0,0x07,0x02,0x04,0xb1};
-static const uint8_t payload_vuze[] = {0xff,0xf0,0x97,0x0d,0x2e,0x60,0xd1,0x6f,0,0,0x04,0,0,0x55,0xab,0xec,0x32,0,0,0,0,0,0x32,0x04,0x0a,0,0xc8,0x75,0xf8,0x16,0,0x5c,0xb9,0x65,0,0,0,0,0x4e,0xd1,0xf5,0x28};
-static const uint8_t payload_pcanywhere[] = "NQ";
-static const uint8_t payload_pcduo[] = {0,0x80,0x80,0x08,0xff,0};
-static const uint8_t payload_pcduogw[] = {0x20,0x90,0x80,0x08,0xff,0};
-static const uint8_t payload_memcached[] = {0,0x01,0,0,0,0x01,0,0,'s','t','a','t','s','\r','\n'};
-static const uint8_t payload_slp[] = {0x02,0x01,0,0,0x36,' ',0,0,0,0,0,0x01,0,0x02,'e','n',0,0,0,0x15,'s','e','r','v','i','c','e',':','s','e','r','v','i','c','e','-','a','g','e','n','t',0,0x07,'d','e','f','a','u','l','t',0,0,0,0};
 static const uint8_t payload_murmur[] = {0,0,0,0,'a','b','c','d','e','f','g','h'};
 static const uint8_t payload_ventrilo[] = {0x01,0xe7,0xe5,0x75,0x31,0xa3,0x17,0x0b,0x21,0xcf,0xbf,0x2b,0x99,0x4e,0xdd,0x19,0xac,0xde,0x08,0x5f,0x8b,0x24,0x0a,0x11,0x19,0xb6,0x73,0x6f,0xad,0x28,0x13,0xd2,0x0a,0xb9,0x12,0x75};
 static const uint8_t payload_ts2[] = {0xf4,0xbe,0x03,0,0,0,0,0,0,0,0,0,0x01,0,0,0,0x32,0x78,0xba,0x85,0x09,'T','e','a','m','S','p','e','a','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x0a,'W','i','n','d','o','w','s',' ','X','P',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x02,0,0,0,0x20,0,0x3c,0,0,0x01,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x08,'n','i','c','k','n','a','m','e',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static const uint8_t payload_ts3[] = {0x05,0xca,0x7f,0x16,0x9c,0x11,0xf9,0x89,0,0,0,0,0x02,0x9d,0x74,0x8b,0x45,0xaa,0x7b,0xef,0xb9,0x9e,0xfe,0xad,0x08,0x19,0xba,0xcf,0x41,0xe0,0x16,0xa2,0x32,0x6c,0xf3,0xcf,0xf4,0x8e,0x3c,0x44,0x83,0xc8,0x8d,0x51,0x45,0x6f,0x90,0x95,0x23,0x3e,0,0x97,0x2b,0x1c,0x71,0xb2,0x4e,0xc0,0x61,0xf1,0xd7,0x6f,0xc5,0x7e,0xf6,0x48,0x52,0xbf,0x82,0x6a,0xa2,0x3b,0x65,0xaa,0x18,0x7a,0x17,0x38,0xc3,0x81,0x27,0xc3,0x47,0xfc,0xa7,0x35,0xba,0xfc,0x0f,0x9d,0x9d,0x72,0x24,0x9d,0xfc,0x02,0x17,0x6d,0x6b,0xb1,0x2d,0x72,0xc6,0xe3,0x17,0x1c,0x95,0xd9,0x69,0x99,0x57,0xce,0xdd,0xdf,0x05,0xdc,0x03,0x94,0x56,0x04,0x3a,0x14,0xe5,0xad,0x9a,0x2b,0x14,0x30,0x3a,0x23,0xa3,0x25,0xad,0xe8,0xe6,0x39,0x8a,0x85,0x2a,0xc6,0xdf,0xe5,0x5d,0x2d,0xa0,0x2f,0x5d,0x9c,0xd7,0x2b,0x24,0xfb,0xb0,0x9c,0xc2,0xba,0x89,0xb4,0x1b,0x17,0xa2,0xb6};
-static const uint8_t payload_freelancer[] = {0,0x02,0xf1,0x26,0x01,0x26,0xf0,0x90,0xa6,0xf0,0x26,0x57,0x4e,0xac,0xa0,0xec,0xf8,0x68,0xe4,0x8d,0x21};
-static const uint8_t payload_ase[] = {'s'};
-static const uint8_t payload_andromouse[] = "AMSNIFF";
-static const uint8_t payload_airhid[] = "from:airhid";
-static const uint8_t payload_netmotion[] = {0,0x40,0x50,0,0,0,0,0x85,0x5d,0xb4,0x91,0x28,0,0,0,0,0,0x01,0x7c,0x91,0x40,0,0,0,0xaa,0x39,0xda,0x42,0x37,0x65,0xcf,0x01,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const uint8_t payload_openvpn[] = {0x8d,0xc1,0x78,0x01,0xb8,0x9b,0xcb,0x8f,0,0,0,0,0};
-static const uint8_t payload_ipmi[] = {0x06,0,0xff,0x07,0,0,0,0,0,0,0,0,0,0x09,0x20,0x18,0xc8,0x81,0,0x38,0x8e,0x04,0xb5};
-static const uint8_t payload_coap[] = {0x40,0x01,0x01,0xce,0xbb,'.','w','e','l','l','-','k','n','o','w','n',0x04,'c','o','r','e'};
-static const uint8_t payload_dtls[] = {0x16,0xfe,0xff,0,0,0,0,0,0,0,0,0,0x36,0x01,0,0,0x2a,0,0,0,0,0,0,0,0x2a,0xfe,0xfd,0,0,0,0,0x7c,0x77,0x40,0x1e,0x8a,0xc8,0x22,0xa0,0xa0,0x18,0xff,0x93,0x08,0xca,0xac,0x0a,0x64,0x2f,0xc9,0x22,0x64,0xbc,0x08,0xa8,0x16,0x89,0x19,0x30,0,0,0,0x02,0,0x2f,0x01,0};
-static const uint8_t payload_quic[] = {0x0d,0x89,0xc1,0x9c,0x1c,0x2a,0xff,0xfc,0xf1,'Q','9','9','9',0};
-static const uint8_t payload_ard[] = {0,0x14,0,0x01,0x03};
-static const uint8_t payload_ubiq1[] = {0x01,0,0,0};
-static const uint8_t payload_ubiq2[] = {0x02,0x08,0,0};
+static const uint8_t payload_memcached[] = {0x00,0x01,0x00,0x00,0x00,0x01,0x00,0x00,'v','e','r','s','i','o','n','\r','\n'};
+static const uint8_t payload_ads[] = {0x03,0x66,0x14,0x71,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x01,0x10,0x27,0x00,0x00,0x00,0x00};
 
 static const port_payload_t PAYLOADS[] = {
-    { NULL, 0 },                                                    // 0: Fallback
-    { payload_rpc, sizeof(payload_rpc) },                           // 1: RPCCheck | Service: RPC
-    { payload_dns_bind, sizeof(payload_dns_bind) },                 // 2: DNSVersionBindReq | Service: DNS
-    { payload_dns_stat, sizeof(payload_dns_stat) },                 // 3: DNSStatusRequest | Service: DNS
-    { payload_nbt, sizeof(payload_nbt) },                           // 4: NBTStat | Service: NetBIOS
-    { payload_help, sizeof(payload_help) },                         // 5: Help | Service: Generic Management
-    { payload_ldap, sizeof(payload_ldap) },                         // 6: LDAPSearchReqUDP | Service: LDAP
-    { payload_sip, sizeof(payload_sip) },                           // 7: SIPOptions | Service: SIP
-    { payload_sqlping, sizeof(payload_sqlping) },                   // 8: Sqlping | Service: MSSQL Monitor
-    { payload_ntp, sizeof(payload_ntp) },                           // 9: NTPRequest | Service: NTP
-    { payload_snmpv1, sizeof(payload_snmpv1) },                     // 10: SNMPv1public | Service: SNMP
-    { payload_snmpv3, sizeof(payload_snmpv3) },                     // 11: SNMPv3GetRequest | Service: SNMP
-    { payload_xdmcp, sizeof(payload_xdmcp) },                       // 12: xdmcp | Service: XDMCP
-    { payload_afs, sizeof(payload_afs) },                           // 13: AFSVersionRequest | Service: AFS
-    { payload_db2, sizeof(payload_db2) },                           // 14: ibm-db2-das-udp | Service: DB2
-    { payload_mdns, sizeof(payload_mdns) },                         // 15: DNS-SD | Service: mDNS
-    { payload_citrix, sizeof(payload_citrix) },                     // 16: Citrix | Service: ICA/Citrix
-    { payload_kerberos, sizeof(payload_kerberos) },                 // 17: Kerberos | Service: Kerberos
-    { payload_lms, sizeof(payload_lms) },                           // 18: SqueezeCenter | Service: LMS
-    { payload_quake1, sizeof(payload_quake1) },                     // 19: Quake1_server_info | Service: Quake
-    { payload_quake2, sizeof(payload_quake2) },                     // 20: Quake2_status | Service: Quake2
-    { payload_quake3, sizeof(payload_quake3) },                     // 21: Quake3_getstatus | Service: Quake3
-    { payload_quake3m, sizeof(payload_quake3m) },                   // 22: Quake3_master_getservers | Service: Quake3 Master
-    { payload_snquery, sizeof(payload_snquery) },                   // 23: serialnumberd | Service: Apple SNQuery
-    { payload_bo, sizeof(payload_bo) },                             // 24: BackOrifice | Service: BackOrifice
-    { payload_sybase, sizeof(payload_sybase) },                     // 25: sybaseanywhere | Service: Sybase
-    { payload_vuze, sizeof(payload_vuze) },                         // 26: vuze-dht | Service: BitTorrent/Vuze
-    { payload_pcanywhere, sizeof(payload_pcanywhere) },             // 27: pc-anywhere | Service: pcAnywhere
-    { payload_pcduo, sizeof(payload_pcduo) },                       // 28: pc-duo | Service: PC-Duo
-    { payload_pcduogw, sizeof(payload_pcduogw) },                   // 29: pc-duo-gw | Service: PC-Duo Gateway
-    { payload_memcached, sizeof(payload_memcached) },               // 30: memcached | Service: Memcached
-    { payload_slp, sizeof(payload_slp) },                           // 31: svrloc | Service: SLP
-    { payload_murmur, sizeof(payload_murmur) },                     // 32: Murmur | Service: Mumble
-    { payload_ventrilo, sizeof(payload_ventrilo) },                 // 33: Ventrilo | Service: Ventrilo
-    { payload_ts2, sizeof(payload_ts2) },                           // 34: TeamSpeak2 | Service: TS2
-    { payload_ts3, sizeof(payload_ts3) },                           // 35: TeamSpeak3 | Service: TS3
-    { payload_freelancer, sizeof(payload_freelancer) },             // 36: FreelancerStatus | Service: Freelancer
-    { payload_ase, sizeof(payload_ase) },                           // 37: ASE | Service: All-Seeing Eye
-    { payload_andromouse, sizeof(payload_andromouse) },             // 38: AndroMouse | Service: AndroMouse
-    { payload_airhid, sizeof(payload_airhid) },                     // 39: AirHID | Service: AirHID
-    { payload_netmotion, sizeof(payload_netmotion) },               // 40: NetMotionMobility | Service: NetMotion
-    { payload_openvpn, sizeof(payload_openvpn) },                   // 41: OpenVPN | Service: OpenVPN
-    { payload_ipmi, sizeof(payload_ipmi) },                         // 42: ipmi-rmcp | Service: IPMI
-    { payload_coap, sizeof(payload_coap) },                         // 43: coap-request | Service: CoAP
-    { payload_dtls, sizeof(payload_dtls) },                         // 44: DTLSSessionReq | Service: DTLS
-    { payload_quic, sizeof(payload_quic) },                         // 45: QUIC | Service: QUIC
-    { payload_ard, sizeof(payload_ard) },                           // 46: ARD | Service: Apple Remote Desktop
-    { payload_ubiq1, sizeof(payload_ubiq1) },                       // 47: UbiquitiDiscoveryv1 | Service: Ubiquiti
-    { payload_ubiq2, sizeof(payload_ubiq2) },                       // 48: UbiquitiDiscoveryv2 | Service: Ubiquiti
+    { NULL, 0, 0 },                                                    // 0: Fallback
+    { payload_echo, sizeof(payload_echo), 0 },                         // 1: GenericLines| Service: echo | Port: 7
+    { payload_dns_stat, sizeof(payload_dns_stat), 0 },                 // 2: DNSStatusRequest | Service: DNS | Port: 53
+    { payload_quic, sizeof(payload_quic), 0 },                         // 3: QUIC version 999 | Service: QUIC | Port: 80
+    { payload_rpc, sizeof(payload_rpc), 0 },                           // 4: RPCCheck | Service: RPC | Port: 111
+    { payload_ntp, sizeof(payload_ntp), 0 },                           // 5: NTPRequest | Service: NTP | Port: 123
+    { payload_nbt, sizeof(payload_nbt), 0 },                           // 6: NBTStat | Service: NetBIOS | Port: 137
+    { payload_snmpv3, sizeof(payload_snmpv3), 0 },                     // 7: SNMPv3GetRequest | Service: SNMP | Port: 161
+    { payload_xdmcp, sizeof(payload_xdmcp), 0 },                       // 8: xdmcp | Service: XDMCP | Port: 177
+    { payload_ldap, sizeof(payload_ldap), 0 },                         // 9: LDAPSearchReqUDP | Service: LDAP | Port: 389
+    { payload_svrloc, sizeof(payload_svrloc), 0 },                     // 10: SvrLoc | Service: SvrLoc | Port: 427
+    { payload_dtls, sizeof(payload_dtls), 0 },                         // 11: DTLSHello | Service: DTLS | Port: 443, 853, 4433, 4740, 5349, 5684, 5868, 6514, 6636, 8232, 10161, 10162, 12346, 12446, 12546, 12646, 12746, 12846, 12946, 13046
+    { payload_ike, sizeof(payload_ike), 500 },                         // 12: IKE | Service: IKE src 500 | Port: 500
+    { payload_rip, sizeof(payload_rip), 0 },                           // 13: RIP | Service: Routing Information Protocol | Port: 520
+    { payload_ipmi, sizeof(payload_ipmi), 0 },                         // 14: IPMI | Service: RMCP Get Channel Auth | Port: 623
+    { payload_snquery, sizeof(payload_snquery), 0 },                   // 15: serialnumberd | Service: serialnumberd | Port: 626
+    { payload_openvpn, sizeof(payload_openvpn), 0 },                   // 16: OpenVPN | Service: OpenVPN | Port: 1194
+    { payload_citrix, sizeof(payload_citrix), 0 },                     // 17: Citrix | Service: ICA/Citrix | Port: 1604
+    { payload_radius, sizeof(payload_radius), 0 },                     // 18: RADIUS | Service: RADIUS | Port: 1645, 1812
+    { payload_nfs, sizeof(payload_nfs), 0 },                           // 19: NFS | Service: Network File System | Port: 2049
+    { payload_gtp, sizeof(payload_gtp), 0 },                           // 20: GTP | Service: GTP | Port: 2123, 2152
+    { payload_gtp_prime, sizeof(payload_gtp_prime), 0 },               // 21: GTP_prime | Service: GTP prime | Port: 3386
+    { payload_freelancer, sizeof(payload_freelancer), 0 },             // 22: FreelancerStatus | Service: Freelancer | Port: 2302
+    { payload_ard, sizeof(payload_ard), 0 },                           // 23: ARD | Service: Apple Remote Desktop | Port: 3283
+    { payload_stun, sizeof(payload_stun), 0 },                         // 24: STUN | Service: STUN | Port: 3478
+    { payload_stdiscover, sizeof(payload_stdiscover), 0 },             // 25: STUNDiscover | Service: STUN Discover | Port: 6481
+    { payload_nat_pmp, sizeof(payload_nat_pmp), 0 },                   // 26: nat-pmp | Service: NAT-PMP | Port: 5351
+    { payload_dnssd, sizeof(payload_dnssd), 0 },                       // 27: dnssd | Service: DNS Service Discovery | Port: 5353
+    { payload_coap, sizeof(payload_coap), 0 },                         // 28: coap | Service: CoAP | Port: 5683
+    { payload_ubiq1, sizeof(payload_ubiq1), 0 },                       // 29: UbiquitiDiscoveryv1 | Service: Ubiquiti | Port: 10001
+    { payload_amanda, sizeof(payload_amanda), 0 },                     // 30: amanda | Service: Amanda | Port: 10080
+    { payload_vxworks, sizeof(payload_vxworks), 0 },                   // 31: vxworks | Service: VxWorks | Port: 17185
+    { payload_quake2, sizeof(payload_quake2), 0 },                     // 32: quake2 | Service: Quake 2 | Port: 27910-27914
+    { payload_quake3, sizeof(payload_quake3), 0 },                     // 33: quake3 | Service: Quake 3 | Port: 26000-26004,27960-27964,30720-30724,44400
+    { payload_murmur, sizeof(payload_murmur), 0 },                     // 34: Murmur | Service: Mumble | Port: 64738
+    { payload_ventrilo, sizeof(payload_ventrilo), 0 },                 // 35: Ventrilo | Service: Ventrilo | Port: 3784
+    { payload_ts2, sizeof(payload_ts2), 0 },                           // 36: TeamSpeak2 | Service: TS2 | Port: 8767
+    { payload_ts3, sizeof(payload_ts3), 0 },                           // 37: TeamSpeak3 | Service: TS3 | Port: 9987
+    { payload_memcached, sizeof(payload_memcached), 0 },               // 38: Memcached | Service: Memcached | Port: 11211
+    { payload_ads, sizeof(payload_ads), 0 },                           // 39: ADS | Service: Active Directory Services | Port: 48899
 };
 
 static const char *const SVC_NAMES[] = {
@@ -6589,7 +6575,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [2] = { 2, 0 }, // compressnet
     [3] = { 2, 0 }, // compressnet
     [5] = { 3, 0 }, // rje
-    [7] = { 4, 0 }, // echo
+    [7] = { 4, 1 }, // echo
     [9] = { 5, 0 }, // discard
     [11] = { 6, 0 }, // systat
     [13] = { 7, 0 }, // daytime
@@ -6624,7 +6610,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [50] = { 36, 0 }, // re-mail-ck
     [51] = { 37, 0 }, // la-maint
     [52] = { 38, 0 }, // xns-time
-    [53] = { 39, 0 }, // domain
+    [53] = { 39, 2 }, // domain
     [54] = { 40, 0 }, // xns-ch
     [55] = { 41, 0 }, // isi-gl
     [56] = { 42, 0 }, // xns-auth
@@ -6650,7 +6636,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [77] = { 62, 0 }, // priv-rje
     [78] = { 63, 0 }, // vettcp
     [79] = { 64, 0 }, // finger
-    [80] = { 65, 0 }, // http
+    [80] = { 65, 3 }, // http
     [81] = { 66, 0 }, // hosts2-ns
     [82] = { 67, 0 }, // xfer
     [83] = { 68, 0 }, // mit-ml-dev
@@ -6681,7 +6667,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [108] = { 94, 0 }, // snagas
     [109] = { 95, 0 }, // pop2
     [110] = { 96, 0 }, // pop3
-    [111] = { 97, 0 }, // rpcbind
+    [111] = { 97, 4 }, // rpcbind
     [112] = { 98, 0 }, // mcidas
     [113] = { 99, 0 }, // ident
     [114] = { 101, 0 }, // audionews
@@ -6693,7 +6679,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [120] = { 107, 0 }, // cfdptkt
     [121] = { 108, 0 }, // erpc
     [122] = { 109, 0 }, // smakynet
-    [123] = { 110, 9 }, // ntp
+    [123] = { 110, 5 }, // ntp
     [124] = { 111, 0 }, // ansatrader
     [125] = { 112, 0 }, // locus-map
     [126] = { 113, 0 }, // unitary
@@ -6707,7 +6693,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [134] = { 121, 0 }, // ingres-net
     [135] = { 122, 0 }, // msrpc
     [136] = { 123, 0 }, // profile
-    [137] = { 124, 4 }, // netbios-ns
+    [137] = { 124, 6 }, // netbios-ns
     [138] = { 125, 0 }, // netbios-dgm
     [139] = { 126, 0 }, // netbios-ssn
     [140] = { 127, 0 }, // emfis-data
@@ -6731,7 +6717,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [158] = { 145, 0 }, // pcmail-srv
     [159] = { 146, 0 }, // nss-routing
     [160] = { 147, 0 }, // sgmp-traps
-    [161] = { 148, 11 },// snmp
+    [161] = { 148, 7 },// snmp
     [162] = { 149, 0 }, // snmptrap
     [163] = { 150, 0 }, // cmip-man
     [164] = { 151, 0 }, // cmip-agent
@@ -6747,7 +6733,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [174] = { 162, 0 }, // mailq
     [175] = { 163, 0 }, // vmnet
     [176] = { 164, 0 }, // genrad-mux
-    [177] = { 165, 0 }, // xdmcp
+    [177] = { 165, 8 }, // xdmcp
     [178] = { 166, 0 }, // nextstep
     [179] = { 167, 0 }, // bgp
     [180] = { 168, 0 }, // ris
@@ -6888,7 +6874,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [386] = { 309, 0 }, // asa
     [387] = { 310, 0 }, // aurp
     [388] = { 311, 0 }, // unidata-ldm
-    [389] = { 312, 0 }, // ldap
+    [389] = { 312, 9 }, // ldap
     [390] = { 313, 0 }, // uis
     [391] = { 314, 0 }, // synotics-relay
     [392] = { 315, 0 }, // synotics-broker
@@ -6926,7 +6912,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [424] = { 347, 0 }, // opc-job-track
     [425] = { 348, 0 }, // icad-el
     [426] = { 349, 0 }, // smartsdp
-    [427] = { 350, 0 }, // svrloc
+    [427] = { 350, 10 }, // svrloc
     [428] = { 351, 0 }, // ocs_cmu
     [429] = { 352, 0 }, // ocs_amu
     [430] = { 353, 0 }, // utmpsd
@@ -6942,7 +6928,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [440] = { 363, 0 }, // sgcp
     [441] = { 364, 0 }, // decvms-sysmgt
     [442] = { 365, 0 }, // cvc_hostd
-    [443] = { 366, 0 }, // https
+    [443] = { 366, 11 }, // https
     [444] = { 367, 0 }, // snpp
     [445] = { 368, 0 }, // microsoft-ds
     [446] = { 369, 0 }, // ddm-rdb
@@ -6999,7 +6985,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [497] = { 425, 0 }, // retrospect
     [498] = { 426, 0 }, // siam
     [499] = { 427, 0 }, // iso-ill
-    [500] = { 428, 0 }, // isakmp
+    [500] = { 428, 12 }, // isakmp
     [501] = { 429, 0 }, // stmf
     [502] = { 430, 0 }, // mbap
     [503] = { 431, 0 }, // intrinsa
@@ -7019,7 +7005,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [517] = { 448, 0 }, // talk
     [518] = { 449, 0 }, // ntalk
     [519] = { 450, 0 }, // utime
-    [520] = { 451, 0 }, // efs
+    [520] = { 451, 13 }, // efs
     [521] = { 453, 0 }, // ripng
     [522] = { 454, 0 }, // ulp
     [523] = { 455, 0 }, // ibm-db2
@@ -7122,10 +7108,10 @@ const port_map_entry_t PORT_MAP[65536] = {
     [620] = { 553, 0 }, // sco-websrvrmgr
     [621] = { 554, 0 }, // escp-ip
     [622] = { 555, 0 }, // collaborator
-    [623] = { 556, 0 }, // oob-ws-http
+    [623] = { 556, 14 }, // oob-ws-http
     [624] = { 558, 0 }, // cryptoadmin
     [625] = { 559, 0 }, // apple-xsrvr-admin
-    [626] = { 561, 0 }, // apple-imap-admin
+    [626] = { 561, 15 }, // apple-imap-admin
     [627] = { 563, 0 }, // passgo-tivoli
     [628] = { 564, 0 }, // qmqp
     [629] = { 565, 0 }, // 3com-amp3
@@ -7267,7 +7253,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [833] = { 710, 0 }, // netconfsoapbeep
     [847] = { 711, 0 }, // dhcp-failover2
     [848] = { 712, 0 }, // gdoi
-    [853] = { 713, 0 }, // domain-s
+    [853] = { 713, 11 }, // domain-s
     [854] = { 714, 0 }, // dlep
     [860] = { 715, 0 }, // iscsi
     [861] = { 716, 0 }, // owamp-control
@@ -7477,7 +7463,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [1191] = { 944, 0 }, // gpfs
     [1192] = { 945, 0 }, // caids-sensor
     [1193] = { 946, 0 }, // fiveacross
-    [1194] = { 947, 41 },// openvpn
+    [1194] = { 947, 16 },// openvpn
     [1195] = { 948, 0 }, // rsf-1
     [1196] = { 949, 0 }, // netmagic
     [1197] = { 950, 0 }, // carrius-rshell
@@ -7887,7 +7873,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [1601] = { 1360, 0 },  // aas
     [1602] = { 1361, 0 },  // inspect
     [1603] = { 1362, 0 },  // picodbc
-    [1604] = { 1363, 0 },  // icabrowser
+    [1604] = { 1363, 17 },  // icabrowser
     [1605] = { 1364, 0 },  // slp
     [1606] = { 1365, 0 },  // slm-api
     [1607] = { 1366, 0 },  // stt
@@ -7928,7 +7914,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [1642] = { 1401, 0 },  // isis-am
     [1643] = { 1402, 0 },  // isis-ambc
     [1644] = { 1403, 0 },  // saiseh
-    [1645] = { 1404, 0 },  // sightline
+    [1645] = { 1404, 18 },  // sightline
     [1646] = { 1406, 0 },  // sa-msg-port
     [1647] = { 1408, 0 },  // rsap
     [1648] = { 1409, 0 },  // concurrent-lm
@@ -8094,7 +8080,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [1809] = { 1575, 0 },  // oracle-vp1
     [1810] = { 1576, 0 },  // jerand-lm
     [1811] = { 1577, 0 },  // scientia-sdb
-    [1812] = { 1405, 0 },  // radius
+    [1812] = { 1405, 18 },  // radius
     [1813] = { 1407, 0 },  // radacct
     [1814] = { 1579, 0 },  // tdp-suite
     [1815] = { 1580, 0 },  // mmpft
@@ -8330,7 +8316,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [2046] = { 1827, 0 }, // sdfunc
     [2047] = { 186, 0 }, // dls
     [2048] = { 1828, 0 }, // dls-monitor
-    [2049] = { 1829, 0 }, // nfs
+    [2049] = { 1829, 19 }, // nfs
     [2050] = { 1830, 0 }, // av-emb-config
     [2051] = { 1831, 0 }, // epnsdp
     [2052] = { 1832, 0 }, // clearvisn
@@ -8404,7 +8390,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [2120] = { 1904, 0 }, // kauth
     [2121] = { 1906, 0 }, // ccproxy-ftp
     [2122] = { 1908, 0 }, // caupc-remote
-    [2123] = { 1909, 0 }, // gtp-control
+    [2123] = { 1909, 20 }, // gtp-control
     [2124] = { 1910, 0 }, // elatelink
     [2125] = { 1911, 0 }, // lockstep
     [2126] = { 1912, 0 }, // pktcable-cops
@@ -8433,7 +8419,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [2149] = { 1935, 0 }, // acptsys
     [2150] = { 1936, 0 }, // dynamic3d
     [2151] = { 1937, 0 }, // docent
-    [2152] = { 1938, 0 }, // gtp-user
+    [2152] = { 1938, 20 }, // gtp-user
     [2153] = { 1939, 0 }, // ctlptc
     [2154] = { 1940, 0 }, // stdptc
     [2155] = { 1941, 0 }, // brdptc
@@ -8580,7 +8566,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [2299] = { 2085, 0 }, // pc-telecommute
     [2300] = { 2086, 0 }, // cvmmon
     [2301] = { 2087, 0 }, // compaqdiag
-    [2302] = { 2089, 0 }, // binderysupport
+    [2302] = { 2089, 22 }, // binderysupport
     [2303] = { 2090, 0 }, // proxy-gateway
     [2304] = { 2091, 0 }, // attachmate-uts
     [2305] = { 2092, 0 }, // mt-scaleserver
@@ -9553,7 +9539,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [3280] = { 3074, 0 }, // vs-server
     [3281] = { 3075, 0 }, // sysopt
     [3282] = { 3076, 0 }, // datusorb
-    [3283] = { 3077, 0 }, // netassistant
+    [3283] = { 3077, 23 }, // netassistant
     [3284] = { 3078, 0 }, // 4talk
     [3285] = { 3079, 0 }, // plato
     [3286] = { 3080, 0 }, // e-net
@@ -9656,7 +9642,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [3383] = { 3170, 0 }, // esp-lm
     [3384] = { 3171, 0 }, // hp-clic
     [3385] = { 3172, 0 }, // qnxnetman
-    [3386] = { 3173, 0 }, // gprs-data
+    [3386] = { 3173, 21 }, // gprs-data
     [3387] = { 3175, 0 }, // backroomnet
     [3388] = { 3176, 0 }, // cbserver
     [3389] = { 3177, 0 }, // ms-wbt-server
@@ -9746,7 +9732,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [3475] = { 3267, 0 }, // genisar-port
     [3476] = { 3268, 0 }, // nppmp
     [3477] = { 3269, 0 }, // ecomm
-    [3478] = { 3270, 0 }, // stun
+    [3478] = { 3270, 24 }, // stun
     [3479] = { 3271, 0 }, // twrpc
     [3480] = { 3272, 0 }, // plethora
     [3481] = { 3273, 0 }, // cleanerliverc
@@ -10050,7 +10036,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [3781] = { 3576, 0 }, // abcvoice-port
     [3782] = { 3577, 0 }, // iso-tp0s
     [3783] = { 3578, 0 }, // bim-pem
-    [3784] = { 3579, 0 }, // bfd-control
+    [3784] = { 3579, 35 }, // bfd-control
     [3785] = { 3580, 0 }, // bfd-echo
     [3786] = { 3581, 0 }, // upstriggervsw
     [3787] = { 3582, 0 }, // fintrx
@@ -10673,7 +10659,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [4430] = { 4108, 0 }, // rsqlserver
     [4431] = { 4109, 0 }, // wspipe
     [4432] = { 4110, 0 }, // l-acoustics
-    [4433] = { 4111, 0 }, // vop
+    [4433] = { 4111, 11 }, // vop
     [4441] = { 4112, 0 }, // netblox
     [4442] = { 4113, 0 }, // saris
     [4443] = { 4114, 0 }, // pharos
@@ -10801,7 +10787,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [4737] = { 4242, 0 }, // ipdr-sp
     [4738] = { 4243, 0 }, // solera-lpn
     [4739] = { 4244, 0 }, // ipfix
-    [4740] = { 4245, 0 }, // ipfixs
+    [4740] = { 4245, 11 }, // ipfixs
     [4741] = { 4246, 0 }, // lumimgrd
     [4742] = { 4247, 0 }, // sicct
     [4743] = { 4249, 0 }, // openhpid
@@ -11094,11 +11080,11 @@ const port_map_entry_t PORT_MAP[65536] = {
     [5321] = { 4546, 0 }, // bsfsvr-zn-ssl
     [5343] = { 4547, 0 }, // kfserver
     [5344] = { 4548, 0 }, // xkotodrcp
-    [5349] = { 4549, 0 }, // stuns
+    [5349] = { 4549, 11 }, // stuns
     [5350] = { 4550, 0 }, // nat-pmp-status
-    [5351] = { 4551, 0 }, // nat-pmp
+    [5351] = { 4551, 26 }, // nat-pmp
     [5352] = { 4552, 0 }, // dns-llq
-    [5353] = { 4553, 0 }, // mdns
+    [5353] = { 4553, 27 }, // mdns
     [5354] = { 4555, 0 }, // mdnsresponder
     [5355] = { 4556, 0 }, // llmnr
     [5356] = { 4557, 0 }, // ms-smlbiz
@@ -11243,8 +11229,8 @@ const port_map_entry_t PORT_MAP[65536] = {
     [5680] = { 4700, 0 }, // canna
     [5681] = { 4702, 0 }, // ncxcp
     [5682] = { 4703, 0 }, // brightcore
-    [5683] = { 4704, 0 }, // coap
-    [5684] = { 4705, 0 }, // coaps
+    [5683] = { 4704, 28 }, // coap
+    [5684] = { 4705, 11 }, // coaps
     [5687] = { 4706, 0 }, // gog-multiplayer
     [5688] = { 4707, 0 }, // ggz
     [5689] = { 4708, 0 }, // qmvideo
@@ -11310,7 +11296,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [5842] = { 4769, 0 }, // reversion
     [5859] = { 4770, 0 }, // wherehoo
     [5863] = { 4771, 0 }, // ppsuitemsg
-    [5868] = { 4772, 0 }, // diameters
+    [5868] = { 4772, 11 }, // diameters
     [5883] = { 4773, 0 }, // jute
     [5900] = { 4774, 0 }, // vnc
     [5901] = { 4776, 0 }, // vnc-1
@@ -11541,7 +11527,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [6464] = { 4963, 0 }, // ieee11073-20701
     [6471] = { 4964, 0 }, // lvision-lm
     [6480] = { 4965, 0 }, // sun-sr-http
-    [6481] = { 4966, 0 }, // servicetags
+    [6481] = { 4966, 25 }, // servicetags
     [6482] = { 4967, 0 }, // ldoms-mgmt
     [6483] = { 4968, 0 }, // SunVTS-RMI
     [6484] = { 4969, 0 }, // sun-sr-jms
@@ -11562,7 +11548,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [6510] = { 4983, 0 }, // mcer-port
     [6511] = { 4984, 0 }, // dccp-udp
     [6513] = { 4985, 0 }, // netconf-tls
-    [6514] = { 4986, 0 }, // syslog-tls
+    [6514] = { 4986, 11 }, // syslog-tls
     [6515] = { 4987, 0 }, // elipse-rec
     [6543] = { 4988, 0 }, // mythtv
     [6544] = { 4988, 0 }, // mythtv
@@ -11600,7 +11586,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [6633] = { 5024, 0 }, // cisco-vpath-tun
     [6634] = { 5025, 0 }, // mpls-pm
     [6635] = { 5026, 0 }, // mpls-udp
-    [6636] = { 5027, 0 }, // mpls-udp-dtls
+    [6636] = { 5027, 11 }, // mpls-udp-dtls
     [6640] = { 5028, 0 }, // ovsdb
     [6653] = { 5029, 0 }, // openflow
     [6655] = { 5030, 0 }, // pcs-sf-ui-man
@@ -12068,7 +12054,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [8211] = { 5434, 0 }, // aruba-papi
     [8230] = { 5435, 0 }, // rexecj
     [8231] = { 5436, 0 }, // hncp-udp-port
-    [8232] = { 5437, 0 }, // hncp-dtls-port
+    [8232] = { 5437, 11 }, // hncp-dtls-port
     [8243] = { 5438, 0 }, // synapse-nhttps
     [8266] = { 5439, 0 }, // espeasy-p2p
     [8270] = { 5440, 0 }, // robot-remote
@@ -12145,7 +12131,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [8764] = { 5511, 0 }, // openqueue
     [8765] = { 5512, 0 }, // ultraseek-http
     [8766] = { 5513, 0 }, // amcs
-    [8767] = { 5514, 0 }, // core-of-source
+    [8767] = { 5514, 36 }, // core-of-source
     [8768] = { 5515, 0 }, // sandpolis
     [8769] = { 5516, 0 }, // oktaauthenticat
     [8770] = { 5517, 0 }, // apple-iphoto
@@ -12374,7 +12360,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [9978] = { 5749, 0 }, // xybrid-rt
     [9979] = { 5750, 0 }, // visweather
     [9981] = { 5751, 0 }, // pumpkindb
-    [9987] = { 5752, 0 }, // dsm-scm-target
+    [9987] = { 5752, 37 }, // dsm-scm-target
     [9988] = { 5753, 0 }, // nsesrvr
     [9990] = { 5754, 0 }, // osm-appsrvr
     [9991] = { 5755, 0 }, // issa
@@ -12387,7 +12373,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [9998] = { 5764, 0 }, // distinct32
     [9999] = { 5765, 0 }, // abyss
     [10000] = { 5767, 0 }, // snet-sensor-mgmt
-    [10001] = { 5769, 0 }, // scp-config
+    [10001] = { 5769, 29 }, // scp-config
     [10002] = { 5770, 0 }, // documentum
     [10003] = { 5771, 0 }, // documentum_s
     [10004] = { 5772, 0 }, // emcrmirccd
@@ -12402,7 +12388,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [10050] = { 5781, 0 }, // zabbix-agent
     [10051] = { 5782, 0 }, // zabbix-trapper
     [10055] = { 5783, 0 }, // qptlmd
-    [10080] = { 5784, 0 }, // amanda
+    [10080] = { 5784, 30 }, // amanda
     [10081] = { 5785, 0 }, // famdc
     [10082] = { 5786, 0 }, // amandaidx
     [10083] = { 5787, 0 }, // amidxtape
@@ -12423,8 +12409,8 @@ const port_map_entry_t PORT_MAP[65536] = {
     [10128] = { 5802, 0 }, // bmc-perf-sd
     [10129] = { 5803, 0 }, // bmc-gms
     [10160] = { 5804, 0 }, // qb-db-server
-    [10161] = { 5805, 0 }, // snmptls
-    [10162] = { 5807, 0 }, // snmptls-trap
+    [10161] = { 5805, 11 }, // snmptls
+    [10162] = { 5807, 11 }, // snmptls-trap
     [10200] = { 5809, 0 }, // trisoap
     [10201] = { 5810, 0 }, // rsms
     [10252] = { 5812, 0 }, // apollo-relay
@@ -12476,7 +12462,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [11201] = { 5858, 0 }, // smsqp
     [11202] = { 5859, 0 }, // dcsl-backup
     [11208] = { 5860, 0 }, // wifree
-    [11211] = { 5861, 0 }, // memcache
+    [11211] = { 5861, 38 }, // memcache
     [11235] = { 5862, 0 }, // xcompute
     [11319] = { 5863, 0 }, // imip
     [11320] = { 5864, 0 }, // imip-channels
@@ -12520,9 +12506,16 @@ const port_map_entry_t PORT_MAP[65536] = {
     [12321] = { 5904, 0 }, // warehouse-sss
     [12322] = { 5905, 0 }, // warehouse
     [12345] = { 5906, 0 }, // netbus
-    [12346] = { 5906, 0 }, // netbus
+    [12346] = { 5906, 11 }, // netbus
+    [12446] = { 0, 11 }, // unknown	
+    [12546] = { 0, 11 }, // unknown	
+    [12646] = { 0, 11 }, // unknown	
+    [12746] = { 0, 11 }, // unknown	
     [12753] = { 5908, 0 }, // tsaf
+    [12846] = { 0, 11 }, // unknown	
     [12865] = { 5909, 0 }, // netperf
+    [12946] = { 0, 11 }, // unknown	
+    [13046] = { 0, 11 }, // unknown	
     [13160] = { 5910, 0 }, // i-zipqd
     [13216] = { 5911, 0 }, // bcslogc
     [13217] = { 5912, 0 }, // rs-pias
@@ -12625,7 +12618,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [17007] = { 5996, 0 }, // isode-dua
     [17010] = { 5997, 0 }, // ncpu
     [17184] = { 5998, 0 }, // vestasdlp
-    [17185] = { 5999, 0 }, // soundsvirtual
+    [17185] = { 5999, 31 }, // soundsvirtual
     [17219] = { 6001, 0 }, // chipper
     [17220] = { 6002, 0 }, // avtp
     [17221] = { 6003, 0 }, // avdecc
@@ -12809,7 +12802,11 @@ const port_map_entry_t PORT_MAP[65536] = {
     [25903] = { 6182, 0 }, // niprobe
     [25954] = { 6183, 0 }, // bf-game
     [25955] = { 6184, 0 }, // bf-master
-    [26000] = { 6185, 0 }, // quake
+    [26000] = { 6185, 33 }, // quake
+    [26001] = { 6185, 33 }, // quake
+    [26002] = { 6185, 33 }, // quake
+    [26003] = { 6185, 33 }, // quake
+    [26004] = { 6185, 33 }, // quake
     [26133] = { 6186, 0 }, // scscp
     [26208] = { 6187, 0 }, // wnn6_DS
     [26257] = { 6189, 0 }, // cockroach
@@ -12845,8 +12842,16 @@ const port_map_entry_t PORT_MAP[65536] = {
     [27665] = { 6219, 0 }, // Trinoo_Master
     [27782] = { 6220, 0 }, // ars-vista
     [27876] = { 6221, 0 }, // astrolink
-    [27910] = { 6222, 0 }, // quake2
-    [27960] = { 6223, 0 }, // quake3
+    [27910] = { 6222, 32 }, // quake2
+    [27911] = { 6222, 32 }, // quake2
+    [27912] = { 6222, 32 }, // quake2
+    [27913] = { 6222, 32 }, // quake2
+    [27914] = { 6222, 32 }, // quake2
+    [27960] = { 6223, 33 }, // quake3
+    [27961] = { 6223, 33 }, // quake3
+    [27962] = { 6223, 33 }, // quake3
+    [27963] = { 6223, 33 }, // quake3
+    [27964] = { 6223, 33 }, // quake3
     [27999] = { 6224, 0 }, // tw-auth-key
     [28000] = { 6225, 0 }, // nxlmd
     [28001] = { 6226, 0 }, // pqsp
@@ -12874,6 +12879,11 @@ const port_map_entry_t PORT_MAP[65536] = {
     [30100] = { 6246, 0 }, // rwp
     [30260] = { 6247, 0 }, // kingdomsonline
     [30400] = { 6248, 0 }, // gs-realtime
+    [30720] = { 6223, 33 }, // quake3
+    [30721] = { 6223, 33 }, // quake3
+    [30722] = { 6223, 33 }, // quake3
+    [30723] = { 6223, 33 }, // quake3
+    [30724] = { 6223, 33 }, // quake3
     [30832] = { 6249, 0 }, // samsung-disc
     [30999] = { 6250, 0 }, // ovobs
     [31016] = { 6251, 0 }, // ka-sddp
@@ -13014,6 +13024,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [44322] = { 6400, 0 }, // pmcdproxy
     [44323] = { 6401, 0 }, // pmwebapi
     [44334] = { 6402, 0 }, // tinyfw
+    [44400] = { 6223, 33 }, // quake3
     [44442] = { 6403, 0 }, // coldfusion-auth
     [44443] = { 6403, 0 }, // coldfusion-auth
     [44444] = { 6404, 0 }, // cognex-dataman
@@ -13058,7 +13069,7 @@ const port_map_entry_t PORT_MAP[65536] = {
     [48556] = { 6444, 0 }, // com-bardac-dw
     [48619] = { 6445, 0 }, // iqobject
     [48653] = { 6446, 0 }, // robotraconteur
-    [48899] = { 6447, 0 }, // tc_ads_discovery
+    [48899] = { 6447, 39 }, // tc_ads_discovery
     [49000] = { 6448, 0 }, // matahari
     [49001] = { 6449, 0 }, // nusrp
     [49150] = { 6450, 0 }, // inspider
@@ -13070,9 +13081,6 @@ const port_map_entry_t PORT_MAP[65536] = {
     [61440] = { 6453, 0 }, // netprowler-manager2
     [61441] = { 6454, 0 }, // netprowler-sensor
     [62078] = { 6455, 0 }, // iphone-sync
-    [64738] = { 6456, 0 }, // murmur
+    [64738] = { 6456, 34 }, // murmur
     [65301] = { 6457, 0 }, // pcanywhere
 };
-
-
-#endif // PORT_MAP_H
