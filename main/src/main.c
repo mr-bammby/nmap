@@ -33,7 +33,7 @@ const char *parse_error_to_string(parse_return_e error)
         return "Duplicate value";
     case PARSE_FILE_ERROR:
         return "File error";
-    case PARSE_INTRNAL_ERROR:
+    case PARSE_INTERNAL_ERROR:
         return "Internal error";
     default:
         return "Unknown error";

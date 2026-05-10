@@ -8,11 +8,7 @@ parse_return_e argument_handler_address(params_t *param, const char *value)
     printf("Processing token"); // Debug print
     if (param->address != NULL)
     {
-        return (PARSE_DOUBLE_VALUE);
+        return PARSE_DOUBLE_VALUE;
     }
-    if (parse_address_list(value, &(param->address)) != 0)
-    {
-        return (PARSE_BAD_VALUE);
-    }
-    return (PARSE_OK);
+    return parse_address_list(value, &(param->address));
 }

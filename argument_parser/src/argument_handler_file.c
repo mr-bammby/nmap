@@ -34,22 +34,22 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
             return PARSE_BAD_VALUE;
         }
 
-        if (address_is_valid(addr))
+        if (address_is_valid(addr) == BOOL_TRUE)
         {
-            if (address_list_prepend(&head, addr) != 0)
+            if (address_list_prepend(&head, addr) != INTERNAL_SUCCESS)
             {
                 address_list_free(&head);
                 fclose(file);
-                return PARSE_INTRNAL_ERROR;
+                return PARSE_INTERNAL_ERROR;
             }
         }
-        else if (fqdn_resolve(addr, fqdn_buffer) == 0u)
+        else if (fqdn_resolve(addr, fqdn_buffer) == INTERNAL_SUCCESS)
         {
-            if (address_list_prepend(&head, fqdn_buffer) != 0)
+            if (address_list_prepend(&head, fqdn_buffer) != INTERNAL_SUCCESS)
             {
                 address_list_free(&head);
                 fclose(file);
-                return PARSE_INTRNAL_ERROR;
+                return PARSE_INTERNAL_ERROR;
             }
         }
         else
