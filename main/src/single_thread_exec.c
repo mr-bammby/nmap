@@ -91,14 +91,49 @@ char* get_local_ip(const char *iface_name)
     return NULL;
 }
 
+int8_t set_scan_type_flag(ip_header_t *ip_hdr, tcp_header_t *tcp_hdr, uint8_t scan_type)
+{
+    int8_t ret = 0;
+    switch (scan_type)
+    {
+        case SCAN_FLG_SYN:
+            ip_hdr->protocol = IPPROTO_TCP;
+            tcp_hdr->flags = TCP_FLAG_SYN;
+            break;
+        case SCAN_FLG_ACK:
+            ip_hdr->protocol = IPPROTO_TCP;
+            tcp_hdr->flags = TCP_FLAG_ACK;
+            break;
+        case SCAN_FLG_NULL:
+            ip_hdr->protocol = IPPROTO_TCP;
+            tcp_hdr->flags = 0;
+            break;
+        case SCAN_FLG_FIN:
+            ip_hdr->protocol = IPPROTO_TCP;
+            tcp_hdr->flags = TCP_FLAG_FIN;
+            break;
+        case SCAN_FLG_XMAS:
+            ip_hdr->protocol = IPPROTO_TCP;
+            tcp_hdr->flags = TCP_FLAG_FIN | TCP_FLAG_PSH | TCP_FLAG_URG;
+            break;
+        case SCAN_FLG_UDP:
+            ip_hdr->protocol = IPPROTO_UDP;
+            break;
+        default:
+            perror("Unsupported scan type");
+            ret = -1;
+            break;
+    }
+    return ret;
+}
 
 // --- Sender Logic ---
-void send_packet(int sockfd, const char *target_ip, int port, const char *local_ip, uint8_t scan_type)
+void send_packet(int sockfd, const char *target_ip, int port, const char *local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
 {
     uint8_t packet[128];
-    ip_header_t ip_header;
-    tcp_header_t tcp_header;
-    udp_header_t udp_header;
+    ip_header_t ip_header = {0};
+    tcp_header_t tcp_header = {0};
+    udp_header_t udp_header = {0};
     int16_t packet_len;
 
     struct sockaddr_in sin;
@@ -111,7 +146,8 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     sin.sin_port = htons(port);
     sin.sin_addr.s_addr = inet_addr(target_ip);
 
-    uint32_t payload[1] = {0xb4050402}; // Example payload for SYN+ACK response
+    uint32_t payload[1] = {0xb4050402}; // Generic probe payload for TCP/UDP
+    static const uint8_t udp_probe_ntp[48] = {0x1b};
     uint8_t scan_id = 0;
     uint8_t scan_type_tmp = scan_type;
     uint32_t cookie;
@@ -122,42 +158,39 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
         scan_id++;
     }
     cookie = COOKIE_MAKE(scan_id, port);
-    switch (scan_type)
-    {
-        case SCAN_FLG_SYN:
-            ip_header.protocol = IPPROTO_TCP;
-            tcp_header.flags = TCP_FLAG_SYN;
-            break;
-        case SCAN_FLG_ACK:
-            ip_header.protocol = IPPROTO_TCP;
-            tcp_header.flags = TCP_FLAG_ACK;
-            break;
-        case SCAN_FLG_NULL:
-            ip_header.protocol = IPPROTO_TCP;
-            tcp_header.flags = 0;
-            break;
-        case SCAN_FLG_FIN:
-            ip_header.protocol = IPPROTO_TCP;
-            tcp_header.flags = TCP_FLAG_FIN;
-            break;
-        case SCAN_FLG_XMAS:
-            ip_header.protocol = IPPROTO_TCP;
-            tcp_header.flags = TCP_FLAG_FIN | TCP_FLAG_PSH | TCP_FLAG_URG;
-            break;
-        case SCAN_FLG_UDP:
-            ip_header.protocol = IPPROTO_UDP;
-            break;
-        default:
-            perror("Unsupported scan type");
-            return;
-            break;
-    }
+
+    if (set_scan_type_flag(&ip_header, &tcp_header, scan_type) < 0)
+        return;
+
     if (ip_header.protocol == IPPROTO_UDP)
     {
-        udp_header.src_port = rand() % 65536;
+        const uint8_t *udp_payload = (const uint8_t *)payload;
+        uint16_t udp_payload_len = sizeof(payload);
+
+        //Create different UDP payloads for retries to elicit different responses from certain services.
+        //Use two different arrays. One for ports of specific services that respond to certain probes (e.g. NTP on 123/UDP), and a generic empty payload for other ports.
+        //A function should return the index which will then get the corresponding payload out of the second array.
+        /* Rotate UDP probes across retries without port-specific hardcoding. */
+        if (udp_probe_variant % UDP_TOTAL_PROBES == 1)
+        {
+            udp_payload = udp_probe_ntp;
+            udp_payload_len = sizeof(udp_probe_ntp);
+        }
+        else if (udp_probe_variant % UDP_TOTAL_PROBES == 2)
+        {
+            udp_payload = NULL;
+            udp_payload_len = 0;
+        }
+
+        udp_header.src_port = (uint16_t)(1024 + (rand() % (65535 - 1024)));
         udp_header.dst_port = port;
-        udp_header.length = UDP_HEADER_SIZE + sizeof(payload);
-        int16_t udp_packet_len = udp_packet_create(packet, sizeof(packet), &ip_header, &udp_header, payload, sizeof(payload));
+        udp_header.length = (uint16_t)(UDP_HEADER_SIZE + udp_payload_len);
+        int16_t udp_packet_len = udp_packet_create(packet,
+                                                   sizeof(packet),
+                                                   &ip_header,
+                                                   &udp_header,
+                                                   (const uint32_t *)udp_payload,
+                                                   udp_payload_len);
         if (udp_packet_len < 0)        {
             perror("Packet creation failed");
             return;
@@ -166,7 +199,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     }
     else
     {
-        tcp_header.src_port = rand() % 65536;
+        tcp_header.src_port = (uint16_t)(1024 + (rand() % (65535 - 1024)));
         tcp_header.dst_port = port;
         tcp_header.seq_num = cookie;
         
@@ -216,7 +249,7 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len)
 
     transport = (const uint8_t *)(packet + g_link_header_len + ip_hl);
     ip_payload_len = packet_len - g_link_header_len - (uint32_t)ip_hl;
-
+    printf("IP header parsed: src=%s dst=%s protocol=%d\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src), inet_ntoa(*(struct in_addr *)&ip_hdr.dst), ip_hdr.protocol);
     switch (ip_hdr.protocol)
     {
     case IPPROTO_TCP:
@@ -229,8 +262,9 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len)
     
     case IPPROTO_UDP:
         printf("Received UDP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return udp_response_process(transport);
+        return udp_response_process(transport, ip_payload_len);
     default:
+        printf("No packet received from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
         return 0;
     }
 }
@@ -452,7 +486,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                 response_type_t *response_slot;
                 printf("Scanning port %d with scan type %s...\n", port_i, valid_tokens[scan_i]);
                 fflush(stdout);
-                send_packet(sock, target_ip, port_i, local_ip, scan_flag);
+                send_packet(sock, target_ip, port_i, local_ip, scan_flag, 0);
                 response_slot = response_slot_for_scan(&results[port_i - 1], scan_flag);
                 if (response_slot == NULL)
                 {
@@ -473,7 +507,8 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                         (attempt % RESPONSE_WAIT_ATTEMPTS) == 0 &&
                         *response_slot == RESPONSE_NO_RESPONSE)
                     {
-                        send_packet(sock, target_ip, port_i, local_ip, scan_flag);
+                        uint8_t udp_probe_variant = (uint8_t)(attempt / RESPONSE_WAIT_ATTEMPTS);
+                        send_packet(sock, target_ip, port_i, local_ip, scan_flag, udp_probe_variant);
                     }
 
                     // Wait in 1ms polls; UDP may span multiple windows via retries.
@@ -482,6 +517,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                     int res = pcap_next_ex(handle, &header, &packet);
                     if (res == 1)
                     {
+                        printf("PACKET PROCESSING\n");
                         process_packet(packet, header->caplen);
                         /* Only stop when this specific probe got a conclusive response. */
                         if (*response_slot != RESPONSE_NO_RESPONSE)

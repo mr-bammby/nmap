@@ -74,9 +74,12 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
     return UDP_HEADER_SIZE;
 }
 
-int8_t udp_response_process(const uint8_t *transport)
+int8_t udp_response_process(const uint8_t *transport, uint32_t ip_payload_len)
 {
-    // For UDP, check if there is a response (open) or no response (filtered)
+    if (transport == NULL || ip_payload_len < UDP_HEADER_SIZE)
+        return 0;
+
+    // For UDP, a UDP reply from target port means OPEN.
     uint16_t port = ntohs(*(const uint16_t *)(transport)); // Source port
     if (port < PORT_START || port > PORT_END)
         return 0;
