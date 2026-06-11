@@ -3,27 +3,52 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <arpa/inet.h> // Required for inet_ntop
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <stdio.h>
 
-uint8_t isnum(const char *str)
+internal_error_e fqdn_resolve(const char *fqdn, char *ip_buffer) // buffer needs to be at least 16 bytes
+{
+    struct addrinfo hints;
+    struct addrinfo *info;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;       // Strictly IPv4
+    hints.ai_socktype = 0;           // Returns results for all supported protocols (TCP & UDP)
+
+    if (getaddrinfo(fqdn, NULL, &hints, &info) != 0)
+        return INTERNAL_DNS_FAILURE;
+    if (inet_ntop(info->ai_family, &((struct sockaddr_in *)info->ai_addr)->sin_addr, ip_buffer, 16) == NULL)
+    {
+        freeaddrinfo(info);
+        return INTERNAL_DNS_FAILURE;
+    }
+    freeaddrinfo(info);
+    return INTERNAL_SUCCESS;
+}
+
+static bool_e isnum(const char *str)
 {
     if (str == NULL || *str == '\0')
-        return 0;
+        return BOOL_FALSE;
 
     while (*str)
     {
         if (!isdigit((unsigned char)*str))
-            return 0;
+            return BOOL_FALSE;
         str++;
     }
-    return 1;
+    return BOOL_TRUE;
 }
 
 /* historically the validation logic lived in the argument handlers.
    this helper centralizes it so the name is more descriptive. */
-int address_is_valid(const char *ip)
+bool_e address_is_valid(const char *ip)
 {
     if (ip == NULL || *ip == '\0')
-        return 0;
+        return BOOL_FALSE;
 
     int dots = 0;
     int digits_in_segment = 0;
@@ -98,24 +123,25 @@ void address_list_free(addr_node_t **head)
     }
 }
 
-int address_list_prepend(addr_node_t **head, const char *ip)
+internal_error_e address_list_prepend(addr_node_t **head, const char *ip)
 {
     addr_node_t *new_node = malloc(sizeof(addr_node_t));
     if (new_node == NULL)
-        return -1;
+        return INTERNAL_ALLOCATION_FAILURE;
 
     strncpy(new_node->addr, ip, sizeof(new_node->addr));
     new_node->addr[sizeof(new_node->addr) - 1] = '\0';
     new_node->next = *head;
     *head = new_node;
 
-    return 0;
+    return INTERNAL_SUCCESS;
 }
 
-int parse_address_list(const char *input, addr_node_t **head_p)
+parse_return_e parse_address_list(const char *input, addr_node_t **head_p)
 {
     addr_node_t *head = *head_p;
     char buffer[256];
+    char fqdn_buffer[16]; // Buffer for resolved IPs from FQDNs, IPv4 max length is 15 + null terminator
 
     strncpy(buffer, input, sizeof(buffer));
     buffer[sizeof(buffer) - 1] = '\0';
@@ -126,22 +152,31 @@ int parse_address_list(const char *input, addr_node_t **head_p)
     token = strtok_r(buffer, ",", &saveptr);
     while (token)
     {
-        if (address_is_valid(token))
+        if (address_is_valid(token) == BOOL_TRUE)
         {
-            if (address_list_prepend(&head, token) != 0)
+            if (address_list_prepend(&head, token) != INTERNAL_SUCCESS)
             {
                 address_list_free(&head);
-                return -1; /* allocation failure */
+                return PARSE_INTERNAL_ERROR;
+            }
+        }
+        else if (fqdn_resolve(token, fqdn_buffer) == INTERNAL_SUCCESS)
+        {
+            printf("Resolved FQDN '%s' to IP '%s'\n", token, fqdn_buffer); // Debug print
+            if (address_list_prepend(&head, fqdn_buffer) != INTERNAL_SUCCESS)
+            {
+                address_list_free(&head);
+                return PARSE_INTERNAL_ERROR;
             }
         }
         else
         {
             address_list_free(&head);
-            return -1;
+            return PARSE_BAD_VALUE;
         }
         token = strtok_r(NULL, ",", &saveptr);
     }
 
     *head_p = head;
-    return 0;
+    return PARSE_OK;
 }

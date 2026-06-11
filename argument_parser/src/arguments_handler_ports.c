@@ -21,9 +21,9 @@ static inline void port_bitmap_set(port_set_t *set, uint16_t idx)
     }
 }
 
-/* parse a comma‑separated list of port numbers and ranges into a
-   bitmap; returns 0 on success, negative codes on error */
-static int parse_port_range_set(const char *input, port_set_t *set)
+/* parse a comma-separated list of port numbers and ranges into a
+   bitmap; returns PARSE_OK on success, PARSE_BAD_VALUE on error */
+static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
 {
     state_t st = START;
     uint16_t num = 0;
@@ -56,19 +56,19 @@ static int parse_port_range_set(const char *input, port_set_t *set)
             }
             else if (c == '\0')
             {
-                return 0;
+                return PARSE_OK;
             }
             else
             {
-                return -1; /* error */
+                return PARSE_BAD_VALUE; /* error */
             }
             break;
 
         /* --------------------------------------------- */
         case NUMBER:
-            if (idx > (start_idx + 4))
+            if (idx > (start_idx + 6))
             {
-                return -7;
+                return PARSE_BAD_VALUE;
             }
             if (isdigit(c))
             {
@@ -82,17 +82,17 @@ static int parse_port_range_set(const char *input, port_set_t *set)
             else if (c == ',' || c == '\0')
             {
                 if (num < 1 || num > NUMBER_OF_PORTS)
-                    return -2;
+                    return PARSE_BAD_VALUE;
                 port_bitmap_set(set, num);
 
                 st = START;
 
                 if (c == '\0')
-                    return 0;
+                    return PARSE_OK;
             }
             else
             {
-                return -3; /* invalid char */
+                return PARSE_BAD_VALUE; /* invalid char */
             }
             break;
 
@@ -106,15 +106,15 @@ static int parse_port_range_set(const char *input, port_set_t *set)
             }
             else
             {
-                return -4;
+                return PARSE_BAD_VALUE;
             }
             break;
 
         /* --------------------------------------------- */
         case SECOND_NUMBER:
-            if (idx > (start_idx + 4))
+            if (idx > (start_idx + 6))
             {
-                return -7;
+                return PARSE_BAD_VALUE;
             }
             if (isdigit(c))
             {
@@ -126,7 +126,7 @@ static int parse_port_range_set(const char *input, port_set_t *set)
 
                 if (start < 1 || end > NUMBER_OF_PORTS || start > end)
                 {
-                    return -5;
+                    return PARSE_BAD_VALUE;
                 }
 
                 for (int v = start; v <= end; v++)
@@ -138,23 +138,23 @@ static int parse_port_range_set(const char *input, port_set_t *set)
 
                 if (c == '\0')
                 {
-                    return 0;
+                    return PARSE_OK;
                 }
             }
             else
             {
-                return -6;
+                return PARSE_BAD_VALUE;
             }
             break;
         }
         if (c == '\0')
         {
-            return 0;
+            return PARSE_OK;
         }
         idx++;
         p++;
     }
-    return (0);
+    return PARSE_OK;
 }
 
 parse_return_e argument_handler_port(params_t *param, const char *value)
@@ -165,9 +165,9 @@ parse_return_e argument_handler_port(params_t *param, const char *value)
         return (PARSE_DOUBLE_VALUE);
     }
     reenter = 1;
-    if (parse_port_range_set(value, &(param->ports)) != 0)
+    if (parse_port_range_set(value, &(param->ports)) != PARSE_OK)
     {
-        return (PARSE_BAD_VALUE);
+        return PARSE_BAD_VALUE;
     }
     return (PARSE_OK);
 }

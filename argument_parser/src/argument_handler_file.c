@@ -17,6 +17,8 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
 
     addr_node_t *head = NULL;
     char line[32];
+    char fqdn_buffer[16]; // Buffer for resolved IPs from FQDNs, IPv4 max length is 15 + null terminator
+
 
     while (fgets(line, sizeof(line), file))
     {
@@ -32,13 +34,22 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
             return PARSE_BAD_VALUE;
         }
 
-        if (address_is_valid(addr))
+        if (address_is_valid(addr) == BOOL_TRUE)
         {
-            if (address_list_prepend(&head, addr) != 0)
+            if (address_list_prepend(&head, addr) != INTERNAL_SUCCESS)
             {
                 address_list_free(&head);
                 fclose(file);
-                return PARSE_INTRNAL_ERROR;
+                return PARSE_INTERNAL_ERROR;
+            }
+        }
+        else if (fqdn_resolve(addr, fqdn_buffer) == INTERNAL_SUCCESS)
+        {
+            if (address_list_prepend(&head, fqdn_buffer) != INTERNAL_SUCCESS)
+            {
+                address_list_free(&head);
+                fclose(file);
+                return PARSE_INTERNAL_ERROR;
             }
         }
         else

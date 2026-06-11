@@ -12,7 +12,7 @@ typedef enum
     PARSE_HELP_REQUEST = 4,
     PARSE_DOUBLE_VALUE = 5,
     PARSE_FILE_ERROR = 6,
-    PARSE_INTRNAL_ERROR = 7
+    PARSE_INTERNAL_ERROR = 7
 } parse_return_e;
 
 /* Forward declaration of params_t to avoid circular includes */

@@ -4,7 +4,7 @@
 #include "response_states.h"
 
 #define PORT_START 1
-#define PORT_END 150
+#define PORT_END 1024
 #define RESULTS_CAPACITY 1024
 
 extern scan_result_t results[RESULTS_CAPACITY];
