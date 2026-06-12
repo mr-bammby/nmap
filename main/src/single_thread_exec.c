@@ -16,6 +16,7 @@
 #include "udp.h"
 #include "scan_context.h"
 #include "port_utils.h"
+#include "port_map.h"
 
 scan_result_t results[RESULTS_CAPACITY];
 uint32_t g_link_header_len = 14;
@@ -147,7 +148,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     sin.sin_addr.s_addr = inet_addr(target_ip);
 
     uint32_t payload[1] = {0xb4050402}; // Generic probe payload for TCP/UDP
-    static const uint8_t udp_probe_ntp[48] = {0x1b};
+    //static const uint8_t udp_probe_ntp[48] = {0x1b};
     uint8_t scan_id = 0;
     uint8_t scan_type_tmp = scan_type;
     uint32_t cookie;
@@ -173,8 +174,8 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
         /* Rotate UDP probes across retries without port-specific hardcoding. */
         if (udp_probe_variant % UDP_TOTAL_PROBES == 1)
         {
-            udp_payload = udp_probe_ntp;
-            udp_payload_len = sizeof(udp_probe_ntp);
+            udp_payload = PAYLOADS[PORT_MAP[port].payload_idx].payload_data;//udp_probe_ntp;
+            udp_payload_len = PAYLOADS[PORT_MAP[port].payload_idx].len;//sizeof(udp_probe_ntp);
         }
         else if (udp_probe_variant % UDP_TOTAL_PROBES == 2)
         {
