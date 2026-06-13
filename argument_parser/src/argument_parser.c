@@ -3,20 +3,21 @@
 #include "nmap_types.h"
 #include "port_utils.h"
 
-static const params_t DEFAULT_PARAMS = {
-    .address = NULL,                                    /* no addresses by default, user must specify at least one */
-    .ports = {0}, /* all ports enabled by default */
-    .thread_num = 1,                                    /* one thread by default */
-    .scans = 0x3f                                       /* all scan types enabled by default */
-};
-
 #define DEFAULT_PORTS_STR "1-1024"
+#define DEFAULT_THREAD_NUM 1
+#define DEFAULT_SCANS 0x3f
 
 
 parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
 {
     int i = 1;
 
+    if (parameters == NULL)
+    {
+        return PARSE_INTERNAL_ERROR;
+    }
+
+    memset(parameters, 0, sizeof(*parameters));
     init_port_set(&parameters->ports);
 
     while (i < arg)
@@ -70,11 +71,11 @@ parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
     }
     if (parameters->thread_num == 0)
     {
-        parameters->thread_num = DEFAULT_PARAMS.thread_num;
+        parameters->thread_num = DEFAULT_THREAD_NUM;
     }
     if (parameters->scans == 0)
     {
-        parameters->scans = DEFAULT_PARAMS.scans;
+        parameters->scans = DEFAULT_SCANS;
     }
     if (parameters->ports.count == 0)
     {

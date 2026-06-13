@@ -19,14 +19,13 @@ short add_port(port_set_t *set, unsigned int value)
     if (set->count >= NUMBER_OF_PORTS)
     {
         fprintf(stderr, "Error: Set overflow.\n");
-        return -1; 
+        return -1;
     }
 
-    if (set->data[set->count - 1] < value)
+    if (set->count == 0 || set->data[set->count - 1] < value)
     {
-        set->data[set->count] = value; // Add at the end
-        set->count++;
-        return 0; // Success
+        set->data[set->count++] = value;
+        return 0;
     }
     
     for (int i = 0; i < set->count; i++)
