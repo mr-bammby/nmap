@@ -174,8 +174,8 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
         /* Rotate UDP probes across retries without port-specific hardcoding. */
         if (udp_probe_variant % UDP_TOTAL_PROBES == 1)
         {
-            udp_payload = PAYLOADS[PORT_MAP[port].payload_idx].payload_data;//udp_probe_ntp;
-            udp_payload_len = PAYLOADS[PORT_MAP[port].payload_idx].len;//sizeof(udp_probe_ntp);
+            udp_payload = port_payloads[port_map[port].payload_idx].payload_data;//udp_probe_ntp;
+            udp_payload_len = port_payloads[port_map[port].payload_idx].len;//sizeof(udp_probe_ntp);
         }
         else if (udp_probe_variant % UDP_TOTAL_PROBES == 2)
         {
@@ -339,14 +339,14 @@ static void print_scan_block(const char *title,
 {
     int i;
     printf("\n***** %s *****\n", title);
-    printf("\n%-6s | %s\n", "PORT", "STATE");
-    printf("-------|----------------\n");
+    printf("\n%-6s | %-14s | %s\n", "PORT", "STATE", "SERVICE");
+    printf("-------|----------------|----------------\n");
 
     for (i = start; i < end; i++)
     {
         response_type_t response = get_response(&results[i]);
         if (response != RESPONSE_NOT_EXPECTED)
-            printf("%-6d | %s\n", results[i].port, state_label(response));
+            printf("%-6d | %-14s | %s\n", results[i].port, state_label(response), service_names[results[i].port]);
     }
 }
 

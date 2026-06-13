@@ -64,7 +64,7 @@ static const uint8_t payload_ts3[] = {0x05,0xca,0x7f,0x16,0x9c,0x11,0xf9,0x89,0,
 static const uint8_t payload_memcached[] = {0x00,0x01,0x00,0x00,0x00,0x01,0x00,0x00,'v','e','r','s','i','o','n','\r','\n'};
 static const uint8_t payload_ads[] = {0x03,0x66,0x14,0x71,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x01,0x10,0x27,0x00,0x00,0x00,0x00};
 
-const port_payload_t PAYLOADS[] = {
+static const port_payload_t PAYLOADS[] = {
     { NULL, 0, 0 },                                                    // 0: Fallback
     { payload_echo, sizeof(payload_echo), 0 },                         // 1: GenericLines| Service: echo | Port: 7
     { payload_dns_stat, sizeof(payload_dns_stat), 0 },                 // 2: DNSStatusRequest | Service: DNS | Port: 53
@@ -107,7 +107,9 @@ const port_payload_t PAYLOADS[] = {
     { payload_ads, sizeof(payload_ads), 0 },                           // 39: ADS | Service: Active Directory Services | Port: 48899
 };
 
-const char * SVC_NAMES[] = {
+const port_payload_t *port_payloads = PAYLOADS;
+
+static const char * SVC_NAMES[] = {
     "unknown",  // Index 0
     "tcpmux",  // Index 1
     "compressnet",  // Index 2
@@ -6568,7 +6570,9 @@ const char * SVC_NAMES[] = {
     "pcanywhere",  // Index 6457
 };
 
-const port_map_entry_t PORT_MAP[65536] = {
+const char *const *service_names = SVC_NAMES;
+
+static const port_map_entry_t PORT_MAP[PORT_MAP_SIZE] = {
     [0 ... 65535] = { 0, 0 },
 
     [1] = { 1, 0 }, // tcpmux
@@ -13084,3 +13088,5 @@ const port_map_entry_t PORT_MAP[65536] = {
     [64738] = { 6456, 34 }, // murmur
     [65301] = { 6457, 0 }, // pcanywhere
 };
+
+const port_map_entry_t *port_map = PORT_MAP;
