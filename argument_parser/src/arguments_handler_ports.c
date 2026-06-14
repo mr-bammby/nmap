@@ -13,16 +13,18 @@ typedef enum
 } state_t;
 
 /* set the bit corresponding to `idx` in the supplied port bitmap */
-static inline void port_bitmap_set(port_set_t *set, uint16_t idx)
+static inline short port_bitmap_set(port_set_t *set, uint16_t idx)
 {
     if (set != NULL)
     {
-        add_port(set,idx);
+        return add_port(set, idx);
     }
+    return 0;
 }
 
 /* parse a comma-separated list of port numbers and ranges into a
-   bitmap; returns PARSE_OK on success, PARSE_BAD_VALUE on error */
+   bitmap; returns PARSE_OK on success, PARSE_BAD_VALUE on invalid input,
+   or PARSE_INTERNAL_ERROR on internal failures such as overflow */
 static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
 {
     state_t st = START;
@@ -83,7 +85,8 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
             {
                 if (num < 1 || num > NUMBER_OF_PORTS)
                     return PARSE_BAD_VALUE;
-                port_bitmap_set(set, num);
+                if (port_bitmap_set(set, num) != 0)
+                    return PARSE_INTERNAL_ERROR;
 
                 st = START;
 
@@ -131,7 +134,8 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
 
                 for (int v = start; v <= end; v++)
                 {
-                    port_bitmap_set(set, v);
+                    if (port_bitmap_set(set, v) != 0)
+                        return PARSE_INTERNAL_ERROR;
                 }
 
                 st = START;
@@ -159,15 +163,10 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
 
 parse_return_e argument_handler_port(params_t *param, const char *value)
 {
-    static int reenter = 0;
-    if (reenter)
+    if (param->ports.count != 0)
     {
-        return (PARSE_DOUBLE_VALUE);
+        return PARSE_DOUBLE_VALUE;
     }
-    reenter = 1;
-    if (parse_port_range_set(value, &(param->ports)) != PARSE_OK)
-    {
-        return PARSE_BAD_VALUE;
-    }
-    return (PARSE_OK);
+
+    return parse_port_range_set(value, &(param->ports));
 }

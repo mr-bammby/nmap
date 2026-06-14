@@ -16,19 +16,35 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
         return PARSE_FILE_ERROR;
 
     addr_node_t *head = NULL;
-    char line[32];
+    char *line = NULL;
+    size_t line_size = 0;
     char fqdn_buffer[16]; // Buffer for resolved IPs from FQDNs, IPv4 max length is 15 + null terminator
 
-
-    while (fgets(line, sizeof(line), file))
+    while (getline(&line, &line_size, file) != -1)
     {
-        /* Remove newline and trim whitespace */
         char *addr;
         char *saveptr2;
+        char *end;
 
         addr = strtok_r(line, "\r\n", &saveptr2);
         if (!addr)
         {
+            free(line);
+            address_list_free(&head);
+            fclose(file);
+            return PARSE_BAD_VALUE;
+        }
+
+        while (isspace((unsigned char)*addr))
+            addr++;
+
+        end = addr + strlen(addr) - 1;
+        while (end >= addr && isspace((unsigned char)*end))
+            *end-- = '\0';
+
+        if (*addr == '\0')
+        {
+            free(line);
             address_list_free(&head);
             fclose(file);
             return PARSE_BAD_VALUE;
@@ -38,6 +54,7 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
         {
             if (address_list_prepend(&head, addr) != INTERNAL_SUCCESS)
             {
+                free(line);
                 address_list_free(&head);
                 fclose(file);
                 return PARSE_INTERNAL_ERROR;
@@ -47,6 +64,7 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
         {
             if (address_list_prepend(&head, fqdn_buffer) != INTERNAL_SUCCESS)
             {
+                free(line);
                 address_list_free(&head);
                 fclose(file);
                 return PARSE_INTERNAL_ERROR;
@@ -54,10 +72,20 @@ parse_return_e argument_handler_file(params_t *param, const char *value)
         }
         else
         {
+            free(line);
             address_list_free(&head);
             fclose(file);
             return PARSE_BAD_VALUE;
         }
+    }
+
+    free(line);
+
+    if (ferror(file))
+    {
+        address_list_free(&head);
+        fclose(file);
+        return PARSE_FILE_ERROR;
     }
 
     fclose(file);
