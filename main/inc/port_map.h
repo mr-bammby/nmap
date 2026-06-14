@@ -21,6 +21,6 @@ extern const port_map_entry_t *port_map;
 
 #define MAX_PAYLOADS sizeof(PAYLOADS) / sizeof(port_payload_t)
 #define MAX_PORT_NAME_IDX sizeof(SVC_NAMES) / sizeof(char *)
-#define PORT_MAP_SIZE 65536
+#define MAX_PORT 65536
 
 #endif // PORT_MAP_H
