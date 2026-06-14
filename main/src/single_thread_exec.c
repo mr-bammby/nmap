@@ -17,6 +17,7 @@
 #include "scan_context.h"
 #include "port_utils.h"
 #include "port_map.h"
+#include "scan_parser.h"
 
 scan_result_t results[RESULTS_CAPACITY];
 uint32_t g_link_header_len = 14;
@@ -406,6 +407,7 @@ void print_results(scan_result_t *results, int start, int end)
     print_scan_block("FIN", results, start, end, get_fin_response, state_label_null_fin_xmas);
     print_scan_block("XMAS", results, start, end, get_xmas_response, state_label_null_fin_xmas);
     print_scan_block("UDP", results, start, end, get_udp_response, state_label_udp);
+    print_scan_block("FINAL", results, start, end, final_result_logic, state_label_final);
 }
 
 int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t scans)

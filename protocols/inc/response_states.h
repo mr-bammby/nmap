@@ -4,14 +4,15 @@
 #include <inttypes.h>
 
 /* Port states from RFC or nmap conventions */
-// typedef enum {
-//     PORT_STATE_OPEN,           /* Port is accepting connections */
-//     PORT_STATE_CLOSED,         /* Port is accessible but no service listening */
-//     PORT_STATE_FILTERED,       /* Firewall/filter blocking access */
-//     PORT_STATE_OPEN_FILTERED,  /* Can't determine (no response) */
-//     PORT_STATE_UNFILTERED,     /* Accessible but open/closed unknown (ACK scan) */
-//     PORT_STATE_UNKNOWN         /* Scan failed or error */
-// } port_state_t;
+ typedef enum {
+    PORT_STATE_NOT_SCANNED,     /* Initial state before scanning */
+    PORT_STATE_OPEN,           /* Port is accepting connections */
+    PORT_STATE_CLOSED,         /* Port is accessible but no service listening */
+    PORT_STATE_FILTERED,       /* Firewall/filter blocking access */
+    PORT_STATE_OPEN_FILTERED,  /* Can't determine (no response) */
+    PORT_STATE_UNFILTERED,     /* Accessible but open/closed unknown (ACK scan) */
+    PORT_STATE_UNKNOWN         /* Scan failed or error */
+ } port_state_t;
 
 /* What caused us to determine this state */
 typedef enum {
