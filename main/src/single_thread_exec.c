@@ -1,32 +1,25 @@
 #include <pcap.h>
 #include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/ip_icmp.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "nmap_types.h"
-#include "ip.h"
-#include "tcp.h"
-#include "exec.h"
-#include "icmp.h"
-#include "udp.h"
 #include "scan_context.h"
 #include "port_utils.h"
 #include "port_map.h"
-#include "packet_send.h"
+#include "packet_handler.h"
 
 scan_result_t results[RESULTS_CAPACITY];
-uint32_t g_link_header_len = 14;
 
 #define NUMBER_OF_SCAN_TYPES 6
 #define RESPONSE_WAIT_ATTEMPTS 500
 #define RESPONSE_POLL_SLEEP_US 1000
 
-static const char *const valid_tokens[6] =
+static const char *const known_scan_types[6] =
     {
         "SYN",
         "NULL",
@@ -89,52 +82,8 @@ char* get_local_ip(const char *iface_name)
     return NULL;
 }
 
-int offset = 0;
 
-// --- Receiver Logic ---
-int8_t process_packet(const unsigned char *packet, uint32_t packet_len)
-{
-    //g_link_header_len is the number of bytes in the link-layer (L2) header of captured packets.
-    //Captured packets start with L2 header (Ethernet/Linux cooked/etc), not IP directly.
-    //The parser needs to skip those bytes before calling ip_header_parse().
-    
-    if (packet == NULL || packet_len < g_link_header_len + IP_MIN_HEADER_LEN)
-        return 0;
 
-    const uint8_t *ip_buf = (const uint8_t *)(packet + g_link_header_len);
-    ip_header_t ip_hdr;
-    int16_t ip_hl;
-    const uint8_t *transport;
-    uint32_t ip_payload_len;
-
-    ip_hl = ip_header_parse(ip_buf, (uint8_t)(packet_len - g_link_header_len), &ip_hdr);
-    if (ip_hl < 0)
-        return 0;
-
-    if (packet_len < (uint32_t)(g_link_header_len + ip_hl))
-        return 0;
-
-    transport = (const uint8_t *)(packet + g_link_header_len + ip_hl);
-    ip_payload_len = packet_len - g_link_header_len - (uint32_t)ip_hl;
-    printf("IP header parsed: src=%s dst=%s protocol=%d\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src), inet_ntoa(*(struct in_addr *)&ip_hdr.dst), ip_hdr.protocol);
-    switch (ip_hdr.protocol)
-    {
-    case IPPROTO_TCP:
-        printf("Received TCP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return tcp_response_process(transport, ip_payload_len, &ip_hdr);
-    
-    case IPPROTO_ICMP:
-        printf("Received ICMP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return icmp_response_process(transport, ip_payload_len, &ip_hdr);
-    
-    case IPPROTO_UDP:
-        printf("Received UDP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return udp_response_process(transport, ip_payload_len);
-    default:
-        printf("No packet received from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return 0;
-    }
-}
 
 // --- Initialize Results Array ---
 void initialize_results(scan_result_t *results, int size)
@@ -212,7 +161,7 @@ static void print_scan_block(const char *title,
     {
         response_type_t response = get_response(&results[i]);
         if (response != RESPONSE_NOT_EXPECTED)
-            printf("%-6d | %-14s | %s\n", results[i].port, state_label(response), service_names[port_map[results[i].port].name_idx]);
+            printf("%-6d | %-14s | %s\n", results[i].port, state_label(response), GET_SERVICE_NAME(results[i].port));
     }
 }
 
@@ -283,6 +232,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     pcap_if_t *alldevs;
     char *device_name;
     char *local_ip;
+    uint32_t link_header_len = 14;
     
     port_set_iterator_t port_it;
     init_port_iterator(&port_it, &ports);
@@ -326,8 +276,8 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     }
 
     int datalink = pcap_datalink(handle);
-    g_link_header_len = (uint32_t)get_link_header_len(datalink);
-    if (g_link_header_len < 0)
+    link_header_len = (uint32_t)get_link_header_len(datalink);
+    if (link_header_len < 0)
     {
         fprintf(stderr, "Unsupported datalink type: %d\n", datalink);
         pcap_close(handle);
@@ -351,7 +301,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
             {
                 uint8_t scan_flag = (uint8_t)(1u << scan_i);
                 response_type_t *response_slot;
-                printf("Scanning port %d with scan type %s...\n", port_i, valid_tokens[scan_i]);
+                printf("Scanning port %d with scan type %s...\n", port_i, known_scan_types[scan_i]);
                 fflush(stdout);
                 send_packet(sock, target_ip, port_i, local_ip, scan_flag, 0);
                 response_slot = response_slot_for_scan(&results[port_i - 1], scan_flag);
@@ -385,7 +335,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                     if (res == 1)
                     {
                         printf("PACKET PROCESSING\n");
-                        process_packet(packet, header->caplen);
+                        process_packet(packet, header->caplen, link_header_len);
                         /* Only stop when this specific probe got a conclusive response. */
                         if (*response_slot != RESPONSE_NO_RESPONSE)
                             break;

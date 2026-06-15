@@ -23,4 +23,7 @@ extern const port_map_entry_t *port_map;
 #define MAX_PORT_NAME_IDX sizeof(SVC_NAMES) / sizeof(char *)
 #define MAX_PORT 65536
 
+#define GET_SERVICE_NAME(port) (service_names[port_map[port].name_idx])
+#define GET_PAYLOAD(port) (port_payloads[port_map[port].payload_idx])
+
 #endif // PORT_MAP_H
