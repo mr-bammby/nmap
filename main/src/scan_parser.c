@@ -1,6 +1,6 @@
 #include "scan_parser.h"
 
-port_state_t final_result_logic(const scan_result_t *port_result)
+port_state_t get_final_state(const scan_result_t *port_result)
 {
     /* This function can be used to implement any final logic that combines
        multiple scan responses into a single state, if desired. */
@@ -44,7 +44,7 @@ port_state_t final_result_logic(const scan_result_t *port_result)
         return PORT_STATE_OPEN_FILTERED;
 }
 
-const char *state_label_final(port_state_t port_result)
+const char *get_state_label(port_state_t port_result)
 {
     switch (port_result)
     {
