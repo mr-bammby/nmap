@@ -99,6 +99,26 @@ static int16_t tcp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t
     return (tcp_packet_len);
 }
 
+void send_packet_inits(uint8_t *packet, ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, const char *target_ip, int port, const char *local_ip, uint8_t scan_type)
+{
+    memset(packet, 0, 128);
+    (*ip_header).id = htons(rand() % MAX_PORT);
+    (*ip_header).src = inet_addr(local_ip);
+    (*ip_header).dst = inet_addr(target_ip);
+    (*sin).sin_family = AF_INET;
+    (*sin).sin_port = htons(port);
+    (*sin).sin_addr.s_addr = inet_addr(target_ip);
+
+    uint8_t scan_id = 0;
+
+    while ((scan_type & 1u) == 0u && scan_id < 7)
+    {
+        scan_type >>= 1;
+        scan_id++;
+    }
+    *cookie = COOKIE_MAKE(scan_id, port);
+}
+
 // --- Sender Logic ---
 void send_packet(int sockfd, const char *target_ip, int port, const char *local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
 {
@@ -107,28 +127,11 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     tcp_header_t tcp_header = {0};
     udp_header_t udp_header = {0};
     int16_t packet_len;
-
     struct sockaddr_in sin;
-
-    memset(packet, 0, 128);
-    ip_header.id = htons(rand() % MAX_PORT);
-    ip_header.src = inet_addr(local_ip);
-    ip_header.dst = inet_addr(target_ip);
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(port);
-    sin.sin_addr.s_addr = inet_addr(target_ip);
-
-    uint32_t payload = {0xb4050402}; // Generic probe payload for TCP/UDP
-    uint8_t scan_id = 0;
-    uint8_t scan_type_tmp = scan_type;
     uint32_t cookie;
+    uint32_t payload = {0xb4050402}; // Generic probe payload for TCP/UDP
 
-    while ((scan_type_tmp & 1u) == 0u && scan_id < 7)
-    {
-        scan_type_tmp >>= 1;
-        scan_id++;
-    }
-    cookie = COOKIE_MAKE(scan_id, port);
+    send_packet_inits(packet, &ip_header, &sin, &cookie, target_ip, port, local_ip, scan_type);
 
     if (set_scan_type_flag(&ip_header, &tcp_header, scan_type) < 0)
         return;
