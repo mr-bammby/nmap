@@ -10,6 +10,8 @@
 
 #define UDP_HEADER_SIZE 8
 
+#define UDP_TOTAL_PROBES 3
+
 /**
  * UDP Header structure
  *
