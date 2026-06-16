@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <netinet/in.h>
+#include "protocol_utils.h"
+#include "scan_context.h"
 
 uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
 {
@@ -62,4 +64,20 @@ void print_bytes(const void *addr, uint32_t len)
         printf("%02x ", p[i]);
     }
     printf("\n\n");
+}
+
+// --- Initialize Results Array ---
+void initialize_results(scan_result_t *results)
+{
+    for (int i = 0; i < (PORT_END - PORT_START + 1); i++)
+    {
+        results[i].port = i + PORT_START;
+        results[i].protocol = 0;
+        results[i].response_syn = RESPONSE_NOT_EXPECTED;
+        results[i].response_null = RESPONSE_NOT_EXPECTED;
+        results[i].response_ack = RESPONSE_NOT_EXPECTED;
+        results[i].response_fin = RESPONSE_NOT_EXPECTED;
+        results[i].response_xmas = RESPONSE_NOT_EXPECTED;
+        results[i].response_udp = RESPONSE_NOT_EXPECTED;
+    }
 }

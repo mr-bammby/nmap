@@ -130,7 +130,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
 }
 
 //TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
-int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
+int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr, scan_result_t *results)
 {
     tcp_header_t tcp_hdr;
     uint32_t cookie = 0;
@@ -164,6 +164,11 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     uint8_t scan_id = COOKIE_SCAN(cookie);
     uint8_t scan_flag = (uint8_t)(1u << scan_id);
     uint16_t port   = COOKIE_PORT(cookie);
+    if (port < PORT_START || port > PORT_END)
+    {
+        printf("Received TCP packet with invalid cookie-derived port %d\n", port);
+        return 0;
+    }
     // now write results[port - 1].response_<scan_id>
 
     switch (scan_flag)

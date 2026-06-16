@@ -74,7 +74,7 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
     return UDP_HEADER_SIZE;
 }
 
-int8_t udp_response_process(const uint8_t *transport, uint32_t ip_payload_len)
+int8_t udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results)
 {
     if (transport == NULL || ip_payload_len < UDP_HEADER_SIZE)
         return 0;

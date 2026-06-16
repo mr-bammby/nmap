@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include "ip.h"
+#include "response_states.h"
 
 #define ICMP_HEADER_LEN 8
 #define ICMP_TYPE_ECHO_REQUEST 8
@@ -45,6 +46,6 @@ int16_t icmp_header_encapsulate(uint8_t *buffer, uint16_t payload_length);
  */
 int16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header_t *header);
 
-int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr);
+int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr, scan_result_t *results);
 
 #endif // ICMP_H

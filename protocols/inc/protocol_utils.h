@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <stdio.h>
-
+#include "response_states.h"
 /**
  * Calculate checksum for data (typically used for IP/TCP/UDP headers)
  * 
@@ -22,5 +22,8 @@ uint16_t checksum_final(const void *data, uint32_t len, uint32_t start_val);
  * @param len Number of bytes to print
  */
 void print_bytes(const void *addr, uint32_t len);
+
+void initialize_results(scan_result_t *results);
+
 
 #endif // PROTOCOL_UTILS_H

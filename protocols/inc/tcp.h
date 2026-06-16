@@ -4,6 +4,7 @@
 #include <arpa/inet.h> 
 #include <inttypes.h>
 #include "ip.h"
+#include "response_states.h"
 
 /* TCP Flag definitions */
 #define TCP_FLAG_FIN 0x01
@@ -56,6 +57,6 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
 */
 int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *header, const ip_header_t *ip_header);
 
-int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr);
+int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr, scan_result_t *results);
 
 #endif // TCP_H

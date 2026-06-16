@@ -5,9 +5,8 @@
 
 #define PORT_START 1
 #define PORT_END 1024
-#define RESULTS_CAPACITY 1024
+#define RESULTS_CAPACITY PORT_END - PORT_START + 1
 
-extern scan_result_t results[RESULTS_CAPACITY];
 
 #define COOKIE_MAGIC    0xA58UL
 #define COOKIE_SCAN(c)  (((c) >> 16) & 0x7)

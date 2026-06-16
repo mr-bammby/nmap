@@ -2,6 +2,7 @@
 #define UDP_H
 
 #include <inttypes.h>
+#include "response_states.h"
 
 /* Error codes */
 #define UDP_ERR_BUFFER_TOO_SMALL -1
@@ -46,5 +47,5 @@ int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_
 */
 int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t *header);
 
-int8_t udp_response_process(const uint8_t *transport, uint32_t ip_payload_len);
+int8_t udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results);
 #endif // UDP_H

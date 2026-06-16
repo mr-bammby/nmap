@@ -77,7 +77,7 @@ int16_t icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, icmp_header
 }
 
 //TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
-int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr)
+int icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr, scan_result_t *results)
 {
     (void)ip_hdr;
     icmp_header_t icmp_hdr;
