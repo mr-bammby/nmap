@@ -130,7 +130,6 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     return 20;
 }
 
-//TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
 int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr, scan_result_t *results)
 {
     tcp_header_t tcp_hdr;
@@ -151,16 +150,21 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     }
 
     ack_num = ntohl(*(const uint32_t *)(transport + 8));
-    if (tcp_hdr.flags & TCP_FLAG_ACK)
-    {
-        cookie = ack_num - 1;   // SYN / NULL / FIN / XMAS replies
-    }
-    else if (tcp_hdr.flags & TCP_FLAG_RST)
+    if (tcp_hdr.flags & TCP_FLAG_RST)
     {
         cookie = tcp_hdr.seq_num;        // ACK scan RST reply
     }
+    else if (tcp_hdr.flags & TCP_FLAG_ACK)
+    {
+        cookie = ack_num - 1;   // SYN / NULL / FIN / XMAS replies
+    }
+    else if (tcp_hdr.flags == 0)
+    {
+        cookie = ack_num - 1;
+    }
 
-    if (!COOKIE_VALID(cookie)) return 0;
+    if (!COOKIE_VALID(cookie))
+        return 0;
 
     uint8_t scan_id = COOKIE_SCAN(cookie);
     uint8_t scan_flag = (uint8_t)(1u << scan_id);

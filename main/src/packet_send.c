@@ -8,14 +8,19 @@
 #include "nmap_types.h"
 #include "ip.h"
 #include "tcp.h"
+#include "protocol_utils.h"
 #include "udp.h"
 #include "port_map.h"
 #include "exec.h"
 #include "scan_context.h"
 #include "debug.h"
 
+#define MIN_SRC_PORT 1024
+#define MAX_SRC_PORT MAX_PORT
+
 #define COOKIE_MAKE(scan_id, port) \
-    ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0x7) << 16) | ((port) & 0xFFFF))
+    ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0xF) << 16) | ((port) & 0xFFFF))
+
 
 static int8_t set_scan_type_flag(ip_header_t *ip_hdr, tcp_header_t *tcp_hdr, uint8_t scan_type)
 {
@@ -54,15 +59,12 @@ static int8_t set_scan_type_flag(ip_header_t *ip_hdr, tcp_header_t *tcp_hdr, uin
     return ret;
 }
 
-static int16_t udp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t *ip_header, udp_header_t *udp_header, uint32_t *payload, uint8_t udp_probe_variant, int port)
+static int16_t udp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t *ip_header, udp_header_t *udp_header, const uint32_t *payload, uint16_t payload_len, uint8_t udp_probe_variant, int port)
 {
     const uint8_t *udp_payload = (const uint8_t *)payload;
-    uint16_t udp_payload_len = sizeof(payload);
+    uint16_t udp_payload_len = payload_len;
     int16_t udp_packet_len;
 
-    //Create different UDP payloads for retries to elicit different responses from certain services.
-    //Use two different arrays. One for ports of specific services that respond to certain probes (e.g. NTP on 123/UDP), and a generic empty payload for other ports.
-    //A function should return the index which will then get the corresponding payload out of the second array.
     /* Rotate UDP probes across retries without port-specific hardcoding. */
     if (udp_probe_variant % UDP_TOTAL_PROBES == 1)
     {
@@ -75,9 +77,9 @@ static int16_t udp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t
         udp_payload_len = 0;
     }
 
-    (*udp_header).src_port = (uint16_t)(1024 + (rand() % (MAX_PORT - 1024)));
-    (*udp_header).dst_port = port;
-    (*udp_header).length = (uint16_t)(UDP_HEADER_SIZE + udp_payload_len);
+    udp_header->src_port = (uint16_t)(MIN_SRC_PORT + (rand() % (MAX_SRC_PORT - MIN_SRC_PORT)));
+    udp_header->dst_port = port;
+    udp_header->length = (uint16_t)(UDP_HEADER_SIZE + udp_payload_len);
 
     udp_packet_len = udp_packet_create(packet,
                                         packet_len,
@@ -85,19 +87,19 @@ static int16_t udp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t
                                         udp_header,
                                         (const uint32_t *)udp_payload,
                                         udp_payload_len);
-    return (udp_packet_len);
+    return udp_packet_len;
 }
 
-static int16_t tcp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t *ip_header, tcp_header_t *tcp_header, uint32_t *payload, uint32_t cookie, int port)
+static int16_t tcp_send_packet(uint8_t *packet, uint32_t packet_len, ip_header_t *ip_header, tcp_header_t *tcp_header, const uint32_t *payload, uint16_t payload_len, uint32_t cookie, int port)
 {
     int16_t tcp_packet_len;
 
-    (*tcp_header).src_port = (uint16_t)(1024 + (rand() % (MAX_PORT - 1024)));
-    (*tcp_header).dst_port = port;
-    (*tcp_header).seq_num = cookie;
-    tcp_packet_len = tcp_packet_create(packet, packet_len, ip_header, tcp_header, payload, 1);
+    tcp_header->src_port = (uint16_t)(MIN_SRC_PORT + (rand() % (MAX_SRC_PORT - MIN_SRC_PORT)));
+    tcp_header->dst_port = port;
+    tcp_header->seq_num = cookie;
+    tcp_packet_len = tcp_packet_create(packet, packet_len, ip_header, tcp_header, payload, payload_len);
 
-    return (tcp_packet_len);
+    return tcp_packet_len;
 }
 
 static void send_packet_init(uint8_t *packet, ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, const char *target_ip, int port, const char *local_ip, uint8_t scan_type)
@@ -105,12 +107,12 @@ static void send_packet_init(uint8_t *packet, ip_header_t *ip_header, struct soc
     uint8_t scan_id = 0;
 
     memset(packet, 0, 128);
-    (*ip_header).id = htons(rand() % MAX_PORT);
-    (*ip_header).src = inet_addr(local_ip);
-    (*ip_header).dst = inet_addr(target_ip);
-    (*sin).sin_family = AF_INET;
-    (*sin).sin_port = htons(port);
-    (*sin).sin_addr.s_addr = inet_addr(target_ip);
+    ip_header->id = htons(rand() % MAX_PORT);
+    ip_header->src = inet_addr(local_ip);
+    ip_header->dst = inet_addr(target_ip);
+    sin->sin_family = AF_INET;
+    sin->sin_port = htons(port);
+    sin->sin_addr.s_addr = inet_addr(target_ip);
 
     while ((scan_type & 1u) == 0u && scan_id < 7)
     {
@@ -130,7 +132,7 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     int16_t packet_len;
     struct sockaddr_in sin;
     uint32_t cookie;
-    uint32_t payload = {0xb4050402}; // Generic probe payload for TCP/UDP
+    uint32_t payload = 0xb4050402; // Generic probe payload for UDP only
 
     send_packet_init(packet, &ip_header, &sin, &cookie, target_ip, port, local_ip, scan_type);
 
@@ -144,16 +146,19 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
                                     &ip_header,
                                     &udp_header,
                                     &payload,
+                                    sizeof(payload),
                                     udp_probe_variant,
                                     port);
     }
     else
     {
+        /* send header-only TCP probe (no application payload) */
         packet_len = tcp_send_packet(packet,
                                     sizeof(packet),
                                     &ip_header,
                                     &tcp_header,
-                                    &payload,
+                                    NULL,
+                                    0,
                                     cookie,
                                     port);
     }
@@ -164,7 +169,6 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
         return;
     }
 
-    // Prepare pseudo header for checksum
     if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
     {
         perror("sendto failed");
