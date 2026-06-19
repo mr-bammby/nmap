@@ -3,6 +3,11 @@
 #include "udp.h"
 #include <stdio.h>
 #include <string.h>
+#include "debug.h"
+
+#if DEBUG
+#warning DEBUG IS ENABLED IN BUILD_MESSAGE
+#endif
 
 void print_message(const uint8_t *buffer, uint16_t length)
 {
@@ -37,9 +42,11 @@ int16_t tcp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     // Encapsulate the packet (finalize IP header) 
     int16_t full_header_len = ip_header_encapsulate(buffer, tcp_header_len);
 
-    #ifdef DEBUG_PACKET
+    #if DEBUG_BUILD_MESSAGE
+    printf("tcp_packet_create\n");
+    fflush(stdout);
     print_message(buffer, full_header_len);
-    #endif
+    #endif /* DEBUG_BUILD_MEASSAGE */
 
     return full_header_len;
 }
@@ -74,9 +81,11 @@ int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     // Encapsulate the packet (finalize IP header)
     int16_t full_packet_len = ip_header_encapsulate(buffer, udp_header_len + payload_len);
     
-    #ifdef DEBUG_PACKET
+    #if DEBUG_BUILD_MESSAGE
+    printf("udp_packet_create\n");
+    fflush(stdout);
     print_message(buffer, full_packet_len);
-    #endif
+    #endif /* DEBUG_BUILD_MEASSAGE */
 
     return full_packet_len;
 }

@@ -4,6 +4,11 @@
 #include "nmap_types.h"
 #include "exec.h"
 #include "port_utils.h"
+#include "debug.h"
+
+#if DEBUG
+#warning DEBUG IS ENABLED in MAIN
+#endif
 
 static const char *const valid_tokens[6] =
     {
@@ -44,7 +49,8 @@ void print_params(const params_t *params)
 {
     port_set_iterator_t port_it;
     init_port_iterator(&port_it, &params->ports);
-
+    #if DEBUG_MAIN
+    DBG_MAIN("MAIN_TEST");
     printf("\nParsed Parameters:\n");
     printf("  Scans:");
     for (int i = 0; i < 6; i++)
@@ -52,7 +58,7 @@ void print_params(const params_t *params)
         if (params->scans & (1 << i))
         {
             printf(" %s", valid_tokens[i]);
-        }
+      }
     }
     printf("\n");
     printf("  Ports: ");
@@ -64,6 +70,7 @@ void print_params(const params_t *params)
     printf("\n");
     printf("  Threads: %u\n", params->thread_num);
     printf("  Addresses: ");
+    #endif /* DEBUG_MAIN */
 
     addr_node_t *current = params->address;
     if (current == NULL)
@@ -116,8 +123,11 @@ int main(int argc, const char *argv[])
 
     parse_return_e parse_result = argument_parse(argc, argv, &params);
     int exec_result;
+    #if DEBUG_MAIN
+    DBG_MAIN("MAIN_TEST");
+    #endif
 
-    #ifdef DEBUG_ARGUMENTS
+    #if DEBUG_ARGUMENTS
     main_argumnts(argc, argv, parse_result, &params);
     #endif
     if (parse_result != PARSE_OK)
@@ -142,7 +152,9 @@ int main(int argc, const char *argv[])
         }
         for (addr_node_t *current = params.address; current != NULL; current = current->next)
         {
+            #if DEBUG_MAIN
             printf("Scanning %s...\n", current->addr);
+            #endif /* DEBUG_MAIN */
             exec_result = single_thread_exec(current->addr, params.ports, params.scans);
             if (exec_result != 0)
             {
