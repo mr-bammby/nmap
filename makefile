@@ -1,5 +1,6 @@
 CC = gcc 
 CCFLAGS = -g
+CPPFLAGS =
 
 RM = rm -f 
 
@@ -30,10 +31,10 @@ NAME = ft_nmap.out
 
 $(OBJD)%.o: %.c $(HDRS)
 	@mkdir -p $(dir $@)
-	$(CC) $(CCFLAGS) $(INCLUDES) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CCFLAGS) $(INCLUDES) -c -o $@ $<
 
 $(NAME): $(OBJF)
-	$(CC) $(CCFLAGS) $(INCLUDES) -o $(NAME) $(OBJF) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CCFLAGS) $(INCLUDES) -o $(NAME) $(OBJF) $(LIBS)
 
 all: fclean ${NAME} 
 
@@ -41,7 +42,10 @@ clean:
 	${RM} -r ${OBJD}
 
 fclean: clean
-	${RM} ${NAME} 
+	${RM} ${NAME}
+
+debug: CPPFLAGS += -DDEBUG
+debug: fclean $(NAME)
 
 re: fclean all 
 
