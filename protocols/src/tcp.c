@@ -6,6 +6,7 @@
 #include "response_states.h"
 #include "scan_context.h"
 #include "nmap_types.h"
+#include "debug.h"
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)

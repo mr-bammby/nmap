@@ -14,6 +14,7 @@
 #include "packet_handler.h"
 #include "scan_parser.h"
 #include "protocol_utils.h"
+#include "debug.h"
 
 
 #define NUMBER_OF_SCAN_TYPES 6

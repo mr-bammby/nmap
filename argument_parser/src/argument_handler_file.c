@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "debug.h"
 
 parse_return_e argument_handler_file(params_t *param, const char *value)
 {

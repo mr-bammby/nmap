@@ -1,5 +1,6 @@
 #include "stdio.h"
 #include "version.h"
+#include "debug.h"
 
 void display_help(void)
 {

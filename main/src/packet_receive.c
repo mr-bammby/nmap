@@ -8,6 +8,7 @@
 #include "tcp.h"
 #include "icmp.h"
 #include "udp.h"
+#include "debug.h"
 
 #if DEBUG
 #warning DEBUG IS ENABLED IN PACKET_RECEIVE

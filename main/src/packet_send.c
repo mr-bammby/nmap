@@ -12,6 +12,7 @@
 #include "port_map.h"
 #include "exec.h"
 #include "scan_context.h"
+#include "debug.h"
 
 #define COOKIE_MAKE(scan_id, port) \
     ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0x7) << 16) | ((port) & 0xFFFF))

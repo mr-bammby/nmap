@@ -2,6 +2,7 @@
 #include "address_utils.h"
 #include <stddef.h>  /* common helpers for address handling */
 #include <stdio.h>
+#include "debug.h"
 
 parse_return_e argument_handler_address(params_t *param, const char *value)
 {

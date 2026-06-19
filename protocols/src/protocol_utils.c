@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include "protocol_utils.h"
 #include "scan_context.h"
+#include "debug.h"
 
 uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
 {

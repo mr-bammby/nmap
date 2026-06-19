@@ -50,26 +50,26 @@ void print_params(const params_t *params)
     port_set_iterator_t port_it;
     init_port_iterator(&port_it, &params->ports);
     #if DEBUG_MAIN
-    DBG_MAIN("MAIN_TEST");
-    printf("\nParsed Parameters:\n");
-    printf("  Scans:");
+    DBG_MAIN("MAIN_TEST\n");
+    DBG_MAIN("\nParsed Parameters:\n");
+    DBG_MAIN("  Scans:");
     for (int i = 0; i < 6; i++)
     {
         if (params->scans & (1 << i))
         {
-            printf(" %s", valid_tokens[i]);
+            DBG_MAIN(" %s", valid_tokens[i]);
       }
     }
-    printf("\n");
-    printf("  Ports: ");
+    DBG_MAIN("\n");
+    DBG_MAIN("  Ports: ");
     unsigned int port;
     while (port_iterator_next(&port_it, &port) == 0)
     {
-        printf("%u ", port);
+        DBG_MAIN("%u ", port);
     }
-    printf("\n");
-    printf("  Threads: %u\n", params->thread_num);
-    printf("  Addresses: ");
+    DBG_MAIN("\n");
+    DBG_MAIN("  Threads: %u\n", params->thread_num);
+    DBG_MAIN("  Addresses: ");
     #endif /* DEBUG_MAIN */
 
     addr_node_t *current = params->address;
@@ -123,18 +123,15 @@ int main(int argc, const char *argv[])
 
     parse_return_e parse_result = argument_parse(argc, argv, &params);
     int exec_result;
-    #if DEBUG_MAIN
-    DBG_MAIN("MAIN_TEST");
-    #endif
 
-    #if DEBUG_ARGUMENTS
+    #if DEBUG_MAIN
     main_argumnts(argc, argv, parse_result, &params);
-    #endif
+    #endif /* DEBUG_MAIN */
     if (parse_result != PARSE_OK)
     {
-        #ifndef DEBUG_ARGUMENTS
+        #ifndef DEBUG_MAIN
         main_argumnts(argc, argv, parse_result, &params);
-        #endif
+        #endif /* DEBUG_MAIN */
         if (parse_result == PARSE_HELP_REQUEST)
         {
             display_help();

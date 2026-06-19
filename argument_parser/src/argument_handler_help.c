@@ -1,4 +1,5 @@
 #include "argument_parser.h"
+#include "debug.h"
 
 parse_return_e argument_handler_help(params_t *param __attribute__((unused)), const char *value __attribute__((unused)))
 {

@@ -3,6 +3,7 @@
 #include "port_utils.h"
 #include <string.h>
 #include <ctype.h>
+#include "debug.h"
 
 typedef enum
 {

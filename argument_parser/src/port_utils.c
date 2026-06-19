@@ -1,5 +1,6 @@
 #include "nmap_types.h"
 #include <stdio.h>
+#include "debug.h"
 
 // --- Set Functions ---
 

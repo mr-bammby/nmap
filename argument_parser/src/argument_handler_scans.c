@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include "debug.h"
+
 #define MAX_TOKENS 6
 
 /* allowed scan type keywords; index corresponds to bit position in

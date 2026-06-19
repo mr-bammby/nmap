@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdio.h>
+#include "debug.h"
 
 internal_error_e fqdn_resolve(const char *fqdn, char *ip_buffer) // buffer needs to be at least 16 bytes
 {

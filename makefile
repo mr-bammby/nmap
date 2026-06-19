@@ -44,7 +44,7 @@ clean:
 fclean: clean
 	${RM} ${NAME}
 
-debug: CPPFLAGS += -DDEBUG
+debug: CPPFLAGS += -DDEBUG=1
 debug: fclean $(NAME)
 
 re: fclean all 
