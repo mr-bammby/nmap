@@ -57,15 +57,16 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
     // Temporarily zero checksum for verification calculation
     // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
     uint8_t buffer_copy[UDP_HEADER_SIZE];
+    memcpy(buffer_copy, buffer, UDP_HEADER_SIZE);
+
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 6);
-    uint16_t original_checksum = *checksum_ptr_temp;
+    uint16_t original_checksum = ntohs(*checksum_ptr_temp);
     uint16_t calc_checksum;
 
-    memcpy(buffer_copy, buffer, UDP_HEADER_SIZE);
     *checksum_ptr_temp = 0;  // Temporarily zero checksum for verification
     calc_checksum = checksum_final(buffer_copy, UDP_HEADER_SIZE, 0);
 
-    if (calc_checksum != 0 && calc_checksum != original_checksum)
+    if (original_checksum != 0 && calc_checksum != 0 && calc_checksum != original_checksum)
     {
         return UDP_ERR_CHECKSUM; // Checksum mismatch
     }

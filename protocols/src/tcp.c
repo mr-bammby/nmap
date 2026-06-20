@@ -21,21 +21,18 @@ typedef struct {
     uint16_t tcp_length;
 } tcp_pseudo_header_t;
 
-int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length, const ip_header_t *ip_header)
+int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length_bytes, const ip_header_t *ip_header)
 {
     tcp_pseudo_header_t pseudo_header;
     pseudo_header.src_ip = ip_header->src;
     pseudo_header.dst_ip = ip_header->dst;
     pseudo_header.reserved = 0;
     pseudo_header.protocol = ip_header->protocol;
-    pseudo_header.tcp_length = htons(tcp_length * 4); // TCP length in bytes
+    pseudo_header.tcp_length = htons(tcp_length_bytes);
 
-    // Calculate checksum over pseudo-header and TCP segment
-    uint32_t sum_accum = 0;
-    uint16_t sum_final;
-    sum_accum = checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
-    sum_final = checksum_final(tcp_segment, tcp_length * 4, sum_accum);
-    
+    uint32_t sum_accum = checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
+    uint16_t sum_final = checksum_final(tcp_segment, tcp_length_bytes, sum_accum);
+
     return sum_final;
 }
 
@@ -75,10 +72,11 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
         memcpy(buffer + 20, payload, payload_len * 4); // Copy payload after TCP header
     }
 
-    uint16_t calc_checksum = tcp_checksum(buffer, 5 + payload_len, ip_header);
+    uint16_t tcp_length_bytes = 20 + payload_len * 4;
+    uint16_t calc_checksum = tcp_checksum(buffer, tcp_length_bytes, ip_header);
     *checksum_ptr = calc_checksum;
 
-    return 20 + payload_len * 4; // Total length of TCP header + payload
+    return tcp_length_bytes; // Total length of TCP header + payload
 }
 
 int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *tcp_header, const ip_header_t *ip_header)
@@ -111,11 +109,11 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     
     memcpy(buffer_copy, buffer, buffer_len);
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
-    uint16_t original_checksum __attribute__((unused)) = *checksum_ptr_temp;
+    uint16_t original_checksum = ntohs(*checksum_ptr_temp);
     uint16_t calc_checksum;
     *checksum_ptr_temp = 0;
     
-    calc_checksum = tcp_checksum(buffer_copy, buffer_len / 4, ip_header);
+    calc_checksum = tcp_checksum(buffer_copy, buffer_len, ip_header);
     
     if (calc_checksum != 0 && calc_checksum != original_checksum)
     {

@@ -5,24 +5,30 @@
 #include "scan_context.h"
 #include "debug.h"
 
+/// --- Checksum Calculation Functions ---
+// CAN BE DISABLED TO SAVE TIME IN RECEIVING PACKETS, WHEN INTEGRITY IS NOT A CONCERN 
+// FOR TESTING TOOLS LIKE NMAP, IT'S USUALLY SAFE TO DISABLE CHECKSUM VERIFICATION,
+// AS THE PACKETS ARE NOT USED FOR CRITICAL COMMUNICATIONS, AND THE FOCUS IS ON SCANNING 
+// AND RESPONSE ANALYSIS.
+
 uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
 {
-    const uint16_t *p = data;
+    const uint16_t *words = (const uint16_t *)data;
+    const uint8_t *bytes = (const uint8_t *)data;
     uint32_t sum = start_val;
+    uint32_t word_idx = 0;
 
-    // Sum 16-bit words
     while (len > 1)
     {
-        sum += *p++;
+        sum += ntohs(words[word_idx]);
+        word_idx++;
         len -= 2;
     }
 
     // If there's a leftover byte, pad with zero
     if (len == 1)
     {
-        uint16_t last = 0;
-        *(uint8_t *)&last = *(const uint8_t *)p;
-        sum += last;
+        sum += ntohs((uint16_t)(bytes[word_idx * 2] << 8));
     }
 
     return sum;
@@ -30,22 +36,23 @@ uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
 
 uint16_t checksum_final(const void *data, uint32_t len, uint32_t start_val)
 {
-    const uint16_t *p = data;
+    const uint16_t *words = (const uint16_t *)data;
+    const uint8_t *bytes = (const uint8_t *)data;
     uint32_t sum = start_val;
+    uint32_t word_idx = 0;
 
-    // Sum 16-bit words
+
     while (len > 1)
     {
-        sum += *p++;
+        sum += ntohs(words[word_idx]);
+        word_idx++;
         len -= 2;
     }
 
     // If there's a leftover byte, pad with zero
     if (len == 1)
     {
-        uint16_t last = 0;
-        *(uint8_t *)&last = *(const uint8_t *)p;
-        sum += last;
+        sum += ntohs((uint16_t)(bytes[word_idx * 2] << 8));
     }
 
     // Fold 32-bit sum to 16 bits (carry wraparound)
