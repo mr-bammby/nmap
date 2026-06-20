@@ -4,6 +4,8 @@
 #include "nmap_types.h"
 #include "exec.h"
 #include "port_utils.h"
+#include "result_printer.h"
+
 #define MODULE_DEBUG DEBUG_MAIN
 #define MODULE_NAME  "MAIN"
 #include "debug.h"
@@ -122,6 +124,7 @@ int main(int argc, const char *argv[])
 
     #if DEBUG_MAIN
     main_argumnts(argc, argv, parse_result, &params);
+    print_scan_header(&params);
     #endif /* DEBUG_MAIN */
     if (parse_result != PARSE_OK)
     {

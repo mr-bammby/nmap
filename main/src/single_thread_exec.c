@@ -15,7 +15,8 @@
 #include "scan_parser.h"
 #include "protocol_utils.h"
 #include "debug.h"
-
+#include "timer_utils.h"
+#include "result_printer.h"
 
 #define NUMBER_OF_SCAN_TYPES 6
 #define RESPONSE_WAIT_ATTEMPTS 500
@@ -112,7 +113,8 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     char *local_ip;
     uint32_t link_header_len = 14;
     scan_result_t results[RESULTS_CAPACITY];
-    
+    nmap_timer_t timer;
+    float elapsed_time;
     port_set_iterator_t port_it;
     init_port_iterator(&port_it, &ports);
 
@@ -172,6 +174,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     pcap_setfilter(handle, &fp);
 
     unsigned int port_i;
+    start_timer(&timer);
     while (port_iterator_next(&port_it, &port_i) == 0)
     {
         for (int scan_i = 0; scan_i < NUMBER_OF_SCAN_TYPES; scan_i++)
@@ -225,8 +228,11 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
             }
         }
     }
-    print_results(results, PORT_START - 1, PORT_END);
+    stop_timer(&timer);
+    elapsed_time = read_time_s(&timer);
+    parse_scan_results(results, PORT_START - 1, PORT_END, target_ip, elapsed_time);
     pcap_close(handle);
     close(sock);
+
     return 0;
 }
