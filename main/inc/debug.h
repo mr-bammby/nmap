@@ -3,12 +3,17 @@
 
 #include <stdio.h>
 
-/* Flags */
+/* ========================================================================= */
+/* Global debug switch                                                       */
+/* ========================================================================= */
 
-/* Global debug switch */
 #ifndef DEBUG
 #define DEBUG 0
 #endif
+
+/* ========================================================================= */
+/* Debug flags                                                               */
+/* ========================================================================= */
 
 /* main */
 #define DEBUG_BUILD_MESSAGE                 (DEBUG && 1)
@@ -37,33 +42,53 @@
 #define DEBUG_TCP                           (DEBUG && 0)
 #define DEBUG_UDP                           (DEBUG && 0)
 
-/* Logger macros */
+/* ========================================================================= */
+/* Log levels                                                                */
+/* ========================================================================= */
 
-/* main */
-#define DBG_BUILD_MESSAGE(...)          do { if (DEBUG_BUILD_MESSAGE)         fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_DISPLAY_HELP(...)           do { if (DEBUG_DISPLAY_HELP)          fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_MAIN(...)                   do { if (DEBUG_MAIN)                  fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_PACKET_RECEIVE(...)         do { if (DEBUG_PACKET_RECEIVE)        fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_PACKET_SEND(...)            do { if (DEBUG_PACKET_SEND)           fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_SCAN_PARSER(...)            do { if (DEBUG_SCAN_PARSER)           fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_SINGLE_THREAD_EXEC(...)     do { if (DEBUG_SINGLE_THREAD_EXEC)    fprintf(stderr, __VA_ARGS__); } while (0)
+#define LOG_DBG "DBG"
+#define LOG_INF "INF"
+#define LOG_WRN "WRN"
+#define LOG_ERR "ERR"
 
-/* argument_parser */
-#define DBG_ADDRESS_UTILS(...)          do { if (DEBUG_ADRESS_UTILS)          fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_ADDR(...)               do { if (DEBUG_ARGUMENT_HANDLER_ADRESS)  fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_FILE(...)               do { if (DEBUG_ARGUMENT_HANDLER_FILE) fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_HELP(...)               do { if (DEBUG_ARGUMENT_HANDLER_HELP) fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_SCANS(...)              do { if (DEBUG_ARGUMENT_HANDLER_SCANS) fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_SPEEDUP(...)            do { if (DEBUG_ARGUMENT_HANDLER_SPEEDUP) fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_PARSER(...)             do { if (DEBUG_ARGUMENT_PARSER)       fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_ARG_PORTS(...)              do { if (DEBUG_ARGUMENT_HANDLER_PORTS) fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_PORT_UTILS(...)             do { if (DEBUG_PORT_UTILS)            fprintf(stderr, __VA_ARGS__); } while (0)
+/* ========================================================================= */
+/* Generic logger implementation                                             */
+/* ========================================================================= */
 
-/* protocols */
-#define DBG_ICMP(...)                   do { if (DEBUG_ICMP)                  fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_IP(...)                     do { if (DEBUG_IP)                    fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_PROTOCOL_UTILS(...)         do { if (DEBUG_PROTOCOL_UTILS)        fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_TCP(...)                    do { if (DEBUG_TCP)                   fprintf(stderr, __VA_ARGS__); } while (0)
-#define DBG_UDP(...)                    do { if (DEBUG_UDP)                   fprintf(stderr, __VA_ARGS__); } while (0)
+#define LOG_IMPL(level, module, fmt, ...)                           \
+    fprintf(stderr, "[%s][%s][%s:%d:%s] " fmt "\n",                \
+            level,                                                  \
+            module,                                                 \
+            __FILE__,                                               \
+            __LINE__,                                               \
+            __func__,                                               \
+            ##__VA_ARGS__)
 
+/* ========================================================================= */
+/* Per-module logger setup                                                   */
+/*                                                                           */
+/* Usage in tcp.c:                                                           */
+/*                                                                           */
+/*      #define MODULE_DEBUG DEBUG_TCP                                       */
+/*      #define MODULE_NAME  "TCP"                                           */
+/*      #include "debug.h"                                                   */
+/*                                                                           */
+/*      LOG(LOG_DBG, "Sending packet");                                      */
+/* ========================================================================= */
+
+#ifndef MODULE_DEBUG
+#define MODULE_DEBUG 0
 #endif
+
+#ifndef MODULE_NAME
+#define MODULE_NAME "UNKNOWN"
+#endif
+
+#if MODULE_DEBUG
+#define LOG(level, fmt, ...) \
+    LOG_IMPL(level, MODULE_NAME, fmt, ##__VA_ARGS__)
+#else
+#define LOG(...)
+#endif
+
+#endif /* _DEBUG_H_ */

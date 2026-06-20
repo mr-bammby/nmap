@@ -4,11 +4,9 @@
 #include "nmap_types.h"
 #include "exec.h"
 #include "port_utils.h"
+#define MODULE_DEBUG DEBUG_MAIN
+#define MODULE_NAME  "MAIN"
 #include "debug.h"
-
-#if DEBUG
-#warning DEBUG IS ENABLED in MAIN
-#endif
 
 static const char *const valid_tokens[6] =
     {
@@ -49,28 +47,26 @@ void print_params(const params_t *params)
 {
     port_set_iterator_t port_it;
     init_port_iterator(&port_it, &params->ports);
-    #if DEBUG_MAIN
-    DBG_MAIN("MAIN_TEST\n");
-    DBG_MAIN("\nParsed Parameters:\n");
-    DBG_MAIN("  Scans:");
+    LOG(LOG_DBG, "MAIN_TEST\n");
+    LOG(LOG_DBG, "\nParsed Parameters:\n");
+    LOG(LOG_DBG, "  Scans:");
     for (int i = 0; i < 6; i++)
     {
         if (params->scans & (1 << i))
         {
-            DBG_MAIN(" %s", valid_tokens[i]);
+            LOG(LOG_DBG, " %s", valid_tokens[i]);
       }
     }
-    DBG_MAIN("\n");
-    DBG_MAIN("  Ports: ");
+    LOG(LOG_DBG, "\n");
+    LOG(LOG_DBG, "  Ports: ");
     unsigned int port;
     while (port_iterator_next(&port_it, &port) == 0)
     {
-        DBG_MAIN("%u ", port);
+        LOG(LOG_DBG, "%u ", port);
     }
-    DBG_MAIN("\n");
-    DBG_MAIN("  Threads: %u\n", params->thread_num);
-    DBG_MAIN("  Addresses: ");
-    #endif /* DEBUG_MAIN */
+    LOG(LOG_DBG, "\n");
+    LOG(LOG_DBG, "  Threads: %u\n", params->thread_num);
+    LOG(LOG_DBG, "  Addresses: ");
 
     addr_node_t *current = params->address;
     if (current == NULL)
