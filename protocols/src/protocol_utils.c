@@ -1,9 +1,11 @@
+#define MODULE_DEBUG DEBUG_PROTOCOL_UTILS
+#include "debug.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <netinet/in.h>
 #include "protocol_utils.h"
 #include "scan_context.h"
-#include "debug.h"
+
 
 /// --- Checksum Calculation Functions ---
 // CAN BE DISABLED TO SAVE TIME IN RECEIVING PACKETS, WHEN INTEGRITY IS NOT A CONCERN 

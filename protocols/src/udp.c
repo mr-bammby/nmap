@@ -1,3 +1,5 @@
+#define MODULE_DEBUG DEBUG_UDP
+#include "debug.h"
 #include "udp.h"
 #include "ip.h"
 #include "protocol_utils.h"
@@ -5,7 +7,7 @@
 #include <netinet/in.h>
 #include "response_states.h"
 #include "scan_context.h"
-#include "debug.h"
+
 
 int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_t *header)
 {

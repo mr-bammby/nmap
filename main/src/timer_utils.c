@@ -1,8 +1,12 @@
 /* Required for clock_gettime and CLOCK_MONOTONIC on POSIX environments */
 #define _POSIX_C_SOURCE 199309L
 
+#define MODULE_DEBUG DEBUG_TIMER_UTILS
+#include "debug.h"
+
 #include "timer_utils.h"
 #include <stddef.h>
+
 
 void start_timer(nmap_timer_t *timer)
 {

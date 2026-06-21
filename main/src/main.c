@@ -1,3 +1,9 @@
+#define MODULE_DEBUG DEBUG_MAIN
+#include "debug.h"
+// #define STRINGIFY2(x) #x
+// #define STRINGIFY(x) STRINGIFY2(x)
+
+// #pragma message("MODULE_DEBUG=" STRINGIFY(MODULE_DEBUG))
 #include <stdio.h>
 #include <stdlib.h>
 #include "argument_parser.h"
@@ -5,10 +11,6 @@
 #include "exec.h"
 #include "port_utils.h"
 #include "result_printer.h"
-
-#define MODULE_DEBUG DEBUG_MAIN
-#define MODULE_NAME  "MAIN"
-#include "debug.h"
 
 static const char *const valid_tokens[6] =
     {
@@ -45,74 +47,83 @@ const char *parse_error_to_string(parse_return_e error)
     }
 }
 
-void print_params(const params_t *params)
+static void print_params(const params_t *params)
 {
     port_set_iterator_t port_it;
     init_port_iterator(&port_it, &params->ports);
-    LOG(LOG_DBG, "MAIN_TEST\n");
-    LOG(LOG_DBG, "\nParsed Parameters:\n");
-    LOG(LOG_DBG, "  Scans:");
+    LOGD("Parsed Parameters:\n");
+    LOGD("\tScans:\n");
     for (int i = 0; i < 6; i++)
     {
         if (params->scans & (1 << i))
         {
-            LOG(LOG_DBG, " %s", valid_tokens[i]);
+            LOGD("\t\t%s\n", valid_tokens[i]);
       }
     }
-    LOG(LOG_DBG, "\n");
-    LOG(LOG_DBG, "  Ports: ");
+    LOGD("\tPorts:\n");
     unsigned int port;
+    int count = 0;
     while (port_iterator_next(&port_it, &port) == 0)
     {
-        LOG(LOG_DBG, "%u ", port);
+        //LOGD("\t\t%u \n", port);
+        if (count % 10 == 0)
+            LOGD("\t\t%u", port);
+        else
+            LOGD_WF(", %u", port);
+        count++;
     }
-    LOG(LOG_DBG, "\n");
-    LOG(LOG_DBG, "  Threads: %u\n", params->thread_num);
-    LOG(LOG_DBG, "  Addresses: ");
+    LOGD_WF("\n");
+    LOGD("\tThreads:\n");
+    LOGD("\t\t%u\n", params->thread_num);
 
+    LOGD("\tAddresses:\n");
     addr_node_t *current = params->address;
     if (current == NULL)
     {
-        printf("(none)");
+        LOGE("(none)\n");
     }
     else
     {
         int count = 0;
         while (current != NULL)
         {
-            if (count > 0)
-                printf(", ");
-            printf("%s", current->addr);
+            if (count % 5 == 0)
+                LOGD("\t\t%s", current->addr);
+            else
+                LOGD_WF(", %s", current->addr);
             current = current->next;
             count++;
         }
     }
-    printf("\n");
+    LOGD_WF("\n");
 }
 
-void main_argumnts(int argc, const char *argv[], parse_return_e ret, const params_t *params)
+static void main_argumnts(int argc, const char *argv[], parse_return_e ret, const params_t *params)
 {
-    printf("NMAP Argument Parser - Test\n");
-    printf("===========================\n");
-    printf("Arguments: ");
-    for (int i = 1; i < argc; i++)
+    LOGD("NMAP Argument Parser - Test\n");
+    LOGD("===========================\n");
+    LOGD("Arguments: \n");
+    for (int i = 1; i <= argc - 1; i++)
     {
-        printf("%s ", argv[i]);
+        if (i ==1)
+            LOGD("%s ", argv[i]);
+        else
+            LOGD_WF("%s ", argv[i]);
     }
-    printf("\n\n");
+    LOGD_WF("\n\n");
 
-    printf("Parse Result: %s\n", parse_error_to_string(ret));
+    LOGD("Parse Result: %s\n", parse_error_to_string(ret));
 
+    #if DEBUG_MAIN
     if (ret == PARSE_OK)
     {
         print_params(params);
     }
     else if (ret == PARSE_HELP_REQUEST)
     {
-        printf("\nHelp was requested.\n");
+        LOGD("Help was requested.\n");
     }
-
-    fflush(stdout);
+    #endif /* DEBUG_MAIN */
 }
 
 int main(int argc, const char *argv[])
@@ -125,15 +136,14 @@ int main(int argc, const char *argv[])
     #if DEBUG_MAIN
     main_argumnts(argc, argv, parse_result, &params);
     #endif /* DEBUG_MAIN */
+
     if (parse_result != PARSE_OK)
     {
-        main_argumnts(argc, argv, parse_result, &params);
         if (parse_result == PARSE_HELP_REQUEST)
         {
             display_help();
             return EXIT_SUCCESS;
         }
-
         return EXIT_FAILURE;
     }
     else
@@ -141,18 +151,16 @@ int main(int argc, const char *argv[])
         print_scan_header(&params);
         if (params.thread_num > 1)
         {
-            fprintf(stderr, "Multi-threading is not supported in current implementation.\n");
+            LOGW("Multi-threading is not supported in current implementation.\n");
             return EXIT_FAILURE;
         }
         for (addr_node_t *current = params.address; current != NULL; current = current->next)
         {
-            #if DEBUG_MAIN
-            printf("Scanning %s...\n", current->addr);
-            #endif /* DEBUG_MAIN */
+            LOGD("Scanning %s...\n", current->addr);
             exec_result = single_thread_exec(current->addr, params.ports, params.scans);
             if (exec_result != 0)
             {
-                fprintf(stderr, "Error scanning %s\n", current->addr);
+                LOGE("Error scanning %s\n", current->addr);
             }
         }
     }

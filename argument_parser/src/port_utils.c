@@ -1,6 +1,8 @@
+#define MODULE_DEBUG DEBUG_PORT_UTILS
+#include "debug.h"
 #include "nmap_types.h"
 #include <stdio.h>
-#include "debug.h"
+
 
 // --- Set Functions ---
 
@@ -19,7 +21,7 @@ short add_port(port_set_t *set, unsigned int value)
 
     if (set->count >= NUMBER_OF_PORTS)
     {
-        fprintf(stderr, "Error: Set overflow.\n");
+        LOGE("Error: Set overflow.\n");
         return -1;
     }
 
@@ -64,7 +66,7 @@ void set_port_iterator_index(port_set_iterator_t *it, int index)
     }
     else
     {
-        printf("Warning: Iterator index out of bounds.\n");
+        LOGW("Iterator index out of bounds.\n");
     }
 }
 

@@ -1,10 +1,12 @@
+#define MODULE_DEBUG DEBUG_IP
+#include "debug.h"
 #include <inttypes.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <ip.h>
 #include <protocol_utils.h>
 #include "scan_context.h"
-#include "debug.h"
+
 
 int16_t ip_header_init(uint8_t *buffer, uint8_t buffer_len, const ip_header_t *header)
 {

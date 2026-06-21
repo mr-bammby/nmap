@@ -1,3 +1,5 @@
+#define MODULE_DEBUG DEBUG_TCP
+#include "debug.h"
 #include "tcp.h"
 #include "protocol_utils.h"
 #include "ip.h"
@@ -6,7 +8,7 @@
 #include "response_states.h"
 #include "scan_context.h"
 #include "nmap_types.h"
-#include "debug.h"
+
 
 #define TCP_WINDOW_SIZE 65535
 #define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
@@ -117,7 +119,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     
     if (calc_checksum != 0 && calc_checksum != original_checksum)
     {
-        printf("TCP checksum verification failed: calculated 0x%04x, expected 0x%04x\n", calc_checksum, stored_checksum);
+        LOGE("TCP checksum verification failed: calculated 0x%04x, expected 0x%04x\n", calc_checksum, stored_checksum);
     }
 
     tcp_header->src_port = ntohs(*src_port_ptr);
@@ -137,13 +139,13 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr, ip_hdr);
     if (tcp_len < 0)
     {
-        printf("Failed to parse TCP header: %d\n", tcp_len);
+        LOGE("Failed to parse TCP header: %d\n", tcp_len);
         return 0;
     }
 
     if (tcp_hdr.src_port < PORT_START || tcp_hdr.src_port > PORT_END)
     {
-        printf("Received TCP packet with source port %d outside of expected range\n", tcp_hdr.src_port);
+        LOGE("Received TCP packet with source port %d outside of expected range\n", tcp_hdr.src_port);
         return 0;
     }
 
@@ -169,7 +171,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     uint16_t port   = COOKIE_PORT(cookie);
     if (port < PORT_START || port > PORT_END)
     {
-        printf("Received TCP packet with invalid cookie-derived port %d\n", port);
+        LOGE("Received TCP packet with invalid cookie-derived port %d\n", port);
         return 0;
     }
     // now write results[port - 1].response_<scan_id>
@@ -189,7 +191,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
         }
         else
         {
-            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            LOGE("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
             return 0;
         }
         break;
@@ -199,7 +201,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
             return 1;
         }
         else        {
-            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            LOGE("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
             return 0;
         }
         break;
@@ -209,7 +211,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
             return 1;
         }
         else        {
-            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            LOGE("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
             return 0;
         }
         break;
@@ -219,7 +221,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
             return 1;
         }
         else        {
-            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            LOGE("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
             return 0;
         }
         break;
@@ -229,12 +231,12 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
             return 1;
         }
         else        {
-            printf("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+            LOGE("Received TCP packet with unexpected flags 0x%02x from %s:%d\n", tcp_hdr.flags, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
             return 0;
         }
         break;
     default:
-        printf("Received TCP packet with unknown scan ID %d from %s:%d\n", scan_id, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
+        LOGE("Received TCP packet with unknown scan ID %d from %s:%d\n", scan_id, inet_ntoa(*(struct in_addr *)&ip_hdr->src), tcp_hdr.src_port);
         return 0;
     }
 }

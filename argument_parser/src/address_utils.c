@@ -1,4 +1,6 @@
 #define _GNU_SOURCE
+#define MODULE_DEBUG DEBUG_ADRESS_UTILS
+#include "debug.h"
 #include "address_utils.h"
 #include <string.h>
 #include <stdlib.h>
@@ -8,7 +10,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdio.h>
-#include "debug.h"
+
 
 internal_error_e fqdn_resolve(const char *fqdn, char *ip_buffer) // buffer needs to be at least 16 bytes
 {
@@ -163,7 +165,7 @@ parse_return_e parse_address_list(const char *input, addr_node_t **head_p)
         }
         else if (fqdn_resolve(token, fqdn_buffer) == INTERNAL_SUCCESS)
         {
-            printf("Resolved FQDN '%s' to IP '%s'\n", token, fqdn_buffer); // Debug print
+            LOGD("Resolved FQDN '%s' to IP '%s'\n", token, fqdn_buffer);
             if (address_list_prepend(&head, fqdn_buffer) != INTERNAL_SUCCESS)
             {
                 address_list_free(&head);

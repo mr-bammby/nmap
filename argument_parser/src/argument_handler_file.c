@@ -1,11 +1,13 @@
 #define _GNU_SOURCE
+#define MODULE_DEBUG DEBUG_ARGUMENT_HANDLER_FILE
+#include "debug.h"
 #include "argument_parser.h"
 #include "address_utils.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "debug.h"
+
 
 parse_return_e argument_handler_file(params_t *param, const char *value)
 {

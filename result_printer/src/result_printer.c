@@ -1,8 +1,11 @@
+#define MODULE_DEBUG DEBUG_RESULT_PRINTER
+#include "debug.h"
 #include <stdio.h>
 #include <stdint.h>
 #include "parser_utils.h"
 #include "printer_utils.h"
 #include "port_map.h"
+
 
 
 

@@ -1,7 +1,9 @@
+#define MODULE_DEBUG DEBUG_PARSER_UTILS
+#include "debug.h"
 #include <stdio.h>
 #include "scan_parser.h"
 #include "port_map.h"
-#include "debug.h"
+
 
 port_state_t get_final_state(const scan_result_t *port_result)
 {

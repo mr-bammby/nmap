@@ -1,8 +1,10 @@
+#define MODULE_DEBUG DEBUG_ARGUMENT_PARSER
+#include "debug.h"
 #include <string.h>
 #include "argument_parser.h"
 #include "nmap_types.h"
 #include "port_utils.h"
-#include "debug.h"
+
 
 #define DEFAULT_PORTS_STR "1-1024"
 #define DEFAULT_THREAD_NUM 1

@@ -1,3 +1,5 @@
+#define MODULE_DEBUG DEBUG_PRINTER_UTILS
+#include "debug.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -7,6 +9,7 @@
 #include "response_states.h"
 #include "printer_utils.h"
 #include "parser_utils.h"
+
 
 #define MAX_PRINT_TOKE_LEN 20u
 

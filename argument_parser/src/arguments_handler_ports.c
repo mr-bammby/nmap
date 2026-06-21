@@ -1,9 +1,11 @@
+#define MODULE_DEBUG DEBUG_ARGUMENT_HANDLER_PORTS
+#include "debug.h"
 #include "argument_parser.h"
 #include "nmap_types.h"
 #include "port_utils.h"
 #include <string.h>
 #include <ctype.h>
-#include "debug.h"
+
 
 typedef enum
 {

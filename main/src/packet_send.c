@@ -1,3 +1,5 @@
+#define MODULE_DEBUG DEBUG_PACKET_SEND
+#include "debug.h"
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -13,7 +15,7 @@
 #include "port_map.h"
 #include "exec.h"
 #include "scan_context.h"
-#include "debug.h"
+
 
 #define MIN_SRC_PORT 1024
 #define MAX_SRC_PORT MAX_PORT

@@ -1,11 +1,11 @@
 #include "stdio.h"
 #include "version.h"
-#include "debug.h"
 
 void display_help(void)
 {
     printf("\
-ft_nmap %i,%i\n\
+ft_nmap v%i.%i\n\
+Help Screen\n\
 Usage: ft_nmap [OPTIONS]\n\
 \n\
 A multi-threaded IPv4 port scanner supporting various TCP/UDP scan techniques.\n\

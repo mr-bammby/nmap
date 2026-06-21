@@ -1,26 +1,42 @@
+#define MODULE_DEBUG DEBUG_BUILD_MESSAGE
+#include "debug.h"
 #include "ip.h"
 #include "tcp.h"
 #include "udp.h"
 #include <stdio.h>
 #include <string.h>
-#include "debug.h"
 
-#if DEBUG
-#warning DEBUG IS ENABLED IN BUILD_MESSAGE
-#endif
-
-void print_message(const uint8_t *buffer, uint16_t length)
+static void print_message(const uint8_t *buffer, uint16_t length)
 {
-    printf("Constructed Packet (Hex):\n");
+    LOGD("Constructed Packet (Hex):\n");
+    for (int i = 0; i < 16; i++)
+    {
+        if (i % 16 == 0)
+            LOGD("%02d ", i);
+        else
+            LOGD_WF("%02d ", i);
+    }
+    LOGD_WF("\n");
+    LOGD("");
+    for (int i = 0; i < 16; i++)
+    {
+            LOGD_WF("---");
+    }
+    LOGD_WF("\n");
+
     for (int i = 0; i < length; i++)
     {
-        printf("%02x ", buffer[i]);
+
+        if (i % 16 == 0)
+            LOGD("%02x ", buffer[i]);
+        else
+            LOGD_WF("%02x ", buffer[i]);
         if ((i + 1) % 16 == 0)
         {
-            printf("\n");
+            LOGD_WF("\n");
         }
     }
-    printf("\n");
+    LOGD_WF("\n");
 }
 
 int16_t tcp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_t *ip_header, const tcp_header_t *tcp_header, const uint32_t *payload, uint16_t payload_len)
@@ -43,8 +59,7 @@ int16_t tcp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     int16_t full_header_len = ip_header_encapsulate(buffer, tcp_header_len);
 
     #if DEBUG_BUILD_MESSAGE
-    printf("tcp_packet_create\n");
-    fflush(stdout);
+    LOGD("tcp_packet_create\n");
     print_message(buffer, full_header_len);
     #endif /* DEBUG_BUILD_MEASSAGE */
 
@@ -82,8 +97,7 @@ int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     int16_t full_packet_len = ip_header_encapsulate(buffer, udp_header_len + payload_len);
     
     #if DEBUG_BUILD_MESSAGE
-    printf("udp_packet_create\n");
-    fflush(stdout);
+    LOGD("udp_packet_create\n");
     print_message(buffer, full_packet_len);
     #endif /* DEBUG_BUILD_MEASSAGE */
 

@@ -1,3 +1,5 @@
+#define MODULE_DEBUG DEBUG_SINGLE_THREAD_EXEC
+#include "debug.h"
 #include <pcap.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
@@ -14,9 +16,9 @@
 #include "packet_handler.h"
 #include "scan_parser.h"
 #include "protocol_utils.h"
-#include "debug.h"
 #include "timer_utils.h"
 #include "result_printer.h"
+
 
 #define NUMBER_OF_SCAN_TYPES 6
 #define RESPONSE_WAIT_ATTEMPTS 500
@@ -124,12 +126,13 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0)
     {
-        perror("Socket error"); return 1;
+        LOGE_ERRNO("Socket error\n");
+        return 1;
     }
     int one = 1;
     const int *val = &one;
     if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0) {
-        perror("Error setting IP_HDRINCL");
+        LOGE_ERRNO("Error setting IP_HDRINCL\n");
         exit(1);
     }
 
@@ -137,18 +140,19 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     {
         return 1;
     }
-    if (alldevs == NULL) return 1;
+    if (alldevs == NULL) 
+        return 1;
     device_name = alldevs->name;
-    printf("Using device: %s\n", device_name);
+    LOGD("Using device: %s\n", device_name);
 
     // Get the IP for this specific device
     local_ip = get_local_ip(device_name);
     if (!local_ip)
     {
-        fprintf(stderr, "Could not find IP for %s\n", device_name);
+        LOGE("Could not find IP for %s\n", device_name);
         return 1;
     }
-    printf("Using Local IP: %s\n", local_ip);
+    LOGD("Using Local IP: %s\n", local_ip);
 
     handle = pcap_open_live(device_name, BUFSIZ, 1, 10, errbuf);
     if (handle == NULL)
@@ -160,7 +164,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     link_header_len = (uint32_t)get_link_header_len(datalink);
     if (link_header_len < 0)
     {
-        fprintf(stderr, "Unsupported datalink type: %d\n", datalink);
+        LOGE("Unsupported datalink type: %d\n", datalink);
         pcap_close(handle);
         close(sock);
         return 1;
@@ -183,13 +187,12 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
             {
                 uint8_t scan_flag = (uint8_t)(1u << scan_i);
                 response_type_t *response_slot;
-                printf("Scanning port %d with scan type %s...\n", port_i, known_scan_types[scan_i]);
-                fflush(stdout);
+                LOGD("Scanning port %d with scan type %s...\n", port_i, known_scan_types[scan_i]);
                 send_packet(sock, target_ip, port_i, local_ip, scan_flag, 0);
                 response_slot = response_slot_for_scan(&results[port_i - 1], scan_flag);
                 if (response_slot == NULL)
                 {
-                    printf("Done for port %d.\n", port_i);
+                    LOGD("Done for port %d.\n", port_i);
                     continue;
                 }
 
@@ -216,7 +219,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                     int res = pcap_next_ex(handle, &header, &packet);
                     if (res == 1)
                     {
-                        printf("PACKET PROCESSING\n");
+                        LOGD("PACKET PROCESSING\n");
                         process_packet(packet, header->caplen, link_header_len, results);
                         /* Only stop when this specific probe got a conclusive response. */
                         if (*response_slot != RESPONSE_NO_RESPONSE)
@@ -224,7 +227,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                     }
                     usleep(RESPONSE_POLL_SLEEP_US);
                 }
-                printf("Done for port %d.\n", port_i);
+                LOGD("Done for port %d.\n", port_i);
             }
         }
     }

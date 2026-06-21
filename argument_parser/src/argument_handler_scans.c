@@ -1,9 +1,11 @@
 #define _GNU_SOURCE
+#define MODULE_DEBUG DEBUG_ARGUMENT_HANDLER_SCANS
+#include "debug.h"
 #include "argument_parser.h"
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include "debug.h"
+
 
 #define MAX_TOKENS 6
 
