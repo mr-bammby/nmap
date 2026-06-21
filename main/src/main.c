@@ -124,13 +124,10 @@ int main(int argc, const char *argv[])
 
     #if DEBUG_MAIN
     main_argumnts(argc, argv, parse_result, &params);
-    print_scan_header(&params);
     #endif /* DEBUG_MAIN */
     if (parse_result != PARSE_OK)
     {
-        #ifndef DEBUG_MAIN
         main_argumnts(argc, argv, parse_result, &params);
-        #endif /* DEBUG_MAIN */
         if (parse_result == PARSE_HELP_REQUEST)
         {
             display_help();
@@ -141,6 +138,7 @@ int main(int argc, const char *argv[])
     }
     else
     {
+        print_scan_header(&params);
         if (params.thread_num > 1)
         {
             fprintf(stderr, "Multi-threading is not supported in current implementation.\n");
