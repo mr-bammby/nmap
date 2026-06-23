@@ -96,8 +96,9 @@
 #define LOGE_ERRNO(fmt, ...)                                      \
     do {                                                          \
         int err = errno;                                          \
+        char buf[1024];                                           \
         LOG_IMPL(stderr, LOG_ERR, fmt ": %s\n",                   \
-                 ##__VA_ARGS__, strerror(err));                   \
+                 ##__VA_ARGS__, strerror_r(err, buf, sizeof(buf)));                 \
     } while (0)
 #define LOGW(fmt, ...) LOG_IMPL(stdout, LOG_WRN, fmt, ##__VA_ARGS__)
 #define LOGI(fmt, ...) LOG_IMPL(stdout, LOG_INF, fmt, ##__VA_ARGS__)
