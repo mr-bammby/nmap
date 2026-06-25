@@ -10,11 +10,13 @@ MAIN_DIR			= main
 PROTOCOLS_DIR		= protocols
 SCANS_DIR			= scans
 RESULT_PRINTER_DIR	= result_printer
+THREADING_DIR		= threading
 SRCD = $(ARG_PARSER_DIR)/src \
 		  $(MAIN_DIR)/src \
 		  $(PROTOCOLS_DIR)/src \
 		  $(SCANS_DIR)/src \
 		  $(RESULT_PRINTER_DIR)/src \
+		  $(THREADING_DIR)/src \
 
 SRCS	= $(foreach dir,$(SRCD),$(wildcard $(dir)/*.c))
 

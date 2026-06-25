@@ -1,9 +1,5 @@
 #define MODULE_DEBUG DEBUG_MAIN
 #include "debug.h"
-// #define STRINGIFY2(x) #x
-// #define STRINGIFY(x) STRINGIFY2(x)
-
-// #pragma message("MODULE_DEBUG=" STRINGIFY(MODULE_DEBUG))
 #include <stdio.h>
 #include <stdlib.h>
 #include "argument_parser.h"
