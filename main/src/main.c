@@ -11,6 +11,8 @@
 #include "exec.h"
 #include "port_utils.h"
 #include "result_printer.h"
+#include "scan_context.h"
+#include "timer_utils.h"
 
 static const char *const valid_tokens[6] =
     {
@@ -156,12 +158,19 @@ int main(int argc, const char *argv[])
         }
         for (addr_node_t *current = params.address; current != NULL; current = current->next)
         {
+            nmap_timer_t timer;
+            float elapsed_time;
+            scan_result_t results[RESULTS_CAPACITY];
+            start_timer(&timer);
             LOGD("Scanning %s...\n", current->addr);
-            exec_result = single_thread_exec(current->addr, params.ports, params.scans);
+            exec_result = single_thread_exec(current->addr, params.ports, params.scans, results);
             if (exec_result != 0)
             {
                 LOGE("Error scanning %s\n", current->addr);
             }
+            stop_timer(&timer);
+            elapsed_time = read_time_s(&timer);
+            parse_scan_results(results, PORT_START - 1, PORT_END, current->addr, elapsed_time);
         }
     }
 
