@@ -1,5 +1,6 @@
 #define MODULE_DEBUG DEBUG_SENDER
 #include "debug.h"
+#include <unistd.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 

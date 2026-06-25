@@ -121,6 +121,8 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                     }
 
                     // Wait in 1ms polls; UDP may span multiple windows via retries.
+                    usleep(RESPONSE_POLL_SLEEP_US);
+
                     struct pcap_pkthdr *header;
                     const unsigned char *packet;
                     int res = pcap_next_ex(pcap_handle, &header, &packet);
@@ -132,7 +134,6 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                         if (*response_slot != RESPONSE_NO_RESPONSE)
                             break;
                     }
-                    usleep(RESPONSE_POLL_SLEEP_US);
                 }
                 LOGD("Done for port %d.\n", port_i);
             }
