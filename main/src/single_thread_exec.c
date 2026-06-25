@@ -18,6 +18,8 @@
 #include "protocol_utils.h"
 #include "timer_utils.h"
 #include "result_printer.h"
+#include "sender.h"
+#include "receiver.h"
 
 
 #define NUMBER_OF_SCAN_TYPES 6
@@ -33,59 +35,6 @@ static const char *const known_scan_types[6] =
         "XMAS",
         "UDP"
     };
-
-static int get_link_header_len(int datalink)
-{
-    switch (datalink)
-    {
-    case DLT_EN10MB:
-        return 14;
-    case DLT_NULL:
-        return 4;
-    case DLT_RAW:
-        return 0;
-#ifdef DLT_LINUX_SLL
-    case DLT_LINUX_SLL:
-        return 16;
-#endif
-#ifdef DLT_LINUX_SLL2
-    case DLT_LINUX_SLL2:
-        return 20;
-#endif
-    default:
-        return -1;
-    }
-}
-
-// --- Helper: Get Local IP for Checksum ---
-char* get_local_ip(const char *iface_name)
-{
-    struct ifaddrs *ifaddr, *ifa;
-    static char ip_addr[INET_ADDRSTRLEN];
-
-    if (getifaddrs(&ifaddr) == -1)
-    {
-        perror("getifaddrs");
-        return NULL;
-    }
-
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
-    {
-        if (ifa->ifa_addr == NULL) continue;
-        if (ifa->ifa_addr->sa_family == AF_INET)
-        {
-            if (strcmp(ifa->ifa_name, iface_name) == 0)
-            {
-                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
-                strcpy(ip_addr, inet_ntoa(sa->sin_addr));
-                freeifaddrs(ifaddr);
-                return ip_addr;
-            }
-        }
-    }
-    freeifaddrs(ifaddr);
-    return NULL;
-}
 
 static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t scan_flag)
 {
@@ -106,78 +55,36 @@ static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t sc
 
 int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t scans)
 {
-    char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t *handle;
-    struct bpf_program fp;
-    int sock;
-    pcap_if_t *alldevs;
-    char *device_name;
+    pcap_t *pcap_handle = NULL;
+    int sock = -1;
     char *local_ip;
-    uint32_t link_header_len = 14;
+    uint32_t link_header_len;
     scan_result_t results[RESULTS_CAPACITY];
     nmap_timer_t timer;
     float elapsed_time;
     port_set_iterator_t port_it;
+    unsigned int port_i;
+
     init_port_iterator(&port_it, &ports);
 
     // Initialize results array
     initialize_results(results);
 
-    sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-    if (sock < 0)
+    // Initialize sender socket
+    if (sender_init(&sock) < 0)
     {
-        LOGE_ERRNO("Socket error\n");
-        return 1;
-    }
-    int one = 1;
-    const int *val = &one;
-    if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0) {
-        LOGE_ERRNO("Error setting IP_HDRINCL\n");
-        exit(1);
+        LOGE("Failed to initialize sender socket\n");
+        return -1;
     }
 
-    if (pcap_findalldevs(&alldevs, errbuf) == -1)
+    // Initialize receiver
+    if (receiver_init(target_ip, scans, &port_it, &pcap_handle, &local_ip, &link_header_len) < 0)
     {
-        return 1;
+        LOGE("Failed to initialize receiver\n");
+
+        return -1;
     }
-    if (alldevs == NULL) 
-        return 1;
-    device_name = alldevs->name;
-    LOGD("Using device: %s\n", device_name);
-
-    // Get the IP for this specific device
-    local_ip = get_local_ip(device_name);
-    if (!local_ip)
-    {
-        LOGE("Could not find IP for %s\n", device_name);
-        return 1;
-    }
-    LOGD("Using Local IP: %s\n", local_ip);
-
-    handle = pcap_open_live(device_name, BUFSIZ, 1, 10, errbuf);
-    if (handle == NULL)
-    {
-        return 1;
-    }
-
-    int datalink = pcap_datalink(handle);
-    link_header_len = (uint32_t)get_link_header_len(datalink);
-    if (link_header_len < 0)
-    {
-        LOGE("Unsupported datalink type: %d\n", datalink);
-        pcap_close(handle);
-        close(sock);
-        return 1;
-    }
-
-    pcap_setnonblock(handle, 1, errbuf);
-
-    char filter[100];
-    sprintf(filter, "src host %s", target_ip);
-    pcap_compile(handle, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
-    pcap_setfilter(handle, &fp);
-
-    unsigned int port_i;
+    
     start_timer(&timer);
     while (port_iterator_next(&port_it, &port_i) == 0)
     {
@@ -216,7 +123,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                     // Wait in 1ms polls; UDP may span multiple windows via retries.
                     struct pcap_pkthdr *header;
                     const unsigned char *packet;
-                    int res = pcap_next_ex(handle, &header, &packet);
+                    int res = pcap_next_ex(pcap_handle, &header, &packet);
                     if (res == 1)
                     {
                         LOGD("PACKET PROCESSING\n");
@@ -234,7 +141,8 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     stop_timer(&timer);
     elapsed_time = read_time_s(&timer);
     parse_scan_results(results, PORT_START - 1, PORT_END, target_ip, elapsed_time);
-    pcap_close(handle);
+    receiver_cleanup(pcap_handle);
+    sender_cleanup(&sock);
     close(sock);
 
     return 0;
