@@ -96,12 +96,12 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
                 for (int attempt = 0; attempt < max_attempts; attempt++)
                 {
                     sender_run(sock, target_ip, port_i, local_ip, scan_flag, attempt, response_slot);
+                    // Wait in 1ms polls; UDP may span multiple windows via retries.
+                    usleep(RESPONSE_POLL_SLEEP_US);
                     if(receiver_run(pcap_handle, link_header_len, response_slot, results) == 1)
                     {
                         break;
                     }
-                    // Wait in 1ms polls; UDP may span multiple windows via retries.
-                    usleep(RESPONSE_POLL_SLEEP_US);
                 }
                 LOGD("Done for port %d.\n", port_i);
             }
