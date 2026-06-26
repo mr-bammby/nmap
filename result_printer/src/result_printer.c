@@ -6,9 +6,6 @@
 #include "printer_utils.h"
 #include "port_map.h"
 
-
-
-
 void print_scan_header(const params_t *params)
 {
     if ((params != NULL) && (params->address != NULL))
@@ -32,7 +29,12 @@ void print_scan_header(const params_t *params)
     }
 }
 
-void parse_scan_results(const scan_result_t *results, int start, int end, const char *target_ip, double scan_time_s)
+void print_scan_stats(double scan_time_s)
+{
+    printf("Scan took %.5f secs\n", scan_time_s);
+}
+
+void parse_scan_results(const scan_result_t *results, int start, int end, const char *target_ip)
 {
     int i;
     uint8_t has_open = 0;
@@ -40,7 +42,6 @@ void parse_scan_results(const scan_result_t *results, int start, int end, const 
 
     if (results != NULL)
     {
-        printf("Scan took %.5f secs\n", scan_time_s);
         printf("IP address: %s\n", target_ip);
         for (i = start; i < end; i++)
         {
@@ -87,5 +88,6 @@ void parse_scan_results(const scan_result_t *results, int start, int end, const 
                 }
             }
         }
+        printf("\n");
     }
 }

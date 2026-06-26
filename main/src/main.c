@@ -156,25 +156,43 @@ int main(int argc, const char *argv[])
             LOGW("Multi-threading is not supported in current implementation.\n");
             return EXIT_FAILURE;
         }
+        int address_count = 0;
         for (addr_node_t *current = params.address; current != NULL; current = current->next)
         {
-            nmap_timer_t timer;
-            float elapsed_time;
-            scan_result_t results[RESULTS_CAPACITY];
-            start_timer(&timer);
+            address_count++;
+        }
+        nmap_timer_t timer;
+        float elapsed_time;
+        scan_result_t *results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
+        if (!results)
+        {
+            LOGE("Failed to allocate memory for scan results.\n");
+            free_arguments(&params);
+            return EXIT_FAILURE;
+        }
+        start_timer(&timer);
+        uint32_t cnt = 0;
+        for (addr_node_t *current = params.address; current != NULL; current = current->next)
+        {
             LOGD("Scanning %s...\n", current->addr);
-            exec_result = single_thread_exec(current->addr, params.ports, params.scans, results);
+            exec_result = single_thread_exec(current->addr, params.ports, params.scans, &(results[cnt]));
             if (exec_result != 0)
             {
                 LOGE("Error scanning %s\n", current->addr);
             }
-            stop_timer(&timer);
-            elapsed_time = read_time_s(&timer);
-            parse_scan_results(results, PORT_START - 1, PORT_END, current->addr, elapsed_time);
+            cnt++;
+        }
+        stop_timer(&timer);
+        elapsed_time = read_time_s(&timer);
+        print_scan_stats(elapsed_time);
+        for (addr_node_t *current = params.address; current != NULL; current = current->next)
+        {
+            parse_scan_results(results, PORT_START - 1, PORT_END, current->addr);
         }
     }
 
     free_arguments(&params);
+    
 
     return (parse_result == PARSE_OK || parse_result == PARSE_HELP_REQUEST) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
