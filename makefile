@@ -30,7 +30,7 @@ INCLUDES = -I$(ARG_PARSER_DIR)/inc -I$(ARG_PARSER_DIR)/inc_priv \
            -I$(MAIN_DIR)/inc -I$(PROTOCOLS_DIR)/inc -I$(SCANS_DIR)/inc \
 		   -I$(RESULT_PRINTER_DIR)/inc -I$(RESULT_PRINTER_DIR)/inc_priv
 
-LIBS = -lpcap
+LIBS = -lpcap -pthread
 
 NAME = ft_nmap.out
 

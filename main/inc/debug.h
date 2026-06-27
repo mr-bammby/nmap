@@ -51,7 +51,7 @@
 #define DEBUG_RESULT_PRINTER                (DEBUG && 0)
 
 /* threading */
-#define DEBUG_TICKET_SCHEDULER                 (DEBUG && 0)
+#define DEBUG_THREADS                       (DEBUG && 0)
 
 
 /* ========================================================================= */
