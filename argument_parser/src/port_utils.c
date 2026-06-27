@@ -80,3 +80,9 @@ short port_iterator_next(port_set_iterator_t *it, unsigned int *out_value)
     }
     return -1; // Failure
 }
+
+int get_port_set_size(const port_set_t *set)
+{
+    return set->count;
+}
+

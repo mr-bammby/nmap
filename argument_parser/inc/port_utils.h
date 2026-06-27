@@ -8,6 +8,7 @@ short add_port(port_set_t *set, unsigned int value);
 void init_port_iterator(port_set_iterator_t *it, const port_set_t *set);
 void set_port_iterator_index(port_set_iterator_t *it, int index);
 short port_iterator_next(port_set_iterator_t *it, unsigned int *value);
+int get_port_set_size(const port_set_t *set);
 
 
 #endif // _PORT_UTILS_H_
