@@ -3,19 +3,22 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 // Compile with "gcc -g -pthread -o threading.out threads.c" 
 // For debugging function copy debug.h into this folder and run "gcc -DDEBUG=1 -g -pthread -o threading.out threads.c"
 
 #define NUM_READERS 4
 
-//TODO Make enums
-#define HIGH_PRIORITY   1
-#define LOW_PRIORITY    0
+typedef enum {
+    PRIORITY_HIGH,
+    PRIORITY_LOW
+} priority_t;
 
-//TODO Make enums
-#define UDP_FLAG_RESSOURCE 1
-#define SEND_INFORMATION_RESSOURCE 2
+typedef enum {
+    RESSOURCE_UDP_FLAG,
+    RESSOURCE_PACKET_INFORMATION
+} ressource_t;
 
 int g_array[100] = {0};
 
@@ -57,12 +60,12 @@ void lock_lock(uint8_t priority, uint8_t ressource_type)
 {
     uint32_t ticket = 0;
     ticket_system_t *ressource;
-    if (ressource_type == UDP_FLAG_RESSOURCE)
+    if (ressource_type == RESSOURCE_UDP_FLAG)
         ressource = &g_udp_flag_ressource;
     else
         ressource = &g_send_information_ressource;
     pthread_mutex_lock(&(ressource->assignment_lock));
-    if (priority == HIGH_PRIORITY)
+    if (priority == PRIORITY_HIGH)
     {
         ticket = ressource->high_prio_count;
         ressource->high_prio_count++;
@@ -77,7 +80,7 @@ void lock_lock(uint8_t priority, uint8_t ressource_type)
     pthread_mutex_unlock(&(ressource->assignment_lock));
 
     pthread_mutex_lock(&(ressource->ressource_lock));
-    if (priority == HIGH_PRIORITY)
+    if (priority == PRIORITY_HIGH)
     {
         while(!(ticket == ressource->high_prio_actual))
         {
@@ -86,7 +89,6 @@ void lock_lock(uint8_t priority, uint8_t ressource_type)
         g_array[ticket % 100] = ressource->high_prio_actual;
         LOGI("Wrote %d to shared ressource at index [%d]\n", g_array[ticket % 100], ticket % 100);
         ressource->high_prio_actual++;
-        //TODO as both conditions need to be broadcast, check if one cond would be sufficient
         pthread_cond_broadcast(&ressource->high_prio_cond);
         pthread_cond_broadcast(&ressource->low_prio_cond);
         pthread_mutex_unlock(&(ressource->ressource_lock));
@@ -118,9 +120,9 @@ static void *reader_thread(void *arg)
     while (1)
     {
         LOGD("Reader trying lock\n");
-        lock_lock(LOW_PRIORITY, UDP_FLAG_RESSOURCE);
+        lock_lock(PRIORITY_LOW, RESSOURCE_UDP_FLAG);
 
-        usleep(1000);
+        usleep((rand() % 400 + 100) * 1000);
     }
 
     return NULL;
@@ -142,7 +144,7 @@ int main(void)
     while (1)
     {
         LOGD("Writer trying lock\n");
-        lock_lock(HIGH_PRIORITY, UDP_FLAG_RESSOURCE);
+        lock_lock(PRIORITY_HIGH, RESSOURCE_UDP_FLAG);
 
         sleep(1);
     }
