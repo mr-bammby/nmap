@@ -8,7 +8,7 @@
 // Compile with "gcc -g -pthread -o threading.out threads.c" 
 // For debugging function copy debug.h into this folder and run "gcc -DDEBUG=1 -g -pthread -o threading.out threads.c"
 
-#define NUM_READERS 4
+#define NUM_READERS 100
 
 typedef enum {
     PRIORITY_HIGH,
@@ -18,87 +18,99 @@ typedef enum {
 typedef enum {
     RESSOURCE_UDP_FLAG,
     RESSOURCE_PACKET_INFORMATION
-} ressource_t;
+} ressource_type_t;
 
 int g_array[100] = {0};
 
-typedef struct ticket_system_s
+typedef struct ressource_control_s
 {
-    uint32_t high_prio_count;
-    uint32_t high_prio_actual;
+    uint32_t high_prio_total;
+    uint32_t high_prio_serving;
     pthread_cond_t high_prio_cond;
-    uint32_t low_prio_count;
-    uint32_t low_prio_actual;
+    uint32_t low_prio_total;
+    uint32_t low_prio_serving;
     pthread_cond_t low_prio_cond;
     pthread_mutex_t assignment_lock;
     pthread_mutex_t ressource_lock;
-} ticket_system_t;
+} ressource_control_t;
 
 typedef struct lock_handle_s
 {
     uint32_t assigned_ticket_number;
     priority_t priority;
-    ticket_system_t * ressource;
+    ressource_control_t * ressource;
 } lock_handle_t;
 
-ticket_system_t g_udp_flag_ressource = {
-    .high_prio_count = 0,
-    .high_prio_actual = 0,
+ressource_control_t g_udp_flag_ressource = {
+    .high_prio_total = 0,
+    .high_prio_serving = 0,
     .high_prio_cond = PTHREAD_COND_INITIALIZER,
-    .low_prio_count = 0,
-    .low_prio_actual = 0,
+    .low_prio_total = 0,
+    .low_prio_serving = 0,
     .low_prio_cond = PTHREAD_COND_INITIALIZER,
     .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
     .ressource_lock = PTHREAD_MUTEX_INITIALIZER
 };
 
-ticket_system_t g_send_information_ressource = {
-    .high_prio_count = 0,
-    .high_prio_actual = 0,
+ressource_control_t g_send_information_ressource = {
+    .high_prio_total = 0,
+    .high_prio_serving = 0,
     .high_prio_cond = PTHREAD_COND_INITIALIZER,
-    .low_prio_count = 0,
-    .low_prio_actual = 0,
+    .low_prio_total = 0,
+    .low_prio_serving = 0,
     .low_prio_cond = PTHREAD_COND_INITIALIZER,
     .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
     .ressource_lock = PTHREAD_MUTEX_INITIALIZER
 };
 
 static __thread lock_handle_t lock_handle_udp_flag;
+static __thread lock_handle_t lock_handle_send_information;
 
-
-void lock_lock(priority_t priority, ressource_t ressource, lock_handle_t *lock_handle)
+void initialize_lock_handle(priority_t priority, ressource_type_t ressource_type, lock_handle_t *lock_handle)
 {
+    lock_handle->assigned_ticket_number = 0;
     lock_handle->priority = priority;
+    switch(ressource_type)
+    {
+        case RESSOURCE_UDP_FLAG:
+            lock_handle->ressource = &g_udp_flag_ressource;
+            break;
+        case RESSOURCE_PACKET_INFORMATION:
+            lock_handle->ressource = &g_send_information_ressource;
+    }
+}
 
-    if (ressource == RESSOURCE_UDP_FLAG)
-        lock_handle->ressource = &g_udp_flag_ressource;
-
+void assign_ticket(lock_handle_t *lock_handle)
+{
     pthread_mutex_lock(&(lock_handle->ressource->assignment_lock));
     if (lock_handle->priority == PRIORITY_HIGH)
     {
-        lock_handle->assigned_ticket_number = lock_handle->ressource->high_prio_count;
-        lock_handle->ressource->high_prio_count++;
-        LOGI("High counter increase to %d\n", lock_handle->ressource->high_prio_count);
+        lock_handle->assigned_ticket_number = lock_handle->ressource->high_prio_total;
+        lock_handle->ressource->high_prio_total++;
+        LOGI("Total amount of high prio tickets increase to %d\n", lock_handle->ressource->high_prio_total);
     }
     else
     {
-        lock_handle->assigned_ticket_number = lock_handle->ressource->low_prio_count;
-        lock_handle->ressource->low_prio_count++;
-        LOGI("Low counter increase to %d\n", lock_handle->ressource->low_prio_count);
+        lock_handle->assigned_ticket_number = lock_handle->ressource->low_prio_total;
+        lock_handle->ressource->low_prio_total++;
+        LOGI("Total amount of low prio tickets increase to %d\n", lock_handle->ressource->low_prio_total);
     }
     pthread_mutex_unlock(&(lock_handle->ressource->assignment_lock));
+}
 
+void lock_ressource(lock_handle_t *lock_handle)
+{
     pthread_mutex_lock(&(lock_handle->ressource->ressource_lock));
     if (lock_handle->priority == PRIORITY_HIGH)
     {
-        while(!(lock_handle->assigned_ticket_number == lock_handle->ressource->high_prio_actual))
+        while(!(lock_handle->assigned_ticket_number == lock_handle->ressource->high_prio_serving))
         {
              pthread_cond_wait(&(lock_handle->ressource->high_prio_cond), &(lock_handle->ressource->ressource_lock));
         }
     }
     else
     {
-        while (lock_handle->assigned_ticket_number != lock_handle->ressource->low_prio_actual || lock_handle->ressource->high_prio_actual != lock_handle->ressource->high_prio_count)
+        while (lock_handle->assigned_ticket_number != lock_handle->ressource->low_prio_serving || lock_handle->ressource->high_prio_serving != lock_handle->ressource->high_prio_total)
         {
              pthread_cond_wait(&(lock_handle->ressource->low_prio_cond), &((lock_handle->ressource->ressource_lock)));
         }
@@ -106,28 +118,29 @@ void lock_lock(priority_t priority, ressource_t ressource, lock_handle_t *lock_h
     return;
 }
 
-void unlock_lock(lock_handle_t *lock_handle)
+void unlock_ressource(lock_handle_t *lock_handle)
 {
     pthread_cond_broadcast(&(lock_handle->ressource->high_prio_cond));
     pthread_cond_broadcast(&(lock_handle->ressource->low_prio_cond));
     pthread_mutex_unlock(&(lock_handle->ressource->ressource_lock));
 }
 
-static void *reader_thread(void *arg)
+static void *sender_thread(void *arg)
 {
-    LOGD("Reader thread started\n");
+    LOGD("Sender thread started\n");
     (void)arg;
 
     while (1)
     {
-        LOGD("Reader trying lock\n");
-        lock_lock(PRIORITY_LOW, RESSOURCE_UDP_FLAG, &lock_handle_udp_flag);
-        LOGI("Reading %d from shared ressource at index [%d].\n", g_array[lock_handle_udp_flag.assigned_ticket_number % 100], lock_handle_udp_flag.assigned_ticket_number % 100);
-        lock_handle_udp_flag.ressource->low_prio_actual++;
-        unlock_lock(&lock_handle_udp_flag);
+        LOGD("Sender trying lock\n");
+        initialize_lock_handle(PRIORITY_LOW, RESSOURCE_UDP_FLAG, &lock_handle_udp_flag);
+        assign_ticket(&lock_handle_udp_flag);
+        lock_ressource(&lock_handle_udp_flag);
+        LOGI("Sender reading %d from shared ressource at index [%d].\n", g_array[lock_handle_udp_flag.assigned_ticket_number % 100], lock_handle_udp_flag.assigned_ticket_number % 100);
+        lock_handle_udp_flag.ressource->low_prio_serving++;
+        unlock_ressource(&lock_handle_udp_flag);
         usleep((rand() % 400 + 100) * 1000);
     }
-
     return NULL;
 }
 
@@ -137,7 +150,7 @@ int main(void)
 
     for (int i = 0; i < NUM_READERS; i++)
     {
-        if (pthread_create(&readers[i], NULL, reader_thread, NULL) != 0)
+        if (pthread_create(&readers[i], NULL, sender_thread, NULL) != 0)
         {
             LOGE_ERRNO("pthread_create");
             return 1;
@@ -146,12 +159,14 @@ int main(void)
 
     while (1)
     {
-        LOGD("Writer trying lock\n");
-        lock_lock(PRIORITY_HIGH, RESSOURCE_UDP_FLAG, &lock_handle_udp_flag);
-        g_array[lock_handle_udp_flag.assigned_ticket_number % 100] = lock_handle_udp_flag.ressource->high_prio_actual;
-        LOGI("Wrote %d to shared ressource at index [%d]\n", g_array[lock_handle_udp_flag.assigned_ticket_number % 100], lock_handle_udp_flag.assigned_ticket_number % 100);
-        lock_handle_udp_flag.ressource->high_prio_actual++;
-        unlock_lock(&lock_handle_udp_flag);
+        LOGD("Receiver trying lock\n");
+        initialize_lock_handle(PRIORITY_HIGH, RESSOURCE_UDP_FLAG, &lock_handle_udp_flag);
+        assign_ticket(&lock_handle_udp_flag);
+        lock_ressource(&lock_handle_udp_flag);
+        g_array[lock_handle_udp_flag.assigned_ticket_number % 100] = lock_handle_udp_flag.ressource->high_prio_serving;
+        LOGI("Receiver wrote %d to shared ressource at index [%d]\n", g_array[lock_handle_udp_flag.assigned_ticket_number % 100], lock_handle_udp_flag.assigned_ticket_number % 100);
+        lock_handle_udp_flag.ressource->high_prio_serving++;
+        unlock_ressource(&lock_handle_udp_flag);
 
         sleep(1);
     }
