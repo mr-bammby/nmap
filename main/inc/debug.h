@@ -51,7 +51,10 @@
 #define DEBUG_RESULT_PRINTER                (DEBUG && 0)
 
 /* threading */
-#define DEBUG_THREADS                       (DEBUG && 0)
+#define DEBUG_TH_LOCK                       (DEBUG && 1)
+
+/* threading test */
+#define DEBUG_TH_MAIN                       (DEBUG && 1)
 
 
 /* ========================================================================= */

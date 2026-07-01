@@ -1,19 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include "th_flagging_array.h"
 
-#define PRIO_LOW 0
-#define PRIO_HI 1
-
-#define TH_LOCK_TYPE uint32_t
-
-typedef struct
-{
-    size_t size;
-    uint8_t *array;
-    TH_LOCK_TYPE lock;
-
-} th_flagging_array_t;
-
+/* TO be called before thread create */
 uint8_t th_flagging_array_init(th_flagging_array_t *arr, size_t capcity)
 {
 
@@ -21,37 +10,40 @@ uint8_t th_flagging_array_init(th_flagging_array_t *arr, size_t capcity)
     {
         return 1;
     }
-    if (!(lock_init(&(arr->lock))))
-    {
-        free (arr->array);
-        return 1;
-    }
+
     arr->size = capcity;
 
     return 0;
 }
 
-uint8_t th_flagging_array_get(th_flagging_array_t *arr, size_t idx, uint8_t *ret)
+uint8_t th_flagging_array_init_access(th_flagging_array_access_t *access, th_flagging_array_t *array, th_lock_priority_t priority)
 {
-    if (idx >= arr->size)
+    access->array = array;
+    th_lock_init_access(priority, &(access->array->lock), &(access->access));
+    return 0;
+}
+
+uint8_t th_flagging_array_get(th_flagging_array_access_t *access, size_t idx, uint8_t *ret)
+{
+    if (idx >= access->array->size)
     {
         return 1;
     }
-    lock_lock(&(arr->lock), PRIO_HI);
-    ret = arr->array[idx];
-    lock_unlock(&(arr->lock));
+    th_lock_take(&(access->access));
+    *ret = access->array->array[idx];
+    th_lock_release(&(access->access));
     return 0;
 }
 
 
-uint8_t th_flagging_array_get(th_flagging_array_t *arr, size_t idx, uint8_t val)
+uint8_t th_flagging_array_set(th_flagging_array_access_t *access, size_t idx, uint8_t val)
 {
-    if (idx >= arr->size)
+    if (idx >= access->array->size)
     {
         return 1;
     }
-    lock_lock(&(arr->lock), PRIO_HI);
-    arr->array[idx] = val;
-    lock_unlock(&(arr->lock));
+    th_lock_take(&(access->access));
+    access->array->array[idx] = val;
+    th_lock_release(&(access->access));
     return 0;
 }
