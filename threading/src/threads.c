@@ -15,14 +15,9 @@ typedef enum {
     PRIORITY_LOW
 } priority_t;
 
-typedef enum {
-    RESSOURCE_UDP_FLAG,
-    RESSOURCE_PACKET_INFORMATION
-} ressource_type_t;
-
 int g_array[100] = {0};
 
-typedef struct ressource_control_s
+typedef struct resource_control_s
 {
     uint32_t high_prio_total;
     uint32_t high_prio_serving;
@@ -31,17 +26,17 @@ typedef struct ressource_control_s
     uint32_t low_prio_serving;
     pthread_cond_t low_prio_cond;
     pthread_mutex_t assignment_lock;
-    pthread_mutex_t ressource_lock;
-} ressource_control_t;
+    pthread_mutex_t resource_lock;
+} resource_control_t;
 
-typedef struct ressource_access_s
+typedef struct resource_access_s
 {
     uint32_t assigned_ticket_number;
     priority_t priority;
-    ressource_control_t *control;
-} ressource_access_t;
+    resource_control_t *control;
+} resource_access_t;
 
-ressource_control_t g_udp_flag_ressource = {
+resource_control_t g_udp_flag_resource = {
     .high_prio_total = 0,
     .high_prio_serving = 0,
     .high_prio_cond = PTHREAD_COND_INITIALIZER,
@@ -49,10 +44,10 @@ ressource_control_t g_udp_flag_ressource = {
     .low_prio_serving = 0,
     .low_prio_cond = PTHREAD_COND_INITIALIZER,
     .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
-    .ressource_lock = PTHREAD_MUTEX_INITIALIZER
+    .resource_lock = PTHREAD_MUTEX_INITIALIZER
 };
 
-ressource_control_t g_send_information_ressource = {
+resource_control_t g_send_information_resource = {
     .high_prio_total = 0,
     .high_prio_serving = 0,
     .high_prio_cond = PTHREAD_COND_INITIALIZER,
@@ -60,27 +55,17 @@ ressource_control_t g_send_information_ressource = {
     .low_prio_serving = 0,
     .low_prio_cond = PTHREAD_COND_INITIALIZER,
     .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
-    .ressource_lock = PTHREAD_MUTEX_INITIALIZER
+    .resource_lock = PTHREAD_MUTEX_INITIALIZER
 };
 
-static __thread ressource_access_t ressource_access_udp_flag;
-static __thread ressource_access_t ressource_access_send_information;
-
-void initialize_ressource_access(priority_t priority, ressource_type_t ressource_type, ressource_access_t *access)
+void th_lock_init_access(priority_t priority, resource_control_t *resource, resource_access_t *access)
 {
     access->assigned_ticket_number = 0;
     access->priority = priority;
-    switch(ressource_type)
-    {
-        case RESSOURCE_UDP_FLAG:
-            access->control = &g_udp_flag_ressource;
-            break;
-        case RESSOURCE_PACKET_INFORMATION:
-            access->control = &g_send_information_ressource;
-    }
+    access->control = resource;
 }
 
-void assign_ticket(ressource_access_t *access)
+void th_assign_ticket(resource_access_t *access)
 {
     pthread_mutex_lock(&(access->control->assignment_lock));
     if (access->priority == PRIORITY_HIGH)
@@ -98,47 +83,52 @@ void assign_ticket(ressource_access_t *access)
     pthread_mutex_unlock(&(access->control->assignment_lock));
 }
 
-void lock_ressource(ressource_access_t *access)
+void th_lock_take(resource_access_t *access)
 {
-    pthread_mutex_lock(&(access->control->ressource_lock));
+    th_assign_ticket(access);
+    pthread_mutex_lock(&(access->control->resource_lock));
     if (access->priority == PRIORITY_HIGH)
     {
         while(!(access->assigned_ticket_number == access->control->high_prio_serving))
         {
-             pthread_cond_wait(&(access->control->high_prio_cond), &(access->control->ressource_lock));
+             pthread_cond_wait(&(access->control->high_prio_cond), &(access->control->resource_lock));
         }
     }
     else
     {
         while (access->assigned_ticket_number != access->control->low_prio_serving || access->control->high_prio_serving != access->control->high_prio_total)
         {
-             pthread_cond_wait(&(access->control->low_prio_cond), &((access->control->ressource_lock)));
+             pthread_cond_wait(&(access->control->low_prio_cond), &((access->control->resource_lock)));
         }
     }
     return;
 }
 
-void unlock_ressource(ressource_access_t *access)
+void th_lock_release(resource_access_t *access)
 {
+    if (access->priority == PRIORITY_HIGH)
+        access->control->high_prio_serving++;
+    else
+        access->control->low_prio_serving++;
     pthread_cond_broadcast(&(access->control->high_prio_cond));
     pthread_cond_broadcast(&(access->control->low_prio_cond));
-    pthread_mutex_unlock(&(access->control->ressource_lock));
+    pthread_mutex_unlock(&(access->control->resource_lock));
 }
 
-static void *sender_thread(void *arg)
+static void *th_sender_thread(void *arg)
 {
+    resource_access_t resource_access_udp_flag;
     LOGD("Sender thread started\n");
     (void)arg;
 
     while (1)
     {
         LOGD("Sender trying lock\n");
-        initialize_ressource_access(PRIORITY_LOW, RESSOURCE_UDP_FLAG, &ressource_access_udp_flag);
-        assign_ticket(&ressource_access_udp_flag);
-        lock_ressource(&ressource_access_udp_flag);
-        LOGI("Sender reading %d from shared ressource at index [%d].\n", g_array[ressource_access_udp_flag.assigned_ticket_number % 100], ressource_access_udp_flag.assigned_ticket_number % 100);
-        ressource_access_udp_flag.control->low_prio_serving++;
-        unlock_ressource(&ressource_access_udp_flag);
+        th_lock_init_access(PRIORITY_LOW, &g_udp_flag_resource, &resource_access_udp_flag);
+
+        th_lock_take(&resource_access_udp_flag);
+        LOGI("Sender reading %d from shared resource at index [%d].\n", g_array[resource_access_udp_flag.assigned_ticket_number % 100], resource_access_udp_flag.assigned_ticket_number % 100);
+        th_lock_release(&resource_access_udp_flag);
         usleep((rand() % 400 + 100) * 1000);
     }
     return NULL;
@@ -150,23 +140,22 @@ int main(void)
 
     for (int i = 0; i < NUM_READERS; i++)
     {
-        if (pthread_create(&readers[i], NULL, sender_thread, NULL) != 0)
+        if (pthread_create(&readers[i], NULL, th_sender_thread, NULL) != 0)
         {
             LOGE_ERRNO("pthread_create");
             return 1;
         }
     }
 
+    resource_access_t resource_access_udp_flag;
     while (1)
     {
         LOGD("Receiver trying lock\n");
-        initialize_ressource_access(PRIORITY_HIGH, RESSOURCE_UDP_FLAG, &ressource_access_udp_flag);
-        assign_ticket(&ressource_access_udp_flag);
-        lock_ressource(&ressource_access_udp_flag);
-        g_array[ressource_access_udp_flag.assigned_ticket_number % 100] = ressource_access_udp_flag.control->high_prio_serving;
-        LOGI("Receiver wrote %d to shared ressource at index [%d]\n", g_array[ressource_access_udp_flag.assigned_ticket_number % 100], ressource_access_udp_flag.assigned_ticket_number % 100);
-        ressource_access_udp_flag.control->high_prio_serving++;
-        unlock_ressource(&ressource_access_udp_flag);
+        th_lock_init_access(PRIORITY_HIGH, &g_udp_flag_resource, &resource_access_udp_flag);
+        th_lock_take(&resource_access_udp_flag);
+        g_array[resource_access_udp_flag.assigned_ticket_number % 100] = resource_access_udp_flag.control->high_prio_serving;
+        LOGI("Receiver wrote %d to shared resource at index [%d]\n", g_array[resource_access_udp_flag.assigned_ticket_number % 100], resource_access_udp_flag.assigned_ticket_number % 100);
+        th_lock_release(&resource_access_udp_flag);
 
         sleep(1);
     }
@@ -177,15 +166,15 @@ int main(void)
         pthread_join(readers[i], NULL);
     }
 
-    pthread_mutex_destroy(&(g_udp_flag_ressource.assignment_lock));
-    pthread_mutex_destroy(&(g_udp_flag_ressource.ressource_lock));
-    pthread_cond_destroy(&(g_udp_flag_ressource.high_prio_cond));
-    pthread_cond_destroy(&(g_udp_flag_ressource.low_prio_cond));
+    pthread_mutex_destroy(&(g_udp_flag_resource.assignment_lock));
+    pthread_mutex_destroy(&(g_udp_flag_resource.resource_lock));
+    pthread_cond_destroy(&(g_udp_flag_resource.high_prio_cond));
+    pthread_cond_destroy(&(g_udp_flag_resource.low_prio_cond));
 
-    pthread_mutex_destroy(&(g_send_information_ressource.assignment_lock));
-    pthread_mutex_destroy(&(g_send_information_ressource.ressource_lock));
-    pthread_cond_destroy(&(g_send_information_ressource.high_prio_cond));
-    pthread_cond_destroy(&(g_send_information_ressource.low_prio_cond));
+    pthread_mutex_destroy(&(g_send_information_resource.assignment_lock));
+    pthread_mutex_destroy(&(g_send_information_resource.resource_lock));
+    pthread_cond_destroy(&(g_send_information_resource.high_prio_cond));
+    pthread_cond_destroy(&(g_send_information_resource.low_prio_cond));
 
     return 0;
 }
