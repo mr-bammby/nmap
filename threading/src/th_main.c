@@ -27,17 +27,20 @@ static void *th_sender_thread(void *arg)
 {
     th_flagging_array_access_t arr_access_udp_flag;
     LOGD("Sender thread started\n");
-    (void)arg;
+    uint32_t thread_id = (uint32_t)(uintptr_t)arg;
     uint8_t ret;
-
+    uint32_t assigned_ticket;
+    th_flagging_array_init_access(&arr_access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_LOW);
     while (1)
     {
-        LOGD("Sender trying lock\n");
-        th_flagging_array_init_access(&arr_access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_LOW);
-        uint32_t assigned_ticket = arr_access_udp_flag.access.assigned_ticket_number;
+        LOGD("Thread %d trying lock\n", thread_id);
+        assigned_ticket = arr_access_udp_flag.access.assigned_ticket_number;
         uint8_t idx = assigned_ticket % 100;
-        th_flagging_array_get(&arr_access_udp_flag, idx, &ret);
-        LOGI("Sender with ticket number %d read %d from shared resource at index [%d]\n", assigned_ticket, ret, idx);
+        if (th_flagging_array_get(&arr_access_udp_flag, idx, &ret) != 0)
+        {
+            LOGW("Thread %d: Error in getting from arr.", thread_id);
+        }
+        LOGI("Thread %d with ticket number %d read %d from shared resource at index [%d]\n", thread_id, assigned_ticket, ret, idx);
         usleep((rand() % 400 + 100) * 1000);
     }
     return NULL;
@@ -49,9 +52,9 @@ int main(void)
 
     th_flagging_array_init(&g_flagging_array, 100);
     
-    for (int i = 0; i < NUM_READERS; i++)
+    for (uint32_t i = 0; i < NUM_READERS; i++)
     {
-        if (pthread_create(&readers[i], NULL, th_sender_thread, NULL) != 0)
+        if (pthread_create(&readers[i], NULL, th_sender_thread, (void *)(uintptr_t)i) != 0)
         {
 
             return 1;
@@ -59,16 +62,17 @@ int main(void)
     }
 
     th_flagging_array_access_t access_udp_flag;
+    th_flagging_array_init_access(&access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_HIGH);
+    int idx = 0;
     while (1)
     {
-        LOGD("Receiver trying lock\n");
-        uint8_t idx = access_udp_flag.access.assigned_ticket_number % 100;
-        uint8_t val = access_udp_flag.access.assigned_ticket_number % 100;
-        th_flagging_array_init_access(&access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_HIGH);
+        uint8_t val = idx % 10;
+        
         th_flagging_array_set(&access_udp_flag, idx, val);
-        LOGI("Receiver wrote %d to shared resource at index [%d]\n", val, idx);
-
-
+        LOGI("Receiver wrote %d to shared resource at index [%d] with ticket %d \n", val, idx, access_udp_flag.access.assigned_ticket_number);
+        idx++;
+        if (idx == 100)
+            idx = 99;
         sleep(1);
     }
 
