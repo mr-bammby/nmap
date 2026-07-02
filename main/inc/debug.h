@@ -52,6 +52,8 @@
 
 /* threading */
 #define DEBUG_TH_LOCK                       (DEBUG && 1)
+#define DEBUG_TH_FLAGGING_ARRAY             (DEBUG && 1)
+#define DEBUG_TH_QUEUE                      (DEBUG && 1)
 
 /* threading test */
 #define DEBUG_TH_MAIN                       (DEBUG && 1)

@@ -1,5 +1,5 @@
-#include <stdint.h>
-#include <stdlib.h>
+#define MODULE_DEBUG DEBUG_TH_FLAGGING_ARRAY
+#include "debug.h"
 #include "th_flagging_array.h"
 
 /* TO be called before thread create */
