@@ -8,28 +8,6 @@
 
 #define NUM_READERS 100
 
-th_lock_resource_control_t g_udp_flag_resource = {
-    .high_prio_total = 0,
-    .high_prio_serving = 0,
-    .high_prio_cond = PTHREAD_COND_INITIALIZER,
-    .low_prio_total = 0,
-    .low_prio_serving = 0,
-    .low_prio_cond = PTHREAD_COND_INITIALIZER,
-    .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
-    .resource_lock = PTHREAD_MUTEX_INITIALIZER
-};
-
-th_lock_resource_control_t g_send_information_resource = {
-    .high_prio_total = 0,
-    .high_prio_serving = 0,
-    .high_prio_cond = PTHREAD_COND_INITIALIZER,
-    .low_prio_total = 0,
-    .low_prio_serving = 0,
-    .low_prio_cond = PTHREAD_COND_INITIALIZER,
-    .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
-    .resource_lock = PTHREAD_MUTEX_INITIALIZER
-};
-
 th_flagging_array_t g_flagging_array = {
     .size = 100,
     .array = NULL,
@@ -41,11 +19,9 @@ th_flagging_array_t g_flagging_array = {
         .low_prio_serving = 0,
         .low_prio_cond = PTHREAD_COND_INITIALIZER,
         .assignment_lock = PTHREAD_MUTEX_INITIALIZER,
-        .resource_lock = PTHREAD_MUTEX_INITIALIZER
+        .lock = PTHREAD_MUTEX_INITIALIZER
     }
 };
-
-int g_array[100] = {0};
 
 static void *th_sender_thread(void *arg)
 {
@@ -58,9 +34,10 @@ static void *th_sender_thread(void *arg)
     {
         LOGD("Sender trying lock\n");
         th_flagging_array_init_access(&arr_access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_LOW);
-        uint8_t idx = arr_access_udp_flag.access.assigned_ticket_number % 100;
+        uint32_t assigned_ticket = arr_access_udp_flag.access.assigned_ticket_number;
+        uint8_t idx = assigned_ticket % 100;
         th_flagging_array_get(&arr_access_udp_flag, idx, &ret);
-        LOGI("Sender read %d from shared resource at index [%d]\n", ret, idx);
+        LOGI("Sender with ticket number %d read %d from shared resource at index [%d]\n", assigned_ticket, ret, idx);
         usleep((rand() % 400 + 100) * 1000);
     }
     return NULL;
@@ -81,14 +58,14 @@ int main(void)
         }
     }
 
-    th_flagging_array_access_t resource_access_udp_flag;
+    th_flagging_array_access_t access_udp_flag;
     while (1)
     {
         LOGD("Receiver trying lock\n");
-        uint8_t idx = resource_access_udp_flag.access.assigned_ticket_number % 100;
-        uint8_t val = resource_access_udp_flag.access.assigned_ticket_number % 100;
-        th_flagging_array_init_access(&resource_access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_HIGH);
-        th_flagging_array_set(&resource_access_udp_flag, idx, val);
+        uint8_t idx = access_udp_flag.access.assigned_ticket_number % 100;
+        uint8_t val = access_udp_flag.access.assigned_ticket_number % 100;
+        th_flagging_array_init_access(&access_udp_flag, &g_flagging_array, TH_LOCK_PRIORITY_HIGH);
+        th_flagging_array_set(&access_udp_flag, idx, val);
         LOGI("Receiver wrote %d to shared resource at index [%d]\n", val, idx);
 
 
@@ -101,15 +78,15 @@ int main(void)
         pthread_join(readers[i], NULL);
     }
 
-    pthread_mutex_destroy(&(g_udp_flag_resource.assignment_lock));
-    pthread_mutex_destroy(&(g_udp_flag_resource.resource_lock));
-    pthread_cond_destroy(&(g_udp_flag_resource.high_prio_cond));
-    pthread_cond_destroy(&(g_udp_flag_resource.low_prio_cond));
+    // pthread_mutex_destroy(&(g_udp_flag_resource.assignment_lock));
+    // pthread_mutex_destroy(&(g_udp_flag_resource.lock));
+    // pthread_cond_destroy(&(g_udp_flag_resource.high_prio_cond));
+    // pthread_cond_destroy(&(g_udp_flag_resource.low_prio_cond));
 
-    pthread_mutex_destroy(&(g_send_information_resource.assignment_lock));
-    pthread_mutex_destroy(&(g_send_information_resource.resource_lock));
-    pthread_cond_destroy(&(g_send_information_resource.high_prio_cond));
-    pthread_cond_destroy(&(g_send_information_resource.low_prio_cond));
+    // pthread_mutex_destroy(&(g_send_information_resource.assignment_lock));
+    // pthread_mutex_destroy(&(g_send_information_resource.lock));
+    // pthread_cond_destroy(&(g_send_information_resource.high_prio_cond));
+    // pthread_cond_destroy(&(g_send_information_resource.low_prio_cond));
 
     return 0;
 }

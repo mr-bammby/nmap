@@ -9,14 +9,14 @@ typedef struct
 {
     size_t size;
     uint8_t *array;
-    th_lock_resource_control_t lock;
+    th_lock_control_t lock;
 
 } th_flagging_array_t;
 
 typedef struct
 {
     th_flagging_array_t *array;
-    th_lock_resource_access_t access;
+    th_lock_access_t access;
 } th_flagging_array_access_t;
 
 

@@ -27,13 +27,13 @@ typedef struct th_queue
     size_t tail;
     uint8_t is_empty;
     uint8_t is_full;
-    th_lock_resource_control_t lock;
+    th_lock_control_t lock;
 } th_queue_t;
 
 typedef struct
 {
     th_queue_t *queue;
-    th_lock_resource_access_t access;
+    th_lock_access_t access;
 } th_queue_access_t;
 
 int th_queue_init(th_queue_t *queue,  size_t capacity);
