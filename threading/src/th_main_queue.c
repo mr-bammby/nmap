@@ -40,17 +40,19 @@ static void *th_sender_thread(void *arg)
     LOGD("Sender thread started\n");
     uint32_t thread_id = (uint32_t)(uintptr_t)arg;
     uint8_t ret;
-    uint32_t assigned_ticket;
+    uint32_t assigned_ticket = 0;
     th_queue_init_access(&queue_access_send_info, &g_queue, TH_LOCK_PRIORITY_LOW);
     while (1)
     {
         LOGD("Thread %d trying lock\n", thread_id);
-        assigned_ticket = queue_access_send_info.access.assigned_ticket_number;
+        
         uint8_t idx = assigned_ticket % 100;
-        if (th_queue_read(&queue_access_send_info, &data, &cond) != 0)
-        {
-            LOGW("Thread %d: Error in getting from arr.", thread_id);
-        }
+        ret = th_queue_read(&queue_access_send_info, &data, &cond);
+        // if (ret != 0)
+        // {
+        //     LOGW("Thread %d: Error in getting from arr.\n", thread_id);
+        // }
+        assigned_ticket = queue_access_send_info.access.assigned_ticket_number;
         LOGI("Thread %d with ticket number %d read %d from shared resource at index [%d]\n", thread_id, assigned_ticket, ret, idx);
         usleep((rand() % 400 + 100) * 1000);
     }
@@ -83,7 +85,7 @@ int main(void)
         data.scan_idx = idx % 6;
         
         th_queue_write(&access_send_info, &data);
-        LOGI("Receiver wrote XXX to shared resource at index XXX with ticket %d \n" , access_send_info.access.assigned_ticket_number);
+        LOGI("Receiver wrote port %d and scan id %d to shared resource at index %d with ticket %d \n" , data.port_idx, data.scan_idx, data.addrress_idx, access_send_info.access.assigned_ticket_number);
         idx++;
         if (idx == 100)
             idx = 99;

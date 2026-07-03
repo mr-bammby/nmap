@@ -84,7 +84,7 @@ static int th_queue_accept(th_queue_t *queue)
     queue->head++;
     if (queue->head >= (queue->capacity))
     {
-        queue->tail = 0;
+        queue->head = 0;
     }
     if (queue->head == queue->tail)
     {
