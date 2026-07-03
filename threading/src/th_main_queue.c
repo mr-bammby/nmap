@@ -1,5 +1,5 @@
 // Compile with "gcc -I../inc -g -pthread -o threading.out th_main_queue.c th_lock.c th_queue.c " 
-// For debugging function copy debug.h into this folder and run "gcc -I../inc -DDEBUG=1 -g -pthread -o threading.out th_main_queue.c th_lock.c th_flagging_array.c "
+// For debugging function copy debug.h into this folder and run "gcc -I../inc -DDEBUG=1 -g -pthread -o threading.out th_main_queue.c th_lock.c th_queue.c "
 #define MODULE_DEBUG DEBUG_TH_MAIN
 #include "debug.h"
 #include <unistd.h>
@@ -23,8 +23,19 @@ th_queue_t g_queue = {
     }
 };
 
+static int cond(const TH_QUEUE_DATA_TYPE *data)
+{
+    return 1;
+}
+
+
 static void *th_sender_thread(void *arg)
 {
+    TH_QUEUE_DATA_TYPE data = {
+        .addrress_idx = 0,
+        .port_idx = 0,
+        .scan_idx = 0
+    };
     th_queue_access_t queue_access_send_info;
     LOGD("Sender thread started\n");
     uint32_t thread_id = (uint32_t)(uintptr_t)arg;
@@ -36,7 +47,7 @@ static void *th_sender_thread(void *arg)
         LOGD("Thread %d trying lock\n", thread_id);
         assigned_ticket = queue_access_send_info.access.assigned_ticket_number;
         uint8_t idx = assigned_ticket % 100;
-        if (th_queue_read(&queue_access_send_info, idx, &ret) != 0)
+        if (th_queue_read(&queue_access_send_info, &data, &cond) != 0)
         {
             LOGW("Thread %d: Error in getting from arr.", thread_id);
         }

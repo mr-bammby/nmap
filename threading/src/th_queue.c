@@ -2,14 +2,14 @@
 #define MODULE_DEBUG DEBUG_TH_QUEUE
 #include "debug.h"
 #include "th_queue.h"
-
+#include <stdlib.h>
 
 int th_queue_init(th_queue_t *queue,  size_t capacity)
 {
     if (queue == NULL || capacity == 0)
         return -1;
 
-    queue->data = (void **)malloc(sizeof(TH_QUEUE_DATA_TYPE) * capacity);
+    queue->data = malloc(sizeof(TH_QUEUE_DATA_TYPE) * capacity);
     if (queue->data == NULL)
         return -1;
 
@@ -73,10 +73,10 @@ static int th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data)
 {
     if (access->queue->is_empty)
     {
-        th_unlock(&(access->access));
         return -2;
     }
     memcpy(data, &(access->queue->data[access->queue->head]), sizeof(TH_QUEUE_DATA_TYPE));
+    return 0;
 }
 
 static int th_queue_accept(th_queue_t *queue)
@@ -99,7 +99,7 @@ int th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE
     if (access->queue == NULL)
         return -1; 
     th_lock_take(&(access->access));
-    if (th_queue_chk(access->queue, data) == 0)
+    if (th_queue_chk(access, data) == 0)
     {
         if (cond != NULL)
         {

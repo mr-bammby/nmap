@@ -36,6 +36,7 @@ typedef struct
 } th_queue_access_t;
 
 int th_queue_init(th_queue_t *queue,  size_t capacity);
+uint8_t th_queue_init_access(th_queue_access_t *access, th_queue_t *queue, th_lock_priority_t priority);
 int th_queue_write(th_queue_access_t *queue, const TH_QUEUE_DATA_TYPE *data);
 int th_queue_read(th_queue_access_t *queue, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond));
 
