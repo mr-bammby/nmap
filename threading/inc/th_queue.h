@@ -22,7 +22,6 @@ typedef struct th_queue
 {
     TH_QUEUE_DATA_TYPE* data;
     size_t capacity;
-    size_t size;
     size_t head;
     size_t tail;
     uint8_t is_empty;
@@ -37,7 +36,7 @@ typedef struct
 } th_queue_access_t;
 
 int th_queue_init(th_queue_t *queue,  size_t capacity);
-int th_queue_write(th_queue_t *queue, const TH_QUEUE_DATA_TYPE *data);
-int th_queue_read(th_queue_t *queue, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond));
+int th_queue_write(th_queue_access_t *queue, const TH_QUEUE_DATA_TYPE *data);
+int th_queue_read(th_queue_access_t *queue, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond));
 
 #endif // TH_QUEUE_H
