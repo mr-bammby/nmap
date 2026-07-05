@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 
-internal_error_e fqdn_resolve(const char *fqdn, char *ip_buffer) // buffer needs to be at least 16 bytes
+ap_internal_error_e ap_address_resolve_fqdn(const char *fqdn, char *ip_buffer) // buffer needs to be at least 16 bytes
 {
     struct addrinfo hints;
     struct addrinfo *info;
@@ -22,36 +22,36 @@ internal_error_e fqdn_resolve(const char *fqdn, char *ip_buffer) // buffer needs
     hints.ai_socktype = 0;           // Returns results for all supported protocols (TCP & UDP)
 
     if (getaddrinfo(fqdn, NULL, &hints, &info) != 0)
-        return INTERNAL_DNS_FAILURE;
+        return AP_INTERNAL_DNS_FAILURE;
     if (inet_ntop(info->ai_family, &((struct sockaddr_in *)info->ai_addr)->sin_addr, ip_buffer, 16) == NULL)
     {
         freeaddrinfo(info);
-        return INTERNAL_DNS_FAILURE;
+        return AP_INTERNAL_DNS_FAILURE;
     }
     freeaddrinfo(info);
-    return INTERNAL_SUCCESS;
+    return AP_INTERNAL_SUCCESS;
 }
 
-static bool_e isnum(const char *str)
+static ap_bool_e isnum(const char *str)
 {
     if (str == NULL || *str == '\0')
-        return BOOL_FALSE;
+        return AP_BOOL_FALSE;
 
     while (*str)
     {
         if (!isdigit((unsigned char)*str))
-            return BOOL_FALSE;
+            return AP_BOOL_FALSE;
         str++;
     }
-    return BOOL_TRUE;
+    return AP_BOOL_TRUE;
 }
 
 /* historically the validation logic lived in the argument handlers.
    this helper centralizes it so the name is more descriptive. */
-bool_e address_is_valid(const char *ip)
+ap_bool_e ap_address_is_valid(const char *ip)
 {
     if (ip == NULL || *ip == '\0')
-        return BOOL_FALSE;
+        return AP_BOOL_FALSE;
 
     int dots = 0;
     int digits_in_segment = 0;
@@ -60,7 +60,7 @@ bool_e address_is_valid(const char *ip)
 
     // Reject leading dot
     if (*p == '.')
-        return 0;
+        return AP_BOOL_FALSE;
 
     while (*p != '\0')
     {
@@ -74,7 +74,7 @@ bool_e address_is_valid(const char *ip)
 
             // IPv4 segments can't be longer than 3 digits (e.g., 255)
             if (digits_in_segment > 3)
-                return 0;
+                return AP_BOOL_FALSE;
 
             // Check value of the segment once we hit a dot or end of string
             if (!isdigit((unsigned char)*(p + 1)))
@@ -84,11 +84,11 @@ bool_e address_is_valid(const char *ip)
                 temp[digits_in_segment] = '\0';
                 int val = atoi(temp);
                 if (val < 0 || val > 255)
-                    return 0;
+                    return AP_BOOL_FALSE;
 
                 // Reject leading zeros like "01" (keep "0" allowed)
                 if (digits_in_segment > 1 && temp[0] == '0')
-                    return 0;
+                    return AP_BOOL_FALSE;
             }
         }
         else if (*p == '.')
@@ -96,53 +96,53 @@ bool_e address_is_valid(const char *ip)
             dots++;
             // Reject consecutive dots ".." or "..."
             if (*(p + 1) == '.')
-                return 0;
+                return AP_BOOL_FALSE;
             // Reset digit counter for next segment
             digits_in_segment = 0;
         }
         else
         {
             // Reject any character that isn't a digit or a dot
-            return 0;
+            return AP_BOOL_FALSE;
         }
         p++;
     }
 
     // Reject trailing dot (if the last char was '.')
     if (*(p - 1) == '.')
-        return 0;
+        return AP_BOOL_FALSE;
 
     // A valid IP must have exactly 3 dots and 4 segments
-    return (dots == 3 && segments == 4);
+    return (dots == 3 && segments == 4) ? AP_BOOL_TRUE : AP_BOOL_FALSE;
 }
 
-void address_list_free(addr_node_t **head)
+void ap_address_free_list(argparse_addr_node_t **head)
 {
     while (*head != NULL)
     {
-        addr_node_t *tmp = *head;
+        argparse_addr_node_t *tmp = *head;
         *head = (*head)->next;
         free(tmp);
     }
 }
 
-internal_error_e address_list_prepend(addr_node_t **head, const char *ip)
+ap_internal_error_e ap_address_prepare_list(argparse_addr_node_t **head, const char *ip)
 {
-    addr_node_t *new_node = malloc(sizeof(addr_node_t));
+    argparse_addr_node_t *new_node = malloc(sizeof(argparse_addr_node_t));
     if (new_node == NULL)
-        return INTERNAL_ALLOCATION_FAILURE;
+        return AP_INTERNAL_ALLOCATION_FAILURE;
 
     strncpy(new_node->addr, ip, sizeof(new_node->addr));
     new_node->addr[sizeof(new_node->addr) - 1] = '\0';
     new_node->next = *head;
     *head = new_node;
 
-    return INTERNAL_SUCCESS;
+    return AP_INTERNAL_SUCCESS;
 }
 
-parse_return_e parse_address_list(const char *input, addr_node_t **head_p)
+argparse_return_e ap_address_parse_list(const char *input, argparse_addr_node_t **head_p)
 {
-    addr_node_t *head = *head_p;
+    argparse_addr_node_t *head = *head_p;
     char buffer[256];
     char fqdn_buffer[16]; // Buffer for resolved IPs from FQDNs, IPv4 max length is 15 + null terminator
 
@@ -155,31 +155,31 @@ parse_return_e parse_address_list(const char *input, addr_node_t **head_p)
     token = strtok_r(buffer, ",", &saveptr);
     while (token)
     {
-        if (address_is_valid(token) == BOOL_TRUE)
+        if (ap_address_is_valid(token) == AP_BOOL_TRUE)
         {
-            if (address_list_prepend(&head, token) != INTERNAL_SUCCESS)
+            if (ap_address_prepare_list(&head, token) != AP_INTERNAL_SUCCESS)
             {
-                address_list_free(&head);
-                return PARSE_INTERNAL_ERROR;
+                ap_address_free_list(&head);
+                return ARGPARSE_INTERNAL_ERROR;
             }
         }
-        else if (fqdn_resolve(token, fqdn_buffer) == INTERNAL_SUCCESS)
+        else if (ap_address_resolve_fqdn(token, fqdn_buffer) == AP_INTERNAL_SUCCESS)
         {
             LOGD("Resolved FQDN '%s' to IP '%s'\n", token, fqdn_buffer);
-            if (address_list_prepend(&head, fqdn_buffer) != INTERNAL_SUCCESS)
+            if (ap_address_prepare_list(&head, fqdn_buffer) != AP_INTERNAL_SUCCESS)
             {
-                address_list_free(&head);
-                return PARSE_INTERNAL_ERROR;
+                ap_address_free_list(&head);
+                return ARGPARSE_INTERNAL_ERROR;
             }
         }
         else
         {
-            address_list_free(&head);
-            return PARSE_BAD_VALUE;
+            ap_address_free_list(&head);
+            return ARGPARSE_BAD_VALUE;
         }
         token = strtok_r(NULL, ",", &saveptr);
     }
 
     *head_p = head;
-    return PARSE_OK;
+    return ARGPARSE_OK;
 }

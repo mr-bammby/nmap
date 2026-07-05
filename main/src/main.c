@@ -3,63 +3,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "argument_parser.h"
-#include "nmap_types.h"
-#include "exec.h"
-#include "port_utils.h"
+#include "scan_defines.h"
+#include "argument_parser_port.h"
+#include "argument_parser_types.h"
 #include "result_printer.h"
+#include "exec.h"
 
-static const char *const valid_tokens[6] =
-    {
-        "SYN",
-        "ACK",
-        "NULL",
-        "FIN",
-        "XMAS",
-        "UDP"
-    };
 
-const char *parse_error_to_string(parse_return_e error)
+const char *parse_error_to_string(argparse_return_e error)
 {
     switch (error)
     {
-    case PARSE_OK:
+    case ARGPARSE_OK:
         return "OK";
-    case PARSE_UNKNOWN_FLAG:
+    case ARGPARSE_UNKNOWN_FLAG:
         return "Unknown flag";
-    case PARSE_MISSING_VALUE:
+    case ARGPARSE_MISSING_VALUE:
         return "Missing value";
-    case PARSE_BAD_VALUE:
+    case ARGPARSE_BAD_VALUE:
         return "Bad value";
-    case PARSE_HELP_REQUEST:
+    case ARGPARSE_HELP_REQUEST:
         return "Help requested";
-    case PARSE_DOUBLE_VALUE:
+    case ARGPARSE_DOUBLE_VALUE:
         return "Duplicate value";
-    case PARSE_FILE_ERROR:
+    case ARGPARSE_FILE_ERROR:
         return "File error";
-    case PARSE_INTERNAL_ERROR:
+    case ARGPARSE_INTERNAL_ERROR:
         return "Internal error";
     default:
         return "Unknown error";
     }
 }
 
-static void print_params(const params_t *params)
+static void print_params(const argparse_params_t *params)
 {
-    port_set_iterator_t port_it;
-    init_port_iterator(&port_it, &params->ports);
+    argparse_port_set_iterator_t port_it;
+    argparse_port_iterator_init(&port_it, &params->ports);
     LOGD("Parsed Parameters:\n");
     LOGD("\tScans:\n");
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < SCAN_NUMBER_OF_SCAN_TYPES; i++)
     {
         if (params->scans & (1 << i))
         {
-            LOGD("\t\t%s\n", valid_tokens[i]);
+            LOGD("\t\t%s\n", scan_valid_tokens[i]);
       }
     }
     LOGD("\tPorts:\n");
     unsigned int port;
     int count = 0;
-    while (port_iterator_next(&port_it, &port) == 0)
+    while (argparse_port_iterator_next(&port_it, &port) == 0)
     {
         //LOGD("\t\t%u \n", port);
         if (count % 10 == 0)
@@ -73,7 +65,7 @@ static void print_params(const params_t *params)
     LOGD("\t\t%u\n", params->thread_num);
 
     LOGD("\tAddresses:\n");
-    addr_node_t *current = params->address;
+    argparse_addr_node_t *current = params->address;
     if (current == NULL)
     {
         LOGE("(none)\n");
@@ -94,7 +86,7 @@ static void print_params(const params_t *params)
     LOGD_WF("\n");
 }
 
-static void main_argumnts(int argc, const char *argv[], parse_return_e ret, const params_t *params)
+static void main_argumnts(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)
 {
     LOGD("NMAP Argument Parser - Test\n");
     LOGD("===========================\n");
@@ -124,18 +116,18 @@ static void main_argumnts(int argc, const char *argv[], parse_return_e ret, cons
 
 int main(int argc, const char *argv[])
 {
-    params_t params = {0};
+    argparse_params_t params = {0};
 
-    parse_return_e parse_result = argument_parse(argc, argv, &params);
+    argparse_return_e parse_result = argparse_parse_arguments(argc, argv, &params);
     int exec_result;
 
     #if DEBUG_MAIN
     main_argumnts(argc, argv, parse_result, &params);
     #endif /* DEBUG_MAIN */
 
-    if (parse_result != PARSE_OK)
+    if (parse_result != ARGPARSE_OK)
     {
-        if (parse_result == PARSE_HELP_REQUEST)
+        if (parse_result == ARGPARSE_HELP_REQUEST)
         {
             display_help();
             return EXIT_SUCCESS;
@@ -150,7 +142,7 @@ int main(int argc, const char *argv[])
             LOGW("Multi-threading is not supported in current implementation.\n");
             return EXIT_FAILURE;
         }
-        for (addr_node_t *current = params.address; current != NULL; current = current->next)
+        for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
         {
             LOGD("Scanning %s...\n", current->addr);
             exec_result = single_thread_exec(current->addr, params.ports, params.scans);
@@ -161,7 +153,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    free_arguments(&params);
+    argparse_free_arguments(&params);
 
-    return (parse_result == PARSE_OK || parse_result == PARSE_HELP_REQUEST) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return (parse_result == ARGPARSE_OK || parse_result == ARGPARSE_HELP_REQUEST) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

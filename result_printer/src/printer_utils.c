@@ -9,16 +9,15 @@
 #include "response_states.h"
 #include "printer_utils.h"
 #include "parser_utils.h"
+#include "scan_defines.h"
 
 
 #define MAX_PRINT_TOKE_LEN 20u
 
 
-const char *tags[] = {"SYN", "NULL", "FIN", "XMAS", "ACK", "UDP"};
-
 void print_address_helper(const char *prefix, const address_list_t address)
 {
-    const addr_node_t *current = address;
+    const argparse_addr_node_t *current = address;
     uint32_t count = 0u;
     int prefix_len;
 
@@ -76,7 +75,7 @@ static uint8_t collect_active_tokens(const scan_result_t *res, char tokens[6][32
     {
         if (states[i] != PORT_STATE_NOT_SCANNED)
         {
-            snprintf(tokens[cnt], MAX_PRINT_TOKE_LEN, "%s(%s)", tags[i], get_state_label(states[i]));
+            snprintf(tokens[cnt], MAX_PRINT_TOKE_LEN, "%s(%s)", scan_valid_tokens[i], get_state_label(states[i]));
             cnt++;
         }
     }

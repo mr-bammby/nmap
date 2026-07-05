@@ -2,14 +2,14 @@
 #include "debug.h"
 #include <stdio.h>
 #include <stdint.h>
+#include "port_defines.h"
+#include "scan_defines.h"
 #include "parser_utils.h"
 #include "printer_utils.h"
 #include "port_map.h"
 
 
-
-
-void print_scan_header(const params_t *params)
+void print_scan_header(const argparse_params_t *params)
 {
     if ((params != NULL) && (params->address != NULL))
     {

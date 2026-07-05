@@ -2,8 +2,8 @@
 #include "debug.h"
 #include <string.h>
 #include "argument_parser.h"
-#include "nmap_types.h"
-#include "port_utils.h"
+#include "argument_parser_types.h"
+#include "argument_parser_port.h"
 
 
 #define DEFAULT_PORTS_STR "1-1024"
@@ -11,17 +11,17 @@
 #define DEFAULT_SCANS 0x3f
 
 
-parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
+argparse_return_e argparse_parse_arguments(int arg, const char **argv, argparse_params_t *parameters)
 {
     int i = 1;
 
     if (parameters == NULL)
     {
-        return PARSE_INTERNAL_ERROR;
+        return ARGPARSE_INTERNAL_ERROR;
     }
 
     memset(parameters, 0, sizeof(*parameters));
-    init_port_set(&parameters->ports);
+    argparse_port_init_set(&parameters->ports);
 
     while (i < arg)
     {
@@ -38,18 +38,18 @@ parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
                     {
                         if (parameters->address != NULL)
                         {
-                            address_list_free(&parameters->address);
+                            ap_address_free_list(&parameters->address);
                         }
-                        return PARSE_MISSING_VALUE;
+                        return ARGPARSE_MISSING_VALUE;
                     }
                     value = argv[i + 1];
                 }
-                parse_return_e res = FLAG_TABLE[j].handler(parameters, value);
-                if (res != PARSE_OK)
+                argparse_return_e res = FLAG_TABLE[j].handler(parameters, value);
+                if (res != ARGPARSE_OK)
                 {
                     if (parameters->address != NULL)
                     {
-                        address_list_free(&parameters->address);
+                        ap_address_free_list(&parameters->address);
                     }
                     return res;
                 }
@@ -61,16 +61,16 @@ parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
         {
             if (parameters->address != NULL)
             {
-                address_list_free(&parameters->address);
+                ap_address_free_list(&parameters->address);
             }
-            return PARSE_UNKNOWN_FLAG;
+            return ARGPARSE_UNKNOWN_FLAG;
         }
         i++;
     }
 
     if (parameters->address == NULL)
     {
-        return PARSE_MISSING_VALUE; /* at least one address is required */
+        return ARGPARSE_MISSING_VALUE; /* at least one address is required */
     }
     if (parameters->thread_num == 0)
     {
@@ -82,24 +82,24 @@ parse_return_e argument_parse(int arg, const char **argv, params_t *parameters)
     }
     if (parameters->ports.count == 0)
     {
-        parse_return_e res = argument_handler_port(parameters, DEFAULT_PORTS_STR);
-        if (res != PARSE_OK)
+        argparse_return_e res = ap_handler_port(parameters, DEFAULT_PORTS_STR);
+        if (res != ARGPARSE_OK)
         {
             return res;
         }
     }
 
-    return PARSE_OK;
+    return ARGPARSE_OK;
 }
 
-void free_arguments(params_t *parameters)
+void argparse_free_arguments(argparse_params_t *parameters)
 {
     if (parameters == NULL)
         return;
 
     if (parameters->address != NULL)
     {
-        address_list_free(&parameters->address);
+        ap_address_free_list(&parameters->address);
     }
 
     /* clear other fields */

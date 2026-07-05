@@ -1,17 +1,17 @@
 #define MODULE_DEBUG DEBUG_PORT_UTILS
 #include "debug.h"
-#include "nmap_types.h"
+#include "argument_parser_types.h"
 #include <stdio.h>
 
 
 // --- Set Functions ---
 
-void init_port_set(port_set_t *set)
+void argparse_port_init_set(argparse_port_set_t *set)
 {
     set->count = 0;
 }
 
-short add_port(port_set_t *set, unsigned int value)
+short argparse_port_add(argparse_port_set_t *set, unsigned int value)
 {
     for (int i = 0; i < set->count; i++)
     {
@@ -19,7 +19,7 @@ short add_port(port_set_t *set, unsigned int value)
             return 0; // Ignore duplicate
     }
 
-    if (set->count >= NUMBER_OF_PORTS)
+    if (set->count >= PORT_NUMBER_OF_PORTS)
     {
         LOGE("Error: Set overflow.\n");
         return -1;
@@ -51,14 +51,14 @@ short add_port(port_set_t *set, unsigned int value)
 // --- Iterator Functions ---
 
 // Initializes the iterator and links it to a set
-void init_port_iterator(port_set_iterator_t *it, const port_set_t *set)
+void argparse_port_iterator_init(argparse_port_set_iterator_t *it, const argparse_port_set_t *set)
 {
     it->set = set;
     it->index = 0;
 }
 
 // Manual control over the iterator position
-void set_port_iterator_index(port_set_iterator_t *it, int index)
+void argparse_port_iterator_set_index(argparse_port_set_iterator_t *it, int index)
 {
     if (index >= 0 && index < it->set->count)
     {
@@ -71,7 +71,7 @@ void set_port_iterator_index(port_set_iterator_t *it, int index)
 }
 
 // Fetches the current value and moves the pointer forward
-short port_iterator_next(port_set_iterator_t *it, unsigned int *out_value)
+short argparse_port_iterator_next(argparse_port_set_iterator_t *it, unsigned int *out_value)
 {
     if (it->index < it->set->count)
     {

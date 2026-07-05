@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include "response_states.h"
 #include "scan_context.h"
-#include "nmap_types.h"
+#include "scan_defines.h"
 
 
 #define TCP_WINDOW_SIZE 65535

@@ -1,8 +1,8 @@
 #define MODULE_DEBUG DEBUG_ARGUMENT_HANDLER_PORTS
 #include "debug.h"
 #include "argument_parser.h"
-#include "nmap_types.h"
-#include "port_utils.h"
+#include "argument_parser_port.h"
+#include "argument_parser_types.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -16,11 +16,11 @@ typedef enum
 } state_t;
 
 /* set the bit corresponding to `idx` in the supplied port bitmap */
-static inline short port_bitmap_set(port_set_t *set, uint16_t idx)
+static inline short port_bitmap_set(argparse_port_set_t *set, uint16_t idx)
 {
     if (set != NULL)
     {
-        return add_port(set, idx);
+        return argparse_port_add(set, idx);
     }
     return 0;
 }
@@ -28,7 +28,7 @@ static inline short port_bitmap_set(port_set_t *set, uint16_t idx)
 /* parse a comma-separated list of port numbers and ranges into a
    bitmap; returns PARSE_OK on success, PARSE_BAD_VALUE on invalid input,
    or PARSE_INTERNAL_ERROR on internal failures such as overflow */
-static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
+static argparse_return_e parse_port_range_set(const char *input, argparse_port_set_t *set)
 {
     state_t st = START;
     uint16_t num = 0;
@@ -39,7 +39,7 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
 
     const char *p = input;
 
-    init_port_set(set);
+    argparse_port_init_set(set);
 
     while (1)
     {
@@ -61,11 +61,11 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
             }
             else if (c == '\0')
             {
-                return PARSE_OK;
+                return ARGPARSE_OK;
             }
             else
             {
-                return PARSE_BAD_VALUE; /* error */
+                return ARGPARSE_BAD_VALUE; /* error */
             }
             break;
 
@@ -73,7 +73,7 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
         case NUMBER:
             if (idx > (start_idx + 6))
             {
-                return PARSE_BAD_VALUE;
+                return ARGPARSE_BAD_VALUE;
             }
             if (isdigit(c))
             {
@@ -86,19 +86,19 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
             }
             else if (c == ',' || c == '\0')
             {
-                if (num < 1 || num > NUMBER_OF_PORTS)
-                    return PARSE_BAD_VALUE;
+                if (num < 1 || num > PORT_NUMBER_OF_PORTS)
+                    return ARGPARSE_BAD_VALUE;
                 if (port_bitmap_set(set, num) != 0)
-                    return PARSE_INTERNAL_ERROR;
+                    return ARGPARSE_INTERNAL_ERROR;
 
                 st = START;
 
                 if (c == '\0')
-                    return PARSE_OK;
+                    return ARGPARSE_OK;
             }
             else
             {
-                return PARSE_BAD_VALUE; /* invalid char */
+                return ARGPARSE_BAD_VALUE; /* invalid char */
             }
             break;
 
@@ -112,7 +112,7 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
             }
             else
             {
-                return PARSE_BAD_VALUE;
+                return ARGPARSE_BAD_VALUE;
             }
             break;
 
@@ -120,7 +120,7 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
         case SECOND_NUMBER:
             if (idx > (start_idx + 6))
             {
-                return PARSE_BAD_VALUE;
+                return ARGPARSE_BAD_VALUE;
             }
             if (isdigit(c))
             {
@@ -130,45 +130,45 @@ static parse_return_e parse_port_range_set(const char *input, port_set_t *set)
             {
                 end = num;
 
-                if (start < 1 || end > NUMBER_OF_PORTS || start > end)
+                if (start < 1 || end > PORT_NUMBER_OF_PORTS || start > end)
                 {
-                    return PARSE_BAD_VALUE;
+                    return ARGPARSE_BAD_VALUE;
                 }
 
                 for (int v = start; v <= end; v++)
                 {
                     if (port_bitmap_set(set, v) != 0)
-                        return PARSE_INTERNAL_ERROR;
+                        return ARGPARSE_INTERNAL_ERROR;
                 }
 
                 st = START;
 
                 if (c == '\0')
                 {
-                    return PARSE_OK;
+                    return ARGPARSE_OK;
                 }
             }
             else
             {
-                return PARSE_BAD_VALUE;
+                return ARGPARSE_BAD_VALUE;
             }
             break;
         }
         if (c == '\0')
         {
-            return PARSE_OK;
+            return ARGPARSE_OK;
         }
         idx++;
         p++;
     }
-    return PARSE_OK;
+    return ARGPARSE_OK;
 }
 
-parse_return_e argument_handler_port(params_t *param, const char *value)
+argparse_return_e ap_handler_port(argparse_params_t *param, const char *value)
 {
     if (param->ports.count != 0)
     {
-        return PARSE_DOUBLE_VALUE;
+        return ARGPARSE_DOUBLE_VALUE;
     }
 
     return parse_port_range_set(value, &(param->ports));

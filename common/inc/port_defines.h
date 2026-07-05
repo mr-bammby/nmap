@@ -1,0 +1,6 @@
+#ifndef PORT_DEFINES_H
+#define PORT_DEFINES_H
+
+#define PORT_NUMBER_OF_PORTS 1024
+
+#endif /* PORT_DEFINES_H */

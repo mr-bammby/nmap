@@ -7,7 +7,7 @@
 #include <protocol_utils.h>
 #include "response_states.h"
 #include "scan_context.h"
-#include "nmap_types.h"
+#include "scan_defines.h"
 
 
 int16_t icmp_header_init(uint8_t *buffer, uint8_t buffer_len, const icmp_header_t *header)

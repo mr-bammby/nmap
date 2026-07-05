@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "nmap_types.h"
+#include "scan_defines.h"
 #include "ip.h"
 #include "tcp.h"
 #include "protocol_utils.h"

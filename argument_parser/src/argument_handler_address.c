@@ -6,11 +6,11 @@
 #include <stdio.h>
 
 
-parse_return_e argument_handler_address(params_t *param, const char *value)
+argparse_return_e ap_handler_address(argparse_params_t *param, const char *value)
 {
     if (param->address != NULL)
     {
-        return PARSE_DOUBLE_VALUE;
+        return ARGPARSE_DOUBLE_VALUE;
     }
-    return parse_address_list(value, &(param->address));
+    return ap_address_parse_list(value, &(param->address));
 }

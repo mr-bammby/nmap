@@ -4,7 +4,8 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 
-#include "nmap_types.h"
+#include "scan_defines.h"
+#include "port_defines.h"
 #include "scan_context.h"
 #include "ip.h"
 #include "tcp.h"

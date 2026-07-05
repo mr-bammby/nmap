@@ -1,30 +1,20 @@
 #ifndef ARGUMENT_HANDLERS_H
 #define ARGUMENT_HANDLERS_H
 
-#include "nmap_types.h"
+#include "argument_parser_types.h"
 
-typedef enum
-{
-    PARSE_OK = 0,
-    PARSE_UNKNOWN_FLAG = 1,
-    PARSE_MISSING_VALUE = 2,
-    PARSE_BAD_VALUE = 3,
-    PARSE_HELP_REQUEST = 4,
-    PARSE_DOUBLE_VALUE = 5,
-    PARSE_FILE_ERROR = 6,
-    PARSE_INTERNAL_ERROR = 7
-} parse_return_e;
+
 
 /* Forward declaration of params_t to avoid circular includes */
-typedef struct params params_t;
+typedef struct argparse_params argparse_params_t;
 
-parse_return_e argument_handler_help(params_t *param, const char *value);
-parse_return_e argument_handler_port(params_t *param, const char *value);
-parse_return_e argument_handler_address(params_t *param, const char *value);
-parse_return_e argument_handler_file(params_t *param, const char *value);
-parse_return_e argument_handler_scan(params_t *param, const char *value);
-parse_return_e argument_handler_speedup(params_t *param, const char *value);
+argparse_return_e ap_handler_help(argparse_params_t *param, const char *value);
+argparse_return_e ap_handler_port(argparse_params_t *param, const char *value);
+argparse_return_e ap_handler_address(argparse_params_t *param, const char *value);
+argparse_return_e ap_handler_file(argparse_params_t *param, const char *value);
+argparse_return_e ap_handler_scan(argparse_params_t *param, const char *value);
+argparse_return_e ap_handler_speedup(argparse_params_t *param, const char *value);
 
-void address_list_free(addr_node_t **head);
+void ap_address_free_list(argparse_addr_node_t **head);
 
 #endif /* ARGUMENT_HANDLERS_H */

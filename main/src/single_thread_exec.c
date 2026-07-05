@@ -9,9 +9,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "nmap_types.h"
+#include "port_defines.h"
+#include "scan_defines.h"
 #include "scan_context.h"
-#include "port_utils.h"
+#include "argument_parser.h"
+#include "argument_parser_port.h"
 #include "port_map.h"
 #include "packet_handler.h"
 #include "scan_parser.h"
@@ -22,19 +24,11 @@
 #include "receiver.h"
 
 
-#define NUMBER_OF_SCAN_TYPES 6
+#define NUMBER_OF_SCAN_TYPES SCAN_NUMBER_OF_SCAN_TYPES
 #define RESPONSE_WAIT_ATTEMPTS 500
 #define RESPONSE_POLL_SLEEP_US 1000
 
-static const char *const known_scan_types[6] =
-    {
-        "SYN",
-        "NULL",
-        "ACK",
-        "FIN",
-        "XMAS",
-        "UDP"
-    };
+
 
 static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t scan_flag)
 {
@@ -53,7 +47,7 @@ static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t sc
     return NULL;
 }
 
-int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t scans)
+int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bitmap_t scans)
 {
     pcap_t *pcap_handle = NULL;
     int sock = -1;
@@ -62,10 +56,10 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     scan_result_t results[RESULTS_CAPACITY];
     nmap_timer_t timer;
     float elapsed_time;
-    port_set_iterator_t port_it;
+    argparse_port_set_iterator_t port_it;
     unsigned int port_i;
 
-    init_port_iterator(&port_it, &ports);
+    argparse_port_iterator_init(&port_it, &ports);
 
     // Initialize results array
     initialize_results(results);
@@ -86,7 +80,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
     }
     
     start_timer(&timer);
-    while (port_iterator_next(&port_it, &port_i) == 0)
+    while (argparse_port_iterator_next(&port_it, &port_i) == 0)
     {
         for (int scan_i = 0; scan_i < NUMBER_OF_SCAN_TYPES; scan_i++)
         {
@@ -94,7 +88,7 @@ int single_thread_exec(const char *target_ip, port_set_t ports, scan_bitmap_t sc
             {
                 uint8_t scan_flag = (uint8_t)(1u << scan_i);
                 response_type_t *response_slot;
-                LOGD("Scanning port %d with scan type %s...\n", port_i, known_scan_types[scan_i]);
+                LOGD("Scanning port %d with scan type %s...\n", port_i, scan_valid_tokens[scan_i]);
                 send_packet(sock, target_ip, port_i, local_ip, scan_flag, 0);
                 response_slot = response_slot_for_scan(&results[port_i - 1], scan_flag);
                 if (response_slot == NULL)

@@ -2,7 +2,7 @@
 #include "debug.h"
 #include "argument_parser.h"
 
-parse_return_e argument_handler_help(params_t *param __attribute__((unused)), const char *value __attribute__((unused)))
+argparse_return_e ap_handler_help(argparse_params_t *param __attribute__((unused)), const char *value __attribute__((unused)))
 {
-    return PARSE_HELP_REQUEST;
+    return ARGPARSE_HELP_REQUEST;
 }
