@@ -8,6 +8,8 @@
 #include "argument_parser_types.h"
 #include "result_printer.h"
 #include "exec.h"
+#include "scan_context.h"
+#include "timer_utils.h"
 
 
 const char *parse_error_to_string(argparse_return_e error)
@@ -142,14 +144,38 @@ int main(int argc, const char *argv[])
             LOGW("Multi-threading is not supported in current implementation.\n");
             return EXIT_FAILURE;
         }
+        int address_count = 0;
+        for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+        {
+            address_count++;
+        }
+        nmap_timer_t timer;
+        float elapsed_time;
+        scan_result_t *results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
+        if (!results)
+        {
+            LOGE("Failed to allocate memory for scan results.\n");
+            argparse_free_arguments(&params);
+            return EXIT_FAILURE;
+        }
+        start_timer(&timer);
+        uint32_t cnt = 0;
         for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
         {
             LOGD("Scanning %s...\n", current->addr);
-            exec_result = single_thread_exec(current->addr, params.ports, params.scans);
+            exec_result = single_thread_exec(current->addr, params.ports, params.scans, &(results[cnt]));
             if (exec_result != 0)
             {
                 LOGE("Error scanning %s\n", current->addr);
             }
+            cnt++;
+        }
+        stop_timer(&timer);
+        elapsed_time = read_time_s(&timer);
+        resprint_print_scan_stats(elapsed_time);
+        for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+        {
+            resprint_parse_scan_results(results, PORT_START - 1, PORT_END, current->addr, elapsed_time);
         }
     }
 

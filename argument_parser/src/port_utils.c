@@ -80,3 +80,9 @@ short argparse_port_iterator_next(argparse_port_set_iterator_t *it, unsigned int
     }
     return -1; // Failure
 }
+
+int argparse_port_set_get_size(const argparse_port_set_t *set)
+{
+    return set->count;
+}
+

@@ -32,6 +32,11 @@ void resprint_print_scan_header(const argparse_params_t *params)
     }
 }
 
+void resprint_print_scan_stats(double scan_time_s)
+{
+    printf("Scan took %.5f secs\n", scan_time_s);
+}
+
 void resprint_parse_scan_results(const scan_result_t *results, int start, int end, const char *target_ip, double scan_time_s)
 {
     int i;
@@ -40,7 +45,6 @@ void resprint_parse_scan_results(const scan_result_t *results, int start, int en
 
     if (results != NULL)
     {
-        printf("Scan took %.5f secs\n", scan_time_s);
         printf("IP address: %s\n", target_ip);
         for (i = start; i < end; i++)
         {
@@ -87,5 +91,6 @@ void resprint_parse_scan_results(const scan_result_t *results, int start, int en
                 }
             }
         }
+        printf("\n");
     }
 }
