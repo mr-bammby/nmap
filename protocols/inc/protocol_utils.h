@@ -12,8 +12,8 @@
  * @param start_val Initial checksum value (usually 0)
  * @return Calculated 16-bit checksum value
  */
-uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val);
-uint16_t checksum_final(const void *data, uint32_t len, uint32_t start_val);
+uint32_t protocol_utils_checksum_accumulate(const void *data, uint32_t len, uint32_t start_val);
+uint16_t protocol_utils_checksum_final(const void *data, uint32_t len, uint32_t start_val);
 
 /**
  * Print byte data in hexadecimal format
@@ -21,9 +21,9 @@ uint16_t checksum_final(const void *data, uint32_t len, uint32_t start_val);
  * @param addr Pointer to data buffer
  * @param len Number of bytes to print
  */
-void print_bytes(const void *addr, uint32_t len);
+void protocol_utils_print_bytes(const void *addr, uint32_t len);
 
-void initialize_results(scan_result_t *results);
+void protocol_utils_initialize_results(scan_result_t *results);
 
 
 #endif // PROTOCOL_UTILS_H

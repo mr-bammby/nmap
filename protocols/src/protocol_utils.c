@@ -13,7 +13,7 @@
 // AS THE PACKETS ARE NOT USED FOR CRITICAL COMMUNICATIONS, AND THE FOCUS IS ON SCANNING 
 // AND RESPONSE ANALYSIS.
 
-uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
+uint32_t protocol_utils_checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
 {
     const uint16_t *words = (const uint16_t *)data;
     const uint8_t *bytes = (const uint8_t *)data;
@@ -36,7 +36,7 @@ uint32_t checksum_accumulate(const void *data, uint32_t len, uint32_t start_val)
     return sum;
 }
 
-uint16_t checksum_final(const void *data, uint32_t len, uint32_t start_val)
+uint16_t protocol_utils_checksum_final(const void *data, uint32_t len, uint32_t start_val)
 {
     const uint16_t *words = (const uint16_t *)data;
     const uint8_t *bytes = (const uint8_t *)data;
@@ -77,7 +77,7 @@ void print_bytes(const void *addr, uint32_t len)
 }
 
 // --- Initialize Results Array ---
-void initialize_results(scan_result_t *results)
+void protocol_utils_initialize_results(scan_result_t *results)
 {
     for (int i = 0; i < (PORT_END - PORT_START + 1); i++)
     {

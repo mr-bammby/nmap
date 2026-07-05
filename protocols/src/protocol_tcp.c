@@ -1,8 +1,8 @@
 #define MODULE_DEBUG DEBUG_TCP
 #include "debug.h"
-#include "tcp.h"
+#include "protocol_tcp.h"
 #include "protocol_utils.h"
-#include "ip.h"
+#include "protocol_ip.h"
 #include <string.h>
 #include <netinet/in.h>
 #include "response_states.h"
@@ -10,10 +10,10 @@
 #include "scan_defines.h"
 
 
-#define TCP_WINDOW_SIZE 65535
-#define TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
-#define TCP_DEFAULT_ACK_NUM 0
-#define TCP_DEFAULT_URGENT_PTR 0
+#define PROTOCOL_TCP_WINDOW_SIZE 65535
+#define PROTOCOL_TCP_DATA_OFFSET 5  // 5 * 4 = 20 bytes (minimum header)
+#define PROTOCOL_TCP_DEFAULT_ACK_NUM 0
+#define PROTOCOL_TCP_DEFAULT_URGENT_PTR 0
 
 typedef struct {
     uint32_t src_ip;
@@ -23,7 +23,7 @@ typedef struct {
     uint16_t tcp_length;
 } tcp_pseudo_header_t;
 
-int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length_bytes, const ip_header_t *ip_header)
+int16_t protocol_tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length_bytes, const protocol_ip_header_t *ip_header)
 {
     tcp_pseudo_header_t pseudo_header;
     pseudo_header.src_ip = ip_header->src;
@@ -32,22 +32,22 @@ int16_t tcp_checksum(const uint8_t *tcp_segment, uint16_t tcp_length_bytes, cons
     pseudo_header.protocol = ip_header->protocol;
     pseudo_header.tcp_length = htons(tcp_length_bytes);
 
-    uint32_t sum_accum = checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
-    uint16_t sum_final = checksum_final(tcp_segment, tcp_length_bytes, sum_accum);
+    uint32_t sum_accum = protocol_utils_checksum_accumulate(&pseudo_header, sizeof(pseudo_header), 0);
+    uint16_t sum_final = protocol_utils_checksum_final(tcp_segment, tcp_length_bytes, sum_accum);
 
     return sum_final;
 }
 
-int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_t *tcp_header, const ip_header_t *ip_header, const uint32_t *payload, uint16_t payload_len)
+int16_t protocol_tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const protocol_tcp_header_t *tcp_header, const protocol_ip_header_t *ip_header, const uint32_t *payload, uint16_t payload_len)
 {
     if (buffer == NULL || tcp_header == NULL || ip_header == NULL)
     {
-        return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
+        return PROTOCOL_TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
     if (buffer_len < (20 + payload_len * 4)) // Minimum TCP header + payload
     {
-        return TCP_ERR_BUFFER_TOO_SMALL; // Buffer too small for minimum TCP header
+        return PROTOCOL_TCP_ERR_BUFFER_TOO_SMALL; // Buffer too small for minimum TCP header
     }
 
     uint16_t *src_port_ptr = (uint16_t *)buffer;
@@ -63,11 +63,11 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     *dst_port_ptr = htons(tcp_header->dst_port);
     *seq_num_ptr = htonl(tcp_header->seq_num);
     /* For ACK probes, reuse seq_num as ACK cookie so RST replies can be correlated. */
-    *ack_num_ptr = htonl((tcp_header->flags & TCP_FLAG_ACK) ? tcp_header->seq_num : TCP_DEFAULT_ACK_NUM);
-    *data_offset_flags_ptr = htons(((TCP_DATA_OFFSET + payload_len) << 12) | (tcp_header->flags & 0x00FF));
-    *window_ptr = htons(TCP_WINDOW_SIZE);
+    *ack_num_ptr = htonl((tcp_header->flags & PROTOCOL_TCP_FLAG_ACK) ? tcp_header->seq_num : PROTOCOL_TCP_DEFAULT_ACK_NUM);
+    *data_offset_flags_ptr = htons(((PROTOCOL_TCP_DATA_OFFSET + payload_len) << 12) | (tcp_header->flags & 0x00FF));
+    *window_ptr = htons(PROTOCOL_TCP_WINDOW_SIZE);
     *checksum_ptr = 0;  // Temporarily zero for checksum calculation
-    *urgent_ptr = htons((tcp_header->flags & TCP_FLAG_URG) ? TCP_DEFAULT_URGENT_PTR : 0);
+    *urgent_ptr = htons((tcp_header->flags & PROTOCOL_TCP_FLAG_URG) ? PROTOCOL_TCP_DEFAULT_URGENT_PTR : 0);
 
     if (payload && payload_len > 0)
     {
@@ -75,22 +75,22 @@ int16_t tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const tcp_header_
     }
 
     uint16_t tcp_length_bytes = 20 + payload_len * 4;
-    uint16_t calc_checksum = tcp_checksum(buffer, tcp_length_bytes, ip_header);
+    uint16_t calc_checksum = protocol_tcp_checksum(buffer, tcp_length_bytes, ip_header);
     *checksum_ptr = calc_checksum;
 
     return tcp_length_bytes; // Total length of TCP header + payload
 }
 
-int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t *tcp_header, const ip_header_t *ip_header)
+int16_t protocol_tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, protocol_tcp_header_t *tcp_header, const protocol_ip_header_t *ip_header)
 {
     if (buffer == NULL || tcp_header == NULL || ip_header == NULL)
     {
-        return TCP_ERR_INVALID_ARGUMENT; // Invalid argument
+        return PROTOCOL_TCP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < TCP_HEADER_SIZE)
+    if (buffer_len < PROTOCOL_TCP_HEADER_SIZE)
     {
-        return TCP_ERR_BUFFER_TOO_SMALL;
+        return PROTOCOL_TCP_ERR_BUFFER_TOO_SMALL;
     }
 
     uint16_t *src_port_ptr = (uint16_t *)buffer;
@@ -115,7 +115,7 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     uint16_t calc_checksum;
     *checksum_ptr_temp = 0;
     
-    calc_checksum = tcp_checksum(buffer_copy, buffer_len, ip_header);
+    calc_checksum = protocol_utils_checksum_final(buffer_copy, buffer_len, 0);
     
     if (calc_checksum != 0 && calc_checksum != original_checksum)
     {
@@ -130,13 +130,13 @@ int16_t tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, tcp_header_t
     return 20;
 }
 
-int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const ip_header_t *ip_hdr, scan_result_t *results)
+int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results)
 {
-    tcp_header_t tcp_hdr;
+    protocol_tcp_header_t tcp_hdr;
     uint32_t cookie = 0;
     uint32_t ack_num;
 
-    int16_t tcp_len = tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr, ip_hdr);
+    int16_t tcp_len = protocol_tcp_header_parse(transport, (uint8_t)ip_payload_len, &tcp_hdr, ip_hdr);
     if (tcp_len < 0)
     {
         LOGE("Failed to parse TCP header: %d\n", tcp_len);
@@ -150,11 +150,11 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     }
 
     ack_num = ntohl(*(const uint32_t *)(transport + 8));
-    if (tcp_hdr.flags & TCP_FLAG_RST)
+    if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)
     {
         cookie = tcp_hdr.seq_num;        // ACK scan RST reply
     }
-    else if (tcp_hdr.flags & TCP_FLAG_ACK)
+    else if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_ACK)
     {
         cookie = ack_num - 1;   // SYN / NULL / FIN / XMAS replies
     }
@@ -179,12 +179,12 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
     switch (scan_flag)
     {
     case SCAN_FLG_SYN:
-        if ((tcp_hdr.flags & TCP_FLAG_SYN) && (tcp_hdr.flags & TCP_FLAG_ACK))
+        if ((tcp_hdr.flags & PROTOCOL_TCP_FLAG_SYN) && (tcp_hdr.flags & PROTOCOL_TCP_FLAG_ACK))
         {
             results[port - 1].response_syn = RESPONSE_SYN_ACK;
             return 1;
         }
-        else if (tcp_hdr.flags & TCP_FLAG_RST)
+        else if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)
         {
             results[port - 1].response_syn = RESPONSE_RST;
             return 1;
@@ -196,7 +196,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
         }
         break;
     case SCAN_FLG_ACK:
-        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+        if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
             results[port - 1].response_ack = RESPONSE_RST;
             return 1;
         }
@@ -216,7 +216,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
         }
         break;
     case SCAN_FLG_FIN:
-        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+        if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
             results[port - 1].response_fin = RESPONSE_RST;
             return 1;
         }
@@ -226,7 +226,7 @@ int8_t tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, c
         }
         break;
     case SCAN_FLG_XMAS:
-        if (tcp_hdr.flags & TCP_FLAG_RST)        {
+        if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
             results[port - 1].response_xmas = RESPONSE_RST;
             return 1;
         }

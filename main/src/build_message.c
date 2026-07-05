@@ -1,8 +1,8 @@
 #define MODULE_DEBUG DEBUG_BUILD_MESSAGE
 #include "debug.h"
-#include "ip.h"
-#include "tcp.h"
-#include "udp.h"
+#include "protocol_ip.h"
+#include "protocol_tcp.h"
+#include "protocol_udp.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -39,24 +39,24 @@ static void print_message(const uint8_t *buffer, uint16_t length)
     LOGD_WF("\n");
 }
 
-int16_t tcp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_t *ip_header, const tcp_header_t *tcp_header, const uint32_t *payload, uint16_t payload_len)
+int16_t tcp_packet_create(uint8_t *buffer, uint32_t buffer_len, const protocol_ip_header_t *ip_header, const protocol_tcp_header_t *tcp_header, const uint32_t *payload, uint16_t payload_len)
 {
     // Initialize IP header
-    int16_t ip_header_len = ip_header_init(buffer, buffer_len, ip_header);
+    int16_t ip_header_len = protocol_ip_header_init(buffer, buffer_len, ip_header);
     if (ip_header_len < 0)
     {
         return ip_header_len; // Error initializing IP header
     }
 
     // Initialize TCP header
-    int16_t tcp_header_len = tcp_header_create(buffer + ip_header_len, buffer_len - ip_header_len, tcp_header, ip_header, payload, payload_len);
+    int16_t tcp_header_len = protocol_tcp_header_create(buffer + ip_header_len, buffer_len - ip_header_len, tcp_header, ip_header, payload, payload_len);
     if (tcp_header_len < 0)
     {
         return tcp_header_len; // Error initializing TCP header
     }
 
     // Encapsulate the packet (finalize IP header) 
-    int16_t full_header_len = ip_header_encapsulate(buffer, tcp_header_len);
+    int16_t full_header_len = protocol_ip_header_encapsulate(buffer, tcp_header_len);
 
     #if DEBUG_BUILD_MESSAGE
     LOGD("tcp_packet_create\n");
@@ -66,17 +66,17 @@ int16_t tcp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     return full_header_len;
 }
 
-int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_t *ip_header, const udp_header_t *udp_header, const uint32_t *payload, uint16_t payload_len)
+int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const protocol_ip_header_t *ip_header, const protocol_udp_header_t *udp_header, const uint32_t *payload, uint16_t payload_len)
 {
     // Initialize IP header
-    int16_t ip_header_len = ip_header_init(buffer, buffer_len, ip_header);
+    int16_t ip_header_len = protocol_ip_header_init(buffer, buffer_len, ip_header);
     if (ip_header_len < 0)
     {
         return ip_header_len; // Error initializing IP header
     }
 
     // Initialize UDP header
-    int16_t udp_header_len = udp_header_create(buffer + ip_header_len, buffer_len - ip_header_len, udp_header);
+    int16_t udp_header_len = protocol_udp_header_create(buffer + ip_header_len, buffer_len - ip_header_len, udp_header);
     if (udp_header_len < 0)
     {
         return udp_header_len; // Error initializing UDP header
@@ -85,7 +85,7 @@ int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     // Copy payload after UDP header
     if (buffer_len < (uint32_t)(ip_header_len + udp_header_len + payload_len))
     {
-        return UDP_ERR_BUFFER_TOO_SMALL; // Buffer too small for payload
+        return PROTOCOL_UDP_ERR_BUFFER_TOO_SMALL; // Buffer too small for payload
     }
 
     if (payload != NULL && payload_len > 0)
@@ -94,7 +94,7 @@ int16_t udp_packet_create(uint8_t *buffer, uint32_t buffer_len, const ip_header_
     }
 
     // Encapsulate the packet (finalize IP header)
-    int16_t full_packet_len = ip_header_encapsulate(buffer, udp_header_len + payload_len);
+    int16_t full_packet_len = protocol_ip_header_encapsulate(buffer, udp_header_len + payload_len);
     
     #if DEBUG_BUILD_MESSAGE
     LOGD("udp_packet_create\n");

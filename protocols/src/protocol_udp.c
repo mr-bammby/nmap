@@ -1,7 +1,7 @@
 #define MODULE_DEBUG DEBUG_UDP
 #include "debug.h"
-#include "udp.h"
-#include "ip.h"
+#include "protocol_udp.h"
+#include "protocol_ip.h"
 #include "protocol_utils.h"
 #include <string.h>
 #include <netinet/in.h>
@@ -9,16 +9,16 @@
 #include "scan_context.h"
 
 
-int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_t *header)
+int16_t protocol_udp_header_create(uint8_t *buffer, uint8_t buffer_len, const protocol_udp_header_t *header)
 {
     if (buffer == NULL || header == NULL)
     {
-        return UDP_ERR_INVALID_ARGUMENT; // Invalid argument
+        return PROTOCOL_UDP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < UDP_HEADER_SIZE)
+    if (buffer_len < PROTOCOL_UDP_HEADER_SIZE)
     {
-        return UDP_ERR_BUFFER_TOO_SMALL; // Buffer too small for UDP header
+        return PROTOCOL_UDP_ERR_BUFFER_TOO_SMALL; // Buffer too small for UDP header
     }
 
     uint16_t *src_port_ptr = (uint16_t *)buffer;
@@ -32,18 +32,18 @@ int16_t udp_header_create(uint8_t *buffer, uint8_t buffer_len, const udp_header_
     /* IPv4 UDP checksum of 0 means "not used" and avoids invalid pseudo-header checksum here. */
     *checksum_ptr = 0;
 
-    return UDP_HEADER_SIZE;
+    return PROTOCOL_UDP_HEADER_SIZE;
 }
 
-int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t *header)
+int16_t protocol_udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, protocol_udp_header_t *header)
 {
     if (buffer == NULL || header == NULL)
     {
-        return UDP_ERR_INVALID_ARGUMENT; // Invalid argument
+        return PROTOCOL_UDP_ERR_INVALID_ARGUMENT; // Invalid argument
     }
 
-    if (buffer_len < UDP_HEADER_SIZE) {
-        return UDP_ERR_BUFFER_TOO_SMALL;
+    if (buffer_len < PROTOCOL_UDP_HEADER_SIZE) {
+        return PROTOCOL_UDP_ERR_BUFFER_TOO_SMALL;
     }
 
     const uint16_t *src_port_ptr = (const uint16_t *)buffer;
@@ -58,27 +58,27 @@ int16_t udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, udp_header_t
 
     // Temporarily zero checksum for verification calculation
     // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
-    uint8_t buffer_copy[UDP_HEADER_SIZE];
-    memcpy(buffer_copy, buffer, UDP_HEADER_SIZE);
+    uint8_t buffer_copy[PROTOCOL_UDP_HEADER_SIZE];
+    memcpy(buffer_copy, buffer, PROTOCOL_UDP_HEADER_SIZE);
 
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 6);
     uint16_t original_checksum = ntohs(*checksum_ptr_temp);
     uint16_t calc_checksum;
 
     *checksum_ptr_temp = 0;  // Temporarily zero checksum for verification
-    calc_checksum = checksum_final(buffer_copy, UDP_HEADER_SIZE, 0);
+    calc_checksum = protocol_utils_checksum_final(buffer_copy, PROTOCOL_UDP_HEADER_SIZE, 0);
 
     if (original_checksum != 0 && calc_checksum != 0 && calc_checksum != original_checksum)
     {
-        return UDP_ERR_CHECKSUM; // Checksum mismatch
+        return PROTOCOL_UDP_ERR_CHECKSUM; // Checksum mismatch
     }
 
-    return UDP_HEADER_SIZE;
+    return PROTOCOL_UDP_HEADER_SIZE;
 }
 
-int8_t udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results)
+int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results)
 {
-    if (transport == NULL || ip_payload_len < UDP_HEADER_SIZE)
+    if (transport == NULL || ip_payload_len < PROTOCOL_UDP_HEADER_SIZE)
         return 0;
 
     // For UDP, a UDP reply from target port means OPEN.

@@ -7,10 +7,10 @@
 #include "scan_defines.h"
 #include "port_defines.h"
 #include "scan_context.h"
-#include "ip.h"
-#include "tcp.h"
-#include "icmp.h"
-#include "udp.h"
+#include "protocol_ip.h"
+#include "protocol_tcp.h"
+#include "protocol_icmp.h"
+#include "protocol_udp.h"
 
 
 
@@ -21,16 +21,16 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t
     //Captured packets start with L2 header (Ethernet/Linux cooked/etc), not IP directly.
     //The parser needs to skip those bytes before calling ip_header_parse().
     
-    if (packet == NULL || packet_len < link_header_len + IP_MIN_HEADER_LEN)
+    if (packet == NULL || packet_len < link_header_len + PROTOCOL_IP_MIN_HEADER_LEN)
         return 0;
 
     const uint8_t *ip_buf = (const uint8_t *)(packet + link_header_len);
-    ip_header_t ip_hdr;
+    protocol_ip_header_t ip_hdr;
     int16_t ip_hl;
     const uint8_t *transport;
     uint32_t ip_payload_len;
 
-    ip_hl = ip_header_parse(ip_buf, (uint8_t)(packet_len - link_header_len), &ip_hdr);
+    ip_hl = protocol_ip_header_parse(ip_buf, (uint8_t)(packet_len - link_header_len), &ip_hdr);
     if (ip_hl < 0)
         return 0;
 
@@ -46,14 +46,14 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t
     {
     case IPPROTO_TCP:
         LOGD("Received TCP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return tcp_response_process(transport, ip_payload_len, &ip_hdr, results);
+        return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results);
     case IPPROTO_ICMP:
         LOGD("Received ICMP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return icmp_response_process(transport, ip_payload_len, &ip_hdr, results);
+        return protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results);
     
     case IPPROTO_UDP:
         LOGD("Received UDP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return udp_response_process(transport, ip_payload_len, results);
+        return protocol_udp_response_process(transport, ip_payload_len, results);
     default:
         LOGD("No packet received from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
         return 0;

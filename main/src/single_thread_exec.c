@@ -62,7 +62,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
     argparse_port_iterator_init(&port_it, &ports);
 
     // Initialize results array
-    initialize_results(results);
+    protocol_utils_initialize_results(results);
 
     // Initialize sender socket
     if (sender_init(&sock) < 0)
@@ -101,7 +101,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
 
                 int max_attempts = RESPONSE_WAIT_ATTEMPTS;
                 if (scan_flag == SCAN_FLG_UDP)
-                    max_attempts = RESPONSE_WAIT_ATTEMPTS * UDP_TOTAL_PROBES;
+                    max_attempts = RESPONSE_WAIT_ATTEMPTS * PROTOCOL_UDP_TOTAL_PROBES;
 
                 for (int attempt = 0; attempt < max_attempts; attempt++)
                 {
