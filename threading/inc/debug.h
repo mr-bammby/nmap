@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <pthread.h>
+
+extern pthread_mutex_t print_mutex;
 
 /* ========================================================================= */
 /* Global debug switch                                                       */
@@ -74,18 +77,25 @@
 /* ========================================================================= */
 
 #define LOG_IMPL(stream, level, fmt, ...)                     \
-    fprintf((stream),                                         \
-            "[%s][%s:%d:%s] " fmt,                            \
-            (level),                                          \
-            __FILE__,                                         \
-            __LINE__,                                         \
-            __func__,                                         \
-            ##__VA_ARGS__)
+    do {                                                      \
+        pthread_mutex_lock(&print_mutex);                     \
+        fprintf((stream),                                     \
+                "[%s][%s:%d:%s] " fmt,                        \
+                (level),                                      \
+                __FILE__,                                     \
+                __LINE__,                                     \
+                __func__,                                     \
+                ##__VA_ARGS__);                               \
+        pthread_mutex_unlock(&print_mutex);                  \
+    } while (0)
 
-#define LOG_IMPL_WF(stream, fmt, ...)                         \
-    fprintf((stream),                                         \
-            fmt,                                              \
-            ##__VA_ARGS__)
+#define LOG_IMPL_WF(stream, fmt, ...)         \
+    do {                                      \
+        pthread_mutex_lock(&print_mutex);     \
+        fprintf((stream), fmt,                \
+                ##__VA_ARGS__);               \
+        pthread_mutex_unlock(&print_mutex);    \
+    } while (0)
 
 /* ========================================================================= */
 /* Per-module logger setup                                                   */
