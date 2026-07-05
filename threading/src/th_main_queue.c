@@ -8,6 +8,8 @@
 
 #define NUM_READERS 100
 
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 th_queue_t g_queue = {
     .data = NULL,
     .capacity = 100,
@@ -37,23 +39,35 @@ static void *th_sender_thread(void *arg)
         .scan_idx = 0
     };
     th_queue_access_t queue_access_send_info;
-    LOGD("Sender thread started\n");
     uint32_t thread_id = (uint32_t)(uintptr_t)arg;
+    LOGD("Sender thread %d started\n", thread_id);
     uint8_t ret;
     uint32_t assigned_ticket = 0;
     th_queue_init_access(&queue_access_send_info, &g_queue, TH_LOCK_PRIORITY_LOW);
+    sleep(2);
     while (1)
     {
+        
         LOGD("Thread %d trying lock\n", thread_id);
         
         uint8_t idx = assigned_ticket % 100;
-        ret = th_queue_read(&queue_access_send_info, &data, &cond);
-        // if (ret != 0)
-        // {
-        //     LOGW("Thread %d: Error in getting from arr.\n", thread_id);
-        // }
+        
+        LOGD("READ head=%zu tail=%zu empty=%d full=%d\n",queue_access_send_info.queue->head, queue_access_send_info.queue->tail, queue_access_send_info.queue->is_empty, queue_access_send_info.queue->is_full);
+        
+        ret = th_queue_read(&queue_access_send_info, &data, NULL);
+        if (ret != 0)
+        {
+            if (ret = 1)
+                LOGW("Thread %d: Queue is empty\n", thread_id);
+            else
+                LOGW("Thread %d: Error while reading\n", thread_id);
+            sleep(1);
+            continue;
+        }
         assigned_ticket = queue_access_send_info.access.assigned_ticket_number;
-        LOGI("Thread %d with ticket number %d read %d from shared resource at index [%d]\n", thread_id, assigned_ticket, ret, idx);
+        
+        LOGI("Thread %d with ticket number %d read port %d and scan type %d from shared resource at index [%d]\n", thread_id, assigned_ticket, data.port_idx, data.scan_idx, data.addrress_idx);
+        
         usleep((rand() % 400 + 100) * 1000);
     }
     return NULL;
@@ -82,14 +96,33 @@ int main(void)
     {
         data.addrress_idx = idx;
         data.port_idx = idx + 1;
-        data.scan_idx = idx % 6;
+        data.scan_idx = idx + 2;
         
-        th_queue_write(&access_send_info, &data);
-        LOGI("Receiver wrote port %d and scan id %d to shared resource at index %d with ticket %d \n" , data.port_idx, data.scan_idx, data.addrress_idx, access_send_info.access.assigned_ticket_number);
+        LOGD("Before WRITE head=%zu tail=%zu empty=%d full=%d\n", access_send_info.queue->head, access_send_info.queue->tail, access_send_info.queue->is_empty, access_send_info.queue->is_full);
+        
+        int ret = 1;
+        while (ret != 0)
+        {
+            ret = th_queue_write(&access_send_info, &data);
+            if (ret == -2)
+            {
+                LOGD("Queue is full. Waiting!\n");
+                sleep(1);
+            }
+            usleep(500);
+        }
+        
+        
+        LOGD("After WRITE head=%zu tail=%zu empty=%d full=%d\n", access_send_info.queue->head, access_send_info.queue->tail, access_send_info.queue->is_empty, access_send_info.queue->is_full);
+        LOGD("WROTE addr=%llu port=%u scan=%u\n", data.addrress_idx, data.port_idx, data.scan_idx);
+        
+        
+        LOGI("Receiver wrote port %d and scan id %d to shared resource at index [%d] with ticket %d \n" , data.port_idx, data.scan_idx, data.addrress_idx, access_send_info.access.assigned_ticket_number);
+        
         idx++;
         if (idx == 100)
-            idx = 99;
-        sleep(1);
+            idx = 0;
+        usleep(100);
     }
 
     // TODO Termination condition for threads and clean up

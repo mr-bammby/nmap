@@ -9,7 +9,7 @@ int th_queue_init(th_queue_t *queue,  size_t capacity)
     if (queue == NULL || capacity == 0)
         return -1;
 
-    queue->data = malloc(sizeof(TH_QUEUE_DATA_TYPE) * capacity);
+    queue->data = calloc(capacity, sizeof(TH_QUEUE_DATA_TYPE));
     if (queue->data == NULL)
         return -1;
 
@@ -81,6 +81,7 @@ static int th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data)
 
 static int th_queue_accept(th_queue_t *queue)
 {
+    queue->is_full = 0;
     queue->head++;
     if (queue->head >= (queue->capacity))
     {
@@ -110,6 +111,7 @@ int th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE
             }
         }
         int ret = th_queue_accept(access->queue);
+        LOGD("AFTER ACCEPT head=%zu tail=%zu\n", access->queue->head, access->queue->tail);
         th_lock_release(&(access->access));
         return(ret);
     }
