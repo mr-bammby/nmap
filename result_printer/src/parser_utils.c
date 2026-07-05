@@ -5,7 +5,7 @@
 #include "port_map.h"
 
 
-port_state_t get_final_state(const scan_result_t *port_result)
+port_state_t rp_get_final_state(const scan_result_t *port_result)
 {
     if (port_result->response_syn == RESPONSE_SYN_ACK || \
         port_result->response_udp == RESPONSE_UDP_REPLY)
@@ -47,7 +47,7 @@ port_state_t get_final_state(const scan_result_t *port_result)
         return PORT_STATE_OPEN_FILTERED;
 }
 
-port_state_t get_syn_state(const scan_result_t *port_result)
+port_state_t rp_get_syn_state(const scan_result_t *port_result)
 {
     if (port_result->response_syn == RESPONSE_NOT_EXPECTED)
         return PORT_STATE_NOT_SCANNED;
@@ -62,7 +62,7 @@ port_state_t get_syn_state(const scan_result_t *port_result)
         return PORT_STATE_UNKNOWN;
 }
 
-port_state_t get_ack_state(const scan_result_t *port_result)
+port_state_t rp_get_ack_state(const scan_result_t *port_result)
 {
     if (port_result->response_ack == RESPONSE_NOT_EXPECTED)
         return PORT_STATE_NOT_SCANNED;
@@ -74,7 +74,7 @@ port_state_t get_ack_state(const scan_result_t *port_result)
         return PORT_STATE_UNKNOWN;
 }
 
-port_state_t get_null_state(const scan_result_t *port_result)
+port_state_t rp_get_null_state(const scan_result_t *port_result)
 {
     if (port_result->response_null == RESPONSE_NOT_EXPECTED)
         return PORT_STATE_NOT_SCANNED;
@@ -86,7 +86,7 @@ port_state_t get_null_state(const scan_result_t *port_result)
         return PORT_STATE_UNKNOWN;
 }
 
-port_state_t get_fin_state(const scan_result_t *port_result)
+port_state_t rp_get_fin_state(const scan_result_t *port_result)
 {
     if (port_result->response_fin == RESPONSE_NOT_EXPECTED)
         return PORT_STATE_NOT_SCANNED;
@@ -98,7 +98,7 @@ port_state_t get_fin_state(const scan_result_t *port_result)
         return PORT_STATE_UNKNOWN;
 }
 
-port_state_t get_xmas_state(const scan_result_t *port_result)
+port_state_t rp_get_xmas_state(const scan_result_t *port_result)
 {
     if (port_result->response_xmas == RESPONSE_NOT_EXPECTED)
         return PORT_STATE_NOT_SCANNED;
@@ -110,7 +110,7 @@ port_state_t get_xmas_state(const scan_result_t *port_result)
         return PORT_STATE_UNKNOWN;
 }
 
-port_state_t get_udp_state(const scan_result_t *port_result)
+port_state_t rp_get_udp_state(const scan_result_t *port_result)
 {
     if (port_result->response_udp == RESPONSE_NOT_EXPECTED)
         return PORT_STATE_NOT_SCANNED;

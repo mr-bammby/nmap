@@ -135,7 +135,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
     }
     stop_timer(&timer);
     elapsed_time = read_time_s(&timer);
-    parse_scan_results(results, PORT_START - 1, PORT_END, target_ip, elapsed_time);
+    resprint_parse_scan_results(results, PORT_START - 1, PORT_END, target_ip, elapsed_time);
     receiver_cleanup(pcap_handle);
     sender_cleanup(&sock);
     close(sock);

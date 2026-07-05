@@ -136,7 +136,7 @@ int main(int argc, const char *argv[])
     }
     else
     {
-        print_scan_header(&params);
+        resprint_print_scan_header(&params);
         if (params.thread_num > 1)
         {
             LOGW("Multi-threading is not supported in current implementation.\n");

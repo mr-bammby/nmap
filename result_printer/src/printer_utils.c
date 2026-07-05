@@ -15,7 +15,7 @@
 #define MAX_PRINT_TOKE_LEN 20u
 
 
-void print_address_helper(const char *prefix, const address_list_t address)
+void rp_print_address_helper(const char *prefix, const address_list_t address)
 {
     const argparse_addr_node_t *current = address;
     uint32_t count = 0u;
@@ -40,7 +40,7 @@ void print_address_helper(const char *prefix, const address_list_t address)
     }
 }
 
-const char *get_state_label(port_state_t port_result)
+const char *rp_get_state_label(port_state_t port_result)
 {
     switch (port_result)
     {
@@ -64,18 +64,18 @@ static uint8_t collect_active_tokens(const scan_result_t *res, char tokens[6][32
     port_state_t states[6];
     uint8_t cnt = 0u;
 
-    states[0] = get_syn_state(res);
-    states[1] = get_null_state(res);
-    states[2] = get_fin_state(res);
-    states[3] = get_xmas_state(res);
-    states[4] = get_ack_state(res);
-    states[5] = get_udp_state(res);
+    states[0] = rp_get_syn_state(res);
+    states[1] = rp_get_null_state(res);
+    states[2] = rp_get_fin_state(res);
+    states[3] = rp_get_xmas_state(res);
+    states[4] = rp_get_ack_state(res);
+    states[5] = rp_get_udp_state(res);
 
     for (uint8_t i = 0u; i < 6u; i++)
     {
         if (states[i] != PORT_STATE_NOT_SCANNED)
         {
-            snprintf(tokens[cnt], MAX_PRINT_TOKE_LEN, "%s(%s)", scan_valid_tokens[i], get_state_label(states[i]));
+            snprintf(tokens[cnt], MAX_PRINT_TOKE_LEN, "%s(%s)", scan_valid_tokens[i], rp_get_state_label(states[i]));
             cnt++;
         }
     }
@@ -106,7 +106,7 @@ static uint32_t pack_tokens_into_rows(const char tokens[6][32], uint32_t token_c
             {
                 size_t potential_len = strlen(rows[row_count]) + 1u + strlen(tokens[token_idx]);
                 
-                if (potential_len <= COL_WIDTH_RESULTS)
+                if (potential_len <= RP_COL_WIDTH_RESULTS)
                 {
                     strcat(rows[row_count], " ");
                     strcat(rows[row_count], tokens[token_idx]);
@@ -138,25 +138,25 @@ static void render_port_row_matrix(uint32_t port, const char *service_name,
 
         if (is_first_row && is_last_row)
         {
-            printf("%-*u %-*s %-*s %s\n", COL_WIDTH_PORT, port, COL_WIDTH_SERVICE, safe_service, COL_WIDTH_RESULTS, rows[r], final_str);
+            printf("%-*u %-*s %-*s %s\n", RP_COL_WIDTH_PORT, port, RP_COL_WIDTH_SERVICE, safe_service, RP_COL_WIDTH_RESULTS, rows[r], final_str);
         }
         else if (is_first_row)
         {
-            printf("%-*u %-*s %-*s\n", COL_WIDTH_PORT, port, COL_WIDTH_SERVICE, safe_service, COL_WIDTH_RESULTS, rows[r]);
+            printf("%-*u %-*s %-*s\n", RP_COL_WIDTH_PORT, port, RP_COL_WIDTH_SERVICE, safe_service, RP_COL_WIDTH_RESULTS, rows[r]);
         }
         else if (is_last_row)
         {
-            printf("%-*s %-*s %s\n", COL_WIDTH_PAD, "", COL_WIDTH_RESULTS, rows[r], final_str);
+            printf("%-*s %-*s %s\n", RP_COL_WIDTH_PAD, "", RP_COL_WIDTH_RESULTS, rows[r], final_str);
         }
         else
         {
-            printf("%-*s %-*s\n", COL_WIDTH_PAD, "", COL_WIDTH_RESULTS, rows[r]);
+            printf("%-*s %-*s\n", RP_COL_WIDTH_PAD, "", RP_COL_WIDTH_RESULTS, rows[r]);
         }                                       // Middle rows, just print the tokens
     }
 }
 
 
-void print_single_port_row(const scan_result_t *res, const char *service_name)
+void rp_print_single_port_row(const scan_result_t *res, const char *service_name)
 {
     if (res != NULL)
     {
@@ -168,7 +168,7 @@ void print_single_port_row(const scan_result_t *res, const char *service_name)
         
         uint32_t row_count = pack_tokens_into_rows(tokens, active_count, rows);
         
-        const char *final_str = get_state_label(get_final_state(res));
+        const char *final_str = rp_get_state_label(rp_get_final_state(res));
         render_port_row_matrix((uint32_t)res->port, service_name, rows, row_count, final_str);
     }
 }

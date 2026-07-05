@@ -9,12 +9,12 @@
 #include "port_map.h"
 
 
-void print_scan_header(const argparse_params_t *params)
+void resprint_print_scan_header(const argparse_params_t *params)
 {
     if ((params != NULL) && (params->address != NULL))
     {
         printf("Scan Configurations\n");
-        print_address_helper("Target Ip-Address : ", params->address);
+        rp_print_address_helper("Target Ip-Address : ", params->address);
         printf("No of Ports to scan : %u\n", params->ports.count);
         
         printf("Scans to be performed : ");
@@ -32,7 +32,7 @@ void print_scan_header(const argparse_params_t *params)
     }
 }
 
-void parse_scan_results(const scan_result_t *results, int start, int end, const char *target_ip, double scan_time_s)
+void resprint_parse_scan_results(const scan_result_t *results, int start, int end, const char *target_ip, double scan_time_s)
 {
     int i;
     uint8_t has_open = 0;
@@ -44,7 +44,7 @@ void parse_scan_results(const scan_result_t *results, int start, int end, const 
         printf("IP address: %s\n", target_ip);
         for (i = start; i < end; i++)
         {
-            port_state_t current_state = get_final_state(&results[i]);
+            port_state_t current_state = rp_get_final_state(&results[i]);
             
             if (current_state == PORT_STATE_OPEN)
             {
@@ -59,14 +59,14 @@ void parse_scan_results(const scan_result_t *results, int start, int end, const 
         if (has_open)
         {
             printf("\nOpen ports:\n");
-            printf("%-*s %-*s %-*s %s\n", COL_WIDTH_PORT, "Port", COL_WIDTH_SERVICE, "Service Name (if applicable)", COL_WIDTH_RESULTS, "Results", "Conclusion");
+            printf("%-*s %-*s %-*s %s\n", RP_COL_WIDTH_PORT, "Port", RP_COL_WIDTH_SERVICE, "Service Name (if applicable)", RP_COL_WIDTH_RESULTS, "Results", "Conclusion");
             printf("------------------------------------------------------------------------------------------------------\n");
             
             for (i = start; i < end; i++)
             {
-                if (get_final_state(&results[i]) == PORT_STATE_OPEN)
+                if (rp_get_final_state(&results[i]) == PORT_STATE_OPEN)
                 {
-                    print_single_port_row(&results[i], GET_SERVICE_NAME(results[i].port));
+                    rp_print_single_port_row(&results[i], GET_SERVICE_NAME(results[i].port));
                 }
             }
         }
@@ -74,16 +74,16 @@ void parse_scan_results(const scan_result_t *results, int start, int end, const 
         if (has_closed)
         {
             printf("\nClosed/Filtered/Unfiltered ports:\n");
-            printf("%-*s %-*s %-*s %s\n", COL_WIDTH_PORT, "Port", COL_WIDTH_SERVICE, "Service Name (if applicable)", COL_WIDTH_RESULTS, "Results", "Conclusion");
+            printf("%-*s %-*s %-*s %s\n", RP_COL_WIDTH_PORT, "Port", RP_COL_WIDTH_SERVICE, "Service Name (if applicable)", RP_COL_WIDTH_RESULTS, "Results", "Conclusion");
             printf("------------------------------------------------------------------------------------------------------\n");
             
             for (i = start; i < end; i++)
             {
-                port_state_t st = get_final_state(&results[i]);
+                port_state_t st = rp_get_final_state(&results[i]);
                 
                 if ((st != PORT_STATE_OPEN) && (st != PORT_STATE_NOT_SCANNED))
                 {
-                    print_single_port_row(&results[i], GET_SERVICE_NAME(results[i].port));
+                    rp_print_single_port_row(&results[i], GET_SERVICE_NAME(results[i].port));
                 }
             }
         }
