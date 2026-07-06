@@ -6572,7 +6572,7 @@ static const char * SVC_NAMES[] = {
 
 const char *const *service_names = SVC_NAMES;
 
-static const port_map_entry_t PORT_MAP[MAX_PORT] = {
+static const port_map_entry_t PORT_MAP[PORT_MAX_PORT] = {
     [0 ... 65535] = { 0, 0 },
 
     [1] = { 1, 0 }, // tcpmux

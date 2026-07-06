@@ -18,7 +18,7 @@
 
 
 #define MIN_SRC_PORT 1024
-#define MAX_SRC_PORT MAX_PORT
+#define MAX_SRC_PORT PORT_MAX_PORT
 
 #define COOKIE_MAKE(scan_id, port) \
     ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0xF) << 16) | ((port) & 0xFFFF))
@@ -109,7 +109,7 @@ static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, s
     uint8_t scan_id = 0;
 
     memset(packet, 0, 128);
-    ip_header->id = htons(rand() % MAX_PORT);
+    ip_header->id = htons(rand() % PORT_MAX_PORT);
     ip_header->src = inet_addr(local_ip);
     ip_header->dst = inet_addr(target_ip);
     sin->sin_family = AF_INET;
