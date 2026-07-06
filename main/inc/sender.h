@@ -3,7 +3,6 @@
 
 #include "response_states.h"
 
-#define NUMBER_OF_SCAN_TYPES 6
 #define RESPONSE_WAIT_ATTEMPTS 500
 #define RESPONSE_POLL_SLEEP_US 1000
 
