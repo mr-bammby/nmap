@@ -139,18 +139,13 @@ int main(int argc, const char *argv[])
     else
     {
         resprint_print_scan_header(&params);
-        if (params.thread_num > 1)
-        {
-            LOGW("Multi-threading is not supported in current implementation.\n");
-            return EXIT_FAILURE;
-        }
+
         int address_count = 0;
         for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
         {
             address_count++;
         }
-        nmap_timer_t timer;
-        float elapsed_time;
+
         scan_result_t *results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
         if (!results)
         {
@@ -158,20 +153,34 @@ int main(int argc, const char *argv[])
             argparse_free_arguments(&params);
             return EXIT_FAILURE;
         }
+        
+        nmap_timer_t timer;
+        float elapsed_time;
         start_timer(&timer);
-        uint32_t cnt = 0;
-        for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+
+        if (params.thread_num > 1)
         {
-            LOGD("Scanning %s...\n", current->addr);
-            exec_result = single_thread_exec(current->addr, params.ports, params.scans, &(results[cnt]));
-            if (exec_result != 0)
-            {
-                LOGE("Error scanning %s\n", current->addr);
-            }
-            cnt++;
+            LOGW("Multi-threading is not supported in current implementation.\n");
+            return EXIT_FAILURE;
         }
+        else
+        {
+            uint32_t cnt = 0;
+            for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+            {
+                LOGD("Scanning %s...\n", current->addr);
+                exec_result = single_thread_exec(current->addr, params.ports, params.scans, &(results[cnt]));
+                if (exec_result != 0)
+                {
+                    LOGE("Error scanning %s\n", current->addr);
+                }
+                cnt++;
+            }
+        }
+
         stop_timer(&timer);
         elapsed_time = read_time_s(&timer);
+        
         resprint_print_scan_stats(elapsed_time);
         for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
         {
