@@ -4,7 +4,7 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
 {
     last_queued_cmd_t last_queued_cmd;
 
-    if (multi_thread_init(params, &last_queued_cmd) != 0)
+    if (multi_thread_init(params, &last_queued_cmd, results, results_rows, results_cols) != 0)
     {
         return;
     }

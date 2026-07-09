@@ -22,7 +22,7 @@ typedef struct last_queued_cmd
 
 
 // HERE JUST FOR NOW SO WE HAVE STARTING POINT FOR MULTI-THREADING IMPLEMENTATION
-uint8_t multi_thread_init(const argparse_params_t *params, last_queued_cmd_t *last_queued_cmd);
+uint8_t multi_thread_init(const argparse_params_t *params, last_queued_cmd_t *last_queued_cmd, scan_result_t **results, uint32_t results_rows, uint32_t results_cols);
 uint8_t multi_thread_receiver_run(const argparse_params_t *params, const last_queued_cmd_t *last_queued_cmd, scan_result_t **results, uint32_t results_rows, uint32_t results_cols);
 
 #endif // MULTI_THREAD_SHARED_H

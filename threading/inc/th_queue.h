@@ -5,9 +5,10 @@
 
 typedef struct th_queue_iterator
 {
-    uint64_t addrress_idx;
-    uint16_t port_idx;
-    uint8_t scan_idx;
+    char address[16];
+    uint16_t port;
+    uint16_t udx_flag_arr_idx;
+    uint8_t scan;
 } th_cmd_t;
 
 typedef uint16_t ticket_scheduler_t;
