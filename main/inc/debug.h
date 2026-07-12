@@ -18,14 +18,15 @@
 /* ========================================================================= */
 
 /* main */
-#define DEBUG_BUILD_MESSAGE                 (DEBUG && 1)
+#define DEBUG_BUILD_MESSAGE                 (DEBUG && 0)
 #define DEBUG_MAIN                          (DEBUG && 1)
-#define DEBUG_PACKET_RECEIVE                (DEBUG && 1)
+#define DEBUG_PACKET_RECEIVE                (DEBUG && 0)
 #define DEBUG_PACKET_SEND                   (DEBUG && 0)
 #define DEBUG_RECEIVER                      (DEBUG && 0)
 #define DEBUG_SENDER                        (DEBUG && 0)
 #define DEBUG_SINGLE_THREAD_EXEC            (DEBUG && 0)
 #define DEBUG_TIMER_UTILS                   (DEBUG && 0)
+#define DEBUG_MULTI_THREAD_INIT             (DEBUG && 1)
 
 /* argument_parser */
 #define DEBUG_ADRESS_UTILS                  (DEBUG && 0)
