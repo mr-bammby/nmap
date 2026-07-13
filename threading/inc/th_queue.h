@@ -2,20 +2,18 @@
 #define TH_QUEUE_H
 
 #include "th_lock.h"
+#include "threading_config.h"
 
-typedef struct th_queue_iterator
-{
-    uint64_t addrress_idx;
-    uint16_t port_idx;
-    uint8_t scan_idx;
-} th_cmd_t;
+#ifndef TH_QUEUE_DATA_TYPE
+#error "TH_QUEUE_DATA_TYPE must be defined before including th_queue.h, define it to the type of data you want to store in the queue. It shall be define in thread_config.h or in the file."
+#endif
 
 typedef uint16_t ticket_scheduler_t;
 
 #define TH_HI_PRIO 1
 #define TH_LO_PRIO 0
 
-#define TH_QUEUE_DATA_TYPE th_cmd_t
+
 #define TH_QUEUE_ACCEPT_COND(func_ptr) int (*func_ptr)(const TH_QUEUE_DATA_TYPE *)
 
 typedef struct th_queue

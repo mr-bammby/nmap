@@ -161,7 +161,6 @@ int main(int argc, const char *argv[])
         if (params.thread_num > 1)
         {
             LOGW("Multi-threading is not supported in current implementation.\n");
-            multi_thread_exec(&params, &results, uint32_t results_rows, uint32_t results_cols)
             return EXIT_FAILURE;
         }
         else
