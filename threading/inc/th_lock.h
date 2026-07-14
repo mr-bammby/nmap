@@ -28,8 +28,16 @@ typedef struct
     th_lock_control_t *control;
 } th_lock_access_t;
 
-void th_lock_init_access(th_lock_priority_t priority, th_lock_control_t *resource, th_lock_access_t *access);
-void th_lock_take(th_lock_access_t *access);
-void th_lock_release(th_lock_access_t *access);
+typedef enum th_lock_status
+{
+    TH_LOCK_OK_GENERIC = 0,
+    TH_LOCK_ERR_GENERIC = -1,
+    TH_LOCK_ERR_LOCK = -2,
+    TH_LOCK_ERR_INVALID_PARAM = -3
+} th_lock_status_t;
+
+th_lock_status_t th_lock_init_access(th_lock_priority_t priority, th_lock_control_t *resource, th_lock_access_t *access);
+th_lock_status_t th_lock_take(th_lock_access_t *access);
+th_lock_status_t th_lock_release(th_lock_access_t *access);
 
 #endif // TH_LOCK_H

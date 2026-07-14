@@ -22,10 +22,6 @@ typedef enum th_queue_status
     TH_QUEUE_OK_CONDITION_REJECTED = 2
 } th_queue_status_t;
 
-#define TH_HI_PRIO 1
-#define TH_LO_PRIO 0
-
-
 #define TH_QUEUE_ACCEPT_COND(func_ptr) int (*func_ptr)(const TH_QUEUE_DATA_TYPE *)
 
 typedef struct th_queue
