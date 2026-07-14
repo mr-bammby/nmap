@@ -19,7 +19,11 @@ th_flagging_array_status_t th_flagging_array_init(th_flagging_array_t *arr, size
 th_flagging_array_status_t th_flagging_array_init_access(th_flagging_array_access_t *access, th_flagging_array_t *array, th_lock_priority_t priority)
 {
     access->array = array;
-    th_lock_init_access(priority, &(access->array->lock), &(access->access));
+    if (th_lock_init_access(priority, &(access->array->lock), &(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to initialize lock access for flagging array\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
     return TH_FLAGGING_ARRAY_OK_GENERIC;
 }
 
@@ -29,9 +33,17 @@ th_flagging_array_status_t th_flagging_array_get(th_flagging_array_access_t *acc
     {
         return TH_FLAGGING_ARRAY_ERR_INVALID_PARAM;
     }
-    th_lock_take(&(access->access));
+    if (th_lock_take(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to take lock for flagging array access\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
     *ret = access->array->array[idx];
-    th_lock_release(&(access->access));
+    if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to release lock for flagging array access\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
     return TH_FLAGGING_ARRAY_OK_GENERIC;
 }
 
@@ -42,16 +54,32 @@ th_flagging_array_status_t th_flagging_array_set(th_flagging_array_access_t *acc
     {
         return TH_FLAGGING_ARRAY_ERR_INVALID_PARAM;
     }
-    th_lock_take(&(access->access));
+    if (th_lock_take(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to take lock for flagging array access\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
     access->array->array[idx] = val;
-    th_lock_release(&(access->access));
+    if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to release lock for flagging array access\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
     return TH_FLAGGING_ARRAY_OK_GENERIC;
 }
 
 th_flagging_array_status_t th_flagging_array_reset(th_flagging_array_access_t *access)
 {
-    th_lock_take(&(access->access));
-    memset(access->array->array, 0, access->array->size);
-    th_lock_release(&(access->access));
+    if (th_lock_take(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to take lock for flagging array access\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
+    (void)memset(access->array->array, 0, access->array->size);
+    if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to release lock for flagging array access\n");
+        return TH_FLAGGING_ARRAY_ERR_LOCK;
+    }
     return TH_FLAGGING_ARRAY_OK_GENERIC;
 }
