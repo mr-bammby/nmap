@@ -30,7 +30,7 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
     multi_thread_command_queue_state_t queue_state;
     //First entry in queue is special command for sleep 
 
-    if (multi_thread_init(params, &queue_state, *results, results_rows, results_cols) != 0)
+    if (multi_thread_init(params, &queue_state, results, results_rows, results_cols) != 0)
     {
         return;
     }
