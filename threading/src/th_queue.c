@@ -4,14 +4,14 @@
 #include "th_queue.h"
 #include <stdlib.h>
 
-int th_queue_init(th_queue_t *queue,  size_t capacity)
+th_queue_status_t th_queue_init(th_queue_t *queue,  size_t capacity)
 {
     if (queue == NULL || capacity == 0)
-        return -1;
+        return TH_QUEUE_ERR_INVALID_PARAM;
 
     queue->data = calloc(capacity, sizeof(TH_QUEUE_DATA_TYPE));
     if (queue->data == NULL)
-        return -1;
+        return TH_QUEUE_ERR_GENERIC;
 
     queue->capacity = capacity;
     queue->head = 0;
@@ -19,26 +19,38 @@ int th_queue_init(th_queue_t *queue,  size_t capacity)
     queue->is_empty = 1;
     queue->is_full = 0;
 
-    return 0;
+    return TH_QUEUE_OK_GENERIC;
 }
 
-uint8_t th_queue_init_access(th_queue_access_t *access, th_queue_t *queue, th_lock_priority_t priority)
+th_queue_status_t th_queue_init_access(th_queue_access_t *access, th_queue_t *queue, th_lock_priority_t priority)
 {
     access->queue = queue;
-    th_lock_init_access(priority, &(access->queue->lock), &(access->access));
-    return 0;
+    if (th_lock_init_access(priority, &(access->queue->lock), &(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to initialize lock access for queue\n");
+        return TH_QUEUE_ERR_LOCK;
+    }
+    return TH_QUEUE_OK_GENERIC;
 }
 
-int th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_TYPE *data)
+th_queue_status_t th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_TYPE *data)
 {
     if (access->queue == NULL)
-        return -1;
+        return TH_QUEUE_ERR_INVALID_PARAM;
     
-    th_lock_take(&(access->access));
+    if (th_lock_take(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to take lock for queue access\n");
+        return TH_QUEUE_ERR_LOCK;
+    }
     if (access->queue->is_full)
     {
-        th_lock_release(&(access->access));
-        return -2;
+        if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+        {
+            LOGE("Failed to release lock for queue access\n");
+            return TH_QUEUE_ERR_LOCK;
+        }
+        return TH_QUEUE_ERR_FULL;
     }
     memcpy(&(access->queue->data[access->queue->tail]), data, sizeof(TH_QUEUE_DATA_TYPE));
     access->queue->is_empty = 0;
@@ -52,8 +64,12 @@ int th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_TYPE *data)
         if(access->queue->tail == (access->queue->head - 1))
         {
             access->queue->is_full = 1;
-            th_lock_release(&(access->access));
-            return 1;
+            if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+            {
+                LOGE("Failed to release lock for queue access\n");
+                return TH_QUEUE_ERR_LOCK;
+            }
+            return TH_QUEUE_OK_EMPTY_AFTER_ACCEPT;
         }
     }
     else if (access->queue->tail == (access->queue->capacity - 1))
@@ -61,25 +77,33 @@ int th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_TYPE *data)
         if (access->queue->head == 0)
         {
             access->queue->is_full = 1;
-            th_lock_release(&(access->access));
-            return 1;
+            if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+            {
+                LOGE("Failed to release lock for queue access\n");
+                return TH_QUEUE_ERR_LOCK;
+            }
+            return TH_QUEUE_OK_EMPTY_AFTER_ACCEPT;
         }
     }
-    th_lock_release(&(access->access));
-    return 0;
+    if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to release lock for queue access\n");
+        return TH_QUEUE_ERR_LOCK;
+    }
+    return TH_QUEUE_OK_GENERIC;
 }
 
-static int th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data)
+static th_queue_status_t th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data)
 {
     if (access->queue->is_empty)
     {
-        return -2;
+        return TH_QUEUE_ERR_EMPTY;
     }
-    memcpy(data, &(access->queue->data[access->queue->head]), sizeof(TH_QUEUE_DATA_TYPE));
-    return 0;
+    (void)memcpy(data, &(access->queue->data[access->queue->head]), sizeof(TH_QUEUE_DATA_TYPE));
+    return TH_QUEUE_OK_GENERIC;
 }
 
-static int th_queue_accept(th_queue_t *queue)
+static th_queue_status_t th_queue_accept(th_queue_t *queue)
 {
     queue->is_full = 0;
     queue->head++;
@@ -90,32 +114,48 @@ static int th_queue_accept(th_queue_t *queue)
     if (queue->head == queue->tail)
     {
         queue->is_empty = 1;
-        return(1);
+        return TH_QUEUE_OK_EMPTY_AFTER_ACCEPT;
     }
-    return 0;
+    return TH_QUEUE_OK_GENERIC;
 }
 
-int th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond))
+th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond))
 {
     if (access->queue == NULL)
-        return -1; 
-    th_lock_take(&(access->access));
-    if (th_queue_chk(access, data) == 0)
+        return TH_QUEUE_ERR_INVALID_PARAM; 
+    if (th_lock_take(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to take lock for queue access\n");
+        return TH_QUEUE_ERR_LOCK;
+    }
+    if (th_queue_chk(access, data) == TH_QUEUE_OK_GENERIC)
     {
         if (cond != NULL)
         {
-            if (cond(data) == 0)
+            if (cond(data) == TH_QUEUE_OK_GENERIC)
             {
-                th_lock_release(&(access->access));
-                return 2;
+                if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+                {
+                    LOGE("Failed to release lock for queue access\n");
+                    return TH_QUEUE_ERR_LOCK;
+                }
+                return TH_QUEUE_OK_CONDITION_REJECTED;
             }
         }
         int ret = th_queue_accept(access->queue);
         LOGD("AFTER ACCEPT head=%zu tail=%zu\n", access->queue->head, access->queue->tail);
-        th_lock_release(&(access->access));
+        if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+        {
+            LOGE("Failed to release lock for queue access\n");
+            return TH_QUEUE_ERR_LOCK;
+        }
         return(ret);
     }
-    th_lock_release(&(access->access));
-    return(-1);
+    if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+    {
+        LOGE("Failed to release lock for queue access\n");
+        return TH_QUEUE_ERR_LOCK;
+    }
+    return(TH_QUEUE_ERR_EMPTY);
 
 }
