@@ -76,7 +76,7 @@ int16_t protocol_tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const pr
 
     uint16_t tcp_length_bytes = 20 + payload_len * 4;
     uint16_t calc_checksum = protocol_tcp_checksum(buffer, tcp_length_bytes, ip_header);
-    *checksum_ptr = calc_checksum;
+    *checksum_ptr = htons(calc_checksum);
 
     return tcp_length_bytes; // Total length of TCP header + payload
 }
@@ -102,24 +102,24 @@ int16_t protocol_tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pro
     uint16_t *checksum_ptr = (uint16_t *)(buffer + 16);
     uint16_t *urgent_ptr = (uint16_t *)(buffer + 18);
 
-    // Verify checksum before parsing
+    /*
+     * Verify the TCP checksum using the RFC-style pseudo-header plus the
+     * TCP segment, matching the generation logic used for outbound probes.
+     * The checksum field is zeroed temporarily during the calculation and
+     * then compared against the field carried in the packet.
+     */
     uint16_t stored_checksum = ntohs(*checksum_ptr);
-    
-    // Temporarily zero checksum for verification calculation
-    // @ToDo: Optimize by avoiding full copy. Use negated checksum as an starting value of checksum calculation.
     uint8_t buffer_copy[256] = {0};
-    
+
     memcpy(buffer_copy, buffer, buffer_len);
     uint16_t *checksum_ptr_temp = (uint16_t *)(buffer_copy + 16);
-    uint16_t original_checksum = ntohs(*checksum_ptr_temp);
-    uint16_t calc_checksum;
     *checksum_ptr_temp = 0;
-    
-    calc_checksum = protocol_utils_checksum_final(buffer_copy, buffer_len, 0);
-    
-    if (calc_checksum != 0 && calc_checksum != original_checksum)
+
+    uint16_t calc_checksum = protocol_tcp_checksum(buffer_copy, (uint16_t)buffer_len, ip_header);
+    if (calc_checksum != stored_checksum)
     {
-        LOGE("TCP checksum verification failed: calculated 0x%04x, expected 0x%04x\n", calc_checksum, stored_checksum);
+        LOGD("TCP checksum mismatch: calculated 0x%04x, expected 0x%04x\n",
+             calc_checksum, stored_checksum);
     }
 
     tcp_header->src_port = ntohs(*src_port_ptr);

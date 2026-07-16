@@ -39,8 +39,8 @@ int16_t protocol_ip_header_init(uint8_t *buffer, uint8_t buffer_len, const proto
     *ip_hdr_time_to_live = PROTOCOL_IP_DEFAULT_TTL; // Default TTL
     *ip_hdr_protocol = header->protocol; // Protocol from IP header
     *ip_hdr_checksum = 0; // Temporarily zero, will be covered by encapsulate function
-    *ip_hdr_src = (header->src); // Source IP
-    *ip_hdr_dst = (header->dst); // Destination IP
+    *ip_hdr_src = header->src; // Source IP
+    *ip_hdr_dst = header->dst; // Destination IP
 
     return PROTOCOL_IP_MIN_HEADER_LEN;
 }
