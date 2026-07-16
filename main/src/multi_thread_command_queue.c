@@ -28,7 +28,7 @@ static void init_payload(multi_thread_command_t *command, const char *address, u
         command->address[sizeof(command->address) - 1] = '\0';
     }
     command->port = port;
-    command->udx_flag_arr_idx = flag_arr_idx;
+    command->udp_flag_arr_idx = flag_arr_idx;
     command->scan = scan_flag;
 }
 

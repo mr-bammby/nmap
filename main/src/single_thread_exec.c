@@ -65,7 +65,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
         return -1;
     }
     // Initialize receiver
-    if (receiver_init(target_ip, scans, &port_it, &pcap_handle, &local_ip, &link_header_len) < 0)
+    if (receiver_init(target_ip, &port_it, &pcap_handle, &local_ip, &link_header_len) < 0)
     {
         LOGE("Failed to initialize receiver\n");
 

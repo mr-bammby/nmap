@@ -41,7 +41,7 @@ static void print_queue_contents(void)
     for (size_t i = 0; i < multi_thread_shared_cmd_queue.capacity; i++)
     {
         const multi_thread_command_t *command = &multi_thread_shared_cmd_queue.data[i];
-        if (command->address[0] == '\0' && command->port == 0 && command->udx_flag_arr_idx == 0 && command->scan == 0)
+        if (command->address[0] == '\0' && command->port == 0 && command->udp_flag_arr_idx == 0 && command->scan == 0)
         {
             break;
         }
@@ -50,7 +50,7 @@ static void print_queue_contents(void)
                i,
                command->address,
                command->port,
-               command->udx_flag_arr_idx,
+               command->udp_flag_arr_idx,
                command->scan);
         count++;
     }
@@ -117,6 +117,7 @@ int main(int argc, const char *argv[])
     if (init_result == 0)
     {
         print_queue_contents();
+        multi_thread_exec(&params, results, (uint32_t)address_count, results_cols);
     }
 
     for (size_t i = 0; i < address_count; i++)

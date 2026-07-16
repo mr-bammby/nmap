@@ -27,6 +27,7 @@
 #define DEBUG_SINGLE_THREAD_EXEC            (DEBUG && 0)
 #define DEBUG_TIMER_UTILS                   (DEBUG && 0)
 #define DEBUG_MULTI_THREAD_INIT             (DEBUG && 1)
+#define DEBUF_MULTI_THREAD_EXEC             (DEBUG && 1)
 
 /* argument_parser */
 #define DEBUG_ADRESS_UTILS                  (DEBUG && 0)
