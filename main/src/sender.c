@@ -39,7 +39,7 @@ int sender_cleanup(int *sock)
     return 0;
 }
 
-void sender_run(int sock, const char *target_ip, int port_i, const char *local_ip, uint8_t scan_flag, uint8_t attempt, response_type_t *response_slot)
+void sender_run(int sock, const char *target_ip, int port_i, const char *local_ip, uint8_t scan_flag, uint16_t attempt, response_type_t *response_slot)
 {
     if (scan_flag == SCAN_FLG_UDP &&
         attempt > 0 &&

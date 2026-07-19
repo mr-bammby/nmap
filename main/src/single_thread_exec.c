@@ -90,7 +90,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                 *response_slot = RESPONSE_NO_RESPONSE;
                 int max_attempts = RESPONSE_WAIT_ATTEMPTS;
                 if (scan_flag == SCAN_FLG_UDP)
-                    max_attempts = RESPONSE_WAIT_ATTEMPTS * PROTOCOL_UDP_TOTAL_PROBES;
+                    max_attempts = RESPONSE_WAIT_ATTEMPTS * PROTOCOL_UDP_TOTAL_PROBES + 1;
 
                 for (int attempt = 0; attempt < max_attempts; attempt++)
                 {

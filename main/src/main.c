@@ -105,11 +105,11 @@ static void main_argumnts(int argc, const char *argv[], argparse_return_e ret, c
     LOGD("Parse Result: %s\n", parse_error_to_string(ret));
 
     #if DEBUG_MAIN
-    if (ret == PARSE_OK)
+    if (ret == ARGPARSE_OK)
     {
         print_params(params);
     }
-    else if (ret == PARSE_HELP_REQUEST)
+    else if (ret == ARGPARSE_HELP_REQUEST)
     {
         LOGD("Help was requested.\n");
     }
@@ -134,6 +134,7 @@ int main(int argc, const char *argv[])
             display_help();
             return EXIT_SUCCESS;
         }
+        display_help();
         return EXIT_FAILURE;
     }
     else
