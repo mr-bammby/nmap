@@ -10,6 +10,7 @@
 #include "exec.h"
 #include "scan_context.h"
 #include "timer_utils.h"
+#include "multi_thread_shared.h"
 
 
 const char *parse_error_to_string(argparse_return_e error)
@@ -105,11 +106,11 @@ static void main_argumnts(int argc, const char *argv[], argparse_return_e ret, c
     LOGD("Parse Result: %s\n", parse_error_to_string(ret));
 
     #if DEBUG_MAIN
-    if (ret == PARSE_OK)
+    if (ret == ARGPARSE_OK)
     {
         print_params(params);
     }
-    else if (ret == PARSE_HELP_REQUEST)
+    else if (ret == ARGPARSE_HELP_REQUEST)
     {
         LOGD("Help was requested.\n");
     }
@@ -134,6 +135,7 @@ int main(int argc, const char *argv[])
             display_help();
             return EXIT_SUCCESS;
         }
+        display_help();
         return EXIT_FAILURE;
     }
     else
@@ -160,8 +162,7 @@ int main(int argc, const char *argv[])
 
         if (params.thread_num > 1)
         {
-            LOGW("Multi-threading is not supported in current implementation.\n");
-            return EXIT_FAILURE;
+            multi_thread_exec(&params, &results, address_count, RESULTS_CAPACITY);
         }
         else
         {

@@ -8,6 +8,6 @@
 
 int sender_init(int *sock_out);
 int sender_cleanup(int *sock);
-void sender_run(int sock, const char *target_ip, int port_i, const char *local_ip, uint8_t scan_flag, uint8_t attempt, response_type_t *response_slot);
+void sender_run(int sock, const char *target_ip, int port_i, const char *local_ip, uint8_t scan_flag, uint16_t attempt, response_type_t *response_slot);
 
 #endif /* __SENDER_H__ */

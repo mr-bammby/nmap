@@ -81,8 +81,9 @@ int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_paylo
     if (transport == NULL || ip_payload_len < PROTOCOL_UDP_HEADER_SIZE)
         return 0;
 
-    // For UDP, a UDP reply from target port means OPEN.
-    uint16_t port = ntohs(*(const uint16_t *)(transport)); // Source port
+    // For UDP, a reply to the probe indicates the port is open.
+    // The destination port in the reply corresponds to the port we probed.
+    uint16_t port = ntohs(*(const uint16_t *)(transport)); // Destination port
     if (port < PORT_START || port > PORT_END)
         return 0;
 
