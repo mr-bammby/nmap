@@ -11,12 +11,14 @@
 int sender_init(int *sock_out)
 {
     int sock;
+    LOGD("Initializing sender socket\n");
     sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0)
     {
         LOGE_ERRNO("Socket error\n");
         return -1;
     }
+    LOGD("Sender socket created successfully\n");
     int one = 1;
     const int *val = &one;
     if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0)
@@ -25,6 +27,7 @@ int sender_init(int *sock_out)
         close(sock);
         return -1;
     }
+    LOGD("IP_HDRINCL set successfully\n");
     *sock_out = sock;
     return 0;
 }
@@ -41,18 +44,27 @@ int sender_cleanup(int *sock)
 
 void sender_run(int sock, const char *target_ip, int port_i, const char *local_ip, uint8_t scan_flag, uint16_t attempt, response_type_t *response_slot)
 {
+    
+    LOGD("Sender run: target_ip=%s, port=%d, local_ip=%s, scan_flag=%u, attempt=%u\n", target_ip, port_i, local_ip, scan_flag, attempt);
+    response_type_t null_response = RESPONSE_NO_RESPONSE;
+    if (response_slot == NULL)
+    {
+        response_slot = &null_response;
+    }
     if (scan_flag == SCAN_FLG_UDP &&
         attempt > 0 &&
         (attempt % RESPONSE_WAIT_ATTEMPTS) == 0 &&
         *response_slot == RESPONSE_NO_RESPONSE)
     {
         uint8_t udp_probe_variant = (uint8_t)(attempt / RESPONSE_WAIT_ATTEMPTS);
+        LOGD("Sending UDP probe variant %u\n", udp_probe_variant);
         send_packet(sock, target_ip, port_i, local_ip, scan_flag, udp_probe_variant);
     }
     else if (scan_flag != SCAN_FLG_UDP &&
             attempt == 0 &&
             *response_slot == RESPONSE_NO_RESPONSE)
     {
+        LOGD("Sending initial packet for scan type %u\n", scan_flag);
         send_packet(sock, target_ip, port_i, local_ip, scan_flag, 0);
     }
 }

@@ -10,6 +10,7 @@
 #include "exec.h"
 #include "scan_context.h"
 #include "timer_utils.h"
+#include "multi_thread_shared.h"
 
 
 const char *parse_error_to_string(argparse_return_e error)
@@ -161,8 +162,7 @@ int main(int argc, const char *argv[])
 
         if (params.thread_num > 1)
         {
-            LOGW("Multi-threading is not supported in current implementation.\n");
-            return EXIT_FAILURE;
+            multi_thread_exec(&params, &results, address_count, RESULTS_CAPACITY);
         }
         else
         {

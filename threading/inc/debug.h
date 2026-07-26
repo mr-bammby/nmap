@@ -26,7 +26,7 @@ extern pthread_mutex_t print_mutex;
 #define DEBUG_PACKET_RECEIVE                (DEBUG && 1)
 #define DEBUG_PACKET_SEND                   (DEBUG && 0)
 #define DEBUG_RECEIVER                      (DEBUG && 0)
-#define DEBUG_SENDER                        (DEBUG && 0)
+#define DEBUG_SENDER                        (DEBUG && 1)
 #define DEBUG_SINGLE_THREAD_EXEC            (DEBUG && 0)
 #define DEBUG_TIMER_UTILS                   (DEBUG && 0)
 

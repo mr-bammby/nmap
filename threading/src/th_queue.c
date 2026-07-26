@@ -132,7 +132,7 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
     {
         if (cond != NULL)
         {
-            if (cond(data) == TH_QUEUE_OK_GENERIC)
+            if (cond(data) <= 0)
             {
                 if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
                 {

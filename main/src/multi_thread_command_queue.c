@@ -7,12 +7,6 @@
 #include "scan_defines.h"
 #include "threading_config.h"
 
-//TODO: Move to a more appropriate location.
-typedef enum
-{
-    MULTI_TH_SP_CMD_SKIP = 0x80,
-    MULTI_TH_SP_CMD_END = 0x81
-} multi_thread_special_cmd_e;
 
 static void init_payload(multi_thread_command_t *command, const char *address, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
 {
@@ -46,7 +40,7 @@ static uint8_t append_scan(const char *address, uint16_t port, uint16_t flag_arr
     init_payload(&command, address, port, flag_arr_idx, scan_flag);
     multi_thread_shared_cmd_queue.data[queue_idx] = command;
     queue_idx++;
-
+    multi_thread_shared_cmd_queue.tail++;
     return 0;
 }
 
@@ -56,7 +50,7 @@ static uint8_t append_special(multi_thread_special_cmd_e sp_cmd)
     {
         return 1; // Invalid special command
     }
-
+    multi_thread_shared_cmd_queue.tail++;
     return append_scan("0.0.0.0", 0, 0, sp_cmd);
 }
 
@@ -67,12 +61,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
     queue_state->port_idx = 0;
     queue_state->scan_idx = 0;
 
-    // Initialize results array
-    for (uint32_t i = 0; i < results_rows; i++)
-    {
-        protocol_utils_initialize_results(results[i]);
-    }
-
+    multi_thread_shared_cmd_queue.is_empty = 0;
     argparse_port_set_iterator_t port_it;
     unsigned int port_value = 0;
 
@@ -80,7 +69,8 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
     for (argparse_addr_node_t *current = params->address; current != NULL; current = current->next)
     {
         LOGD("Adding %s...\n", current->addr);
-        uint8_t result = append_special(MULTI_TH_SP_CMD_SKIP); // Add a skip command to separate addresses
+        #ifndef MULTITHREAD_SENDER_TEST_MODE
+            uint8_t result = append_special(MULTI_TH_SP_CMD_SKIP); // Add a skip command to separate addresses
         if (result == 1)
         {
             LOGE("Failed to add skip command to queue for address %s\n", current->addr);
@@ -90,9 +80,11 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
         {
             LOGE("Queue is full while adding skip command for address %s\n", current->addr);
             done = 1;
+            multi_thread_shared_cmd_queue.is_full = 1;
             break; // Queue is full, stop adding more commands
         }
         else
+        #endif /* !defined(MULTI_TH_SP_CMD_SKIP) */
         {
             queue_state->port_idx = 0;
             queue_state->scan_idx = MULTI_TH_SP_CMD_SKIP;
@@ -112,6 +104,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
                     }
                     else if (result == 2)
                     {
+
                         LOGE("Queue is full while adding scan command for address %s\n", current->addr);
                         done = 1;
                         break; // Queue is full, stop adding more commands
@@ -139,6 +132,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
         else if (result == 2)
         {
             LOGE("Queue is full while adding end command\n");
+            multi_thread_shared_cmd_queue.is_full = 1;
             return 2; // Queue is full
         }
         else
