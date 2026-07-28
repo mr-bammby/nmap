@@ -15,7 +15,7 @@ static void init_payload(multi_thread_command_t *command, const char *address, u
         return;
     }
 
-    memset(command, 0, sizeof(*command));
+    memset(command, 0, sizeof(multi_thread_command_t));
     if (address != NULL)
     {
         strncpy(command->address, address, sizeof(command->address) - 1);

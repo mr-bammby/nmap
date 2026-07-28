@@ -148,7 +148,7 @@ int main(int argc, const char *argv[])
             address_count++;
         }
 
-        scan_result_t *results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
+        scan_result_t **results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
         if (!results)
         {
             LOGE("Failed to allocate memory for scan results.\n");
@@ -162,7 +162,7 @@ int main(int argc, const char *argv[])
 
         if (params.thread_num > 1)
         {
-            multi_thread_exec(&params, &results, address_count, RESULTS_CAPACITY);
+            multi_thread_exec(&params, results, address_count, RESULTS_CAPACITY);
         }
         else
         {
