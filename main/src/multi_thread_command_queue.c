@@ -1,4 +1,4 @@
-#define MODULE_DEBUG DEBUG_MULTI_THREAD_INIT
+#define MODULE_DEBUG DEBUG_MULTI_COMMAND_QUEUE
 #include "debug.h"
 #include "multi_thread_shared.h"
 #include "th_queue.h"
@@ -64,6 +64,8 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
     multi_thread_shared_cmd_queue.is_empty = 0;
     argparse_port_set_iterator_t port_it;
     unsigned int port_value = 0;
+
+    append_special(MULTI_TH_SP_CMD_SKIP); // Add a skip command to signal waiting until receiver is intitalized
 
     uint32_t done = 0;
     for (argparse_addr_node_t *current = params->address; current != NULL; current = current->next)

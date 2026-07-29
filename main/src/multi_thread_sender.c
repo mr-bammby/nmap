@@ -128,7 +128,7 @@ void *multi_thread_sender(void *arg)
         switch (status)
         {
             case TH_QUEUE_OK_GENERIC:
-                LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, cmd.address, cmd.port, cmd.udx_flag_arr_idx, cmd.scan);
+                LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, cmd.address, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
                 sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, 0, NULL); //to do figure out UDP
                 break;
             case TH_QUEUE_OK_EMPTY_AFTER_ACCEPT:

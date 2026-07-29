@@ -11,7 +11,7 @@
 #include "receiver.h"
 #include "packet_handler.h"
 
-static int get_link_header_len(int datalink)
+int get_link_header_len(int datalink)
 {
     switch (datalink)
     {
@@ -35,7 +35,7 @@ static int get_link_header_len(int datalink)
 }
 
 // --- Helper: Get Local IP for Checksum ---
-static char* get_local_ip(const char *iface_name)
+char* get_local_ip(const char *iface_name)
 {
     struct ifaddrs *ifaddr, *ifa;
     static char ip_addr[INET_ADDRSTRLEN];
@@ -99,6 +99,7 @@ int receiver_init(const char *target_ip, const argparse_port_set_iterator_t *por
     *pcap_handle_out = pcap_open_live(device_name, BUFSIZ, 1, 10, errbuf);
     if (*pcap_handle_out == NULL)
     {
+        LOGE("Failed to open handle: %s\n", errbuf);
         return -1;
     }
 

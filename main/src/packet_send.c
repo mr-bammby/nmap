@@ -167,12 +167,12 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     
     if (packet_len < 0)
     {
-        perror("Packet creation failed");
+        LOGE("Packet creation failed\n");
         return;
     }
 
     if (sendto(sockfd, packet, packet_len, 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
     {
-        perror("sendto failed");
+        LOGE("sendto failed with sockfd %d and packet_len %d and address data %d\n", sockfd, packet_len, sin.sin_addr);
     }
 }
