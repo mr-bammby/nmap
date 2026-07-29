@@ -77,7 +77,7 @@ void print_bytes(const void *addr, uint32_t len)
 }
 
 // --- Initialize Results Array ---
-void protocol_utils_initialize_results(scan_result_t *results)
+void protocol_utils_initialize_results(scan_result_t results[PORT_END - PORT_START + 1])
 {
     for (int i = 0; i < (PORT_END - PORT_START + 1); i++)
     {

@@ -129,7 +129,10 @@ void *multi_thread_sender(void *arg)
         {
             case TH_QUEUE_OK_GENERIC:
                 LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, cmd.address, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
-                sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, 0, NULL); //to do figure out UDP
+                for (int attempt = 0; attempt <= 1500; attempt++)
+                {
+                    sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, attempt, NULL);
+                }
                 break;
             case TH_QUEUE_OK_EMPTY_AFTER_ACCEPT:
                 LOGD("Thread %d: Queue is empty after accepting command, waiting for next command\n", thread_id);
