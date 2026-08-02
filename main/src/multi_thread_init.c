@@ -9,13 +9,20 @@ uint8_t multi_thread_init(const argparse_params_t *params, multi_thread_command_
 {
 
     th_queue_init(&multi_thread_shared_cmd_queue, MULTI_THREAD_SHARED_QUEUE_SIZE);
-    th_flagging_array_init(&multi_thread_shared_flagging_array, MULTI_THREAD_SHARED_FLAGGING_ARRAY_SIZE);
 
-    scan_result_t *result_itr = results;
+    /* Allocate an array of flagging arrays, one per results row (address) */
+    multi_thread_shared_flagging_array = malloc(sizeof(th_flagging_array_t) * results_rows);
+    if (!multi_thread_shared_flagging_array)
+    {
+        LOGE("Failed to allocate multi_thread_shared_flagging_array\n");
+        return 1;
+    }
+
     for (uint32_t i = 0; i < results_rows; i++)
     {
-        protocol_utils_initialize_results(result_itr);
-        result_itr += results_cols;
+        /* Initialize each flagging array for the row with capacity = results_cols */
+        th_flagging_array_init(&multi_thread_shared_flagging_array[i], results_cols);
+        protocol_utils_initialize_results(results[i]);
     }
     LOGD("Multi-threading initialized: Command queue and flagging array set up, results array initialized.\n");
     return multi_thread_command_queue_init(params, queue_state, results, results_rows, results_cols);
