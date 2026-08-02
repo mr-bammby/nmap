@@ -8,6 +8,7 @@
 
 
 atomic_bool abort_flag = false;
+atomic_int thread_counter = 0;
 
 th_queue_t multi_thread_shared_cmd_queue = {0};
 th_flagging_array_t multi_thread_shared_flagging_array = {0};
@@ -61,9 +62,33 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
             break;
         }
     }
+
+    size_t count = 0;
+
+    pcap_t *pcap_handle = NULL;
+    int sock = -1;
+    char *local_ip;
+    uint32_t link_header_len;
+    argparse_port_set_iterator_t port_it;
+    unsigned int port_i;
     if (senders_started)
     {
-        multi_thread_receiver_run(params, &queue_state, *results, results_rows, results_cols);
+        // Initialize receiver handle
+        if (multi_thread_receiver_init(params->address, &pcap_handle, &local_ip, &link_header_len) < 0)
+        {
+            LOGE("mFailed to initialize receiver\n");
+            return;
+        }
+        LOGI("Receiver handle successfully inititalized\n");
+
+        // Move head of queue to let sender threads start sending
+        th_queue_t *cmd_queue = &multi_thread_shared_cmd_queue;
+        th_queue_access_t access;
+        th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_HIGH);
+        multi_thread_command_t data;
+        th_queue_read(&access, &data, NULL);
+
+        multi_thread_receiver_run(pcap_handle, link_header_len, results);
     }
     for (unsigned int th_num = 0; th_num < (params->thread_num - 1); th_num++)
     {
@@ -73,6 +98,12 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
             LOGD("Thread %d joined successfully\n", th_num);
             free(args[th_num]);
         }
+    }
+    if (pcap_handle != NULL)
+    {
+        pcap_close(pcap_handle);
+        pcap_handle = NULL;
+        LOGI("Receiver handle successfully destroyed\n");
     }
     free(args);
     free(thread_list);

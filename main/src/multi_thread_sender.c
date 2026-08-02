@@ -104,6 +104,7 @@ void *multi_thread_sender(void *arg)
     req_exit.tv_nsec = SLEEP_EXIT_NS;
 
     LOGD("Thread %d: Starting sender thread\n", thread_id);
+    atomic_fetch_add(&thread_counter, 1);
     sender_init(&sock);
     LOGD("Thread %d: Sender socket initialized\n", thread_id);
     th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_LOW);
@@ -140,7 +141,7 @@ void *multi_thread_sender(void *arg)
                 if(nanosleep(&req_err, NULL) != 0)
                 {
                     LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                    return (-2); // Exit the thread if nanosleep is interrupted
+                    return (void *)(-2); // Exit the thread if nanosleep is interrupted
                 }
                 continue;
                 break;
@@ -151,7 +152,7 @@ void *multi_thread_sender(void *arg)
                     if(nanosleep(&req_err, NULL) != 0)
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                        return (-2); // Exit the thread if nanosleep is interrupted
+                        return (void *)(-2); // Exit the thread if nanosleep is interrupted
                     }
                     #ifdef MULTITHREAD_SENDER_TEST_MODE
                         err_cnt++;
@@ -165,8 +166,9 @@ void *multi_thread_sender(void *arg)
                     if(nanosleep(&req_exit, NULL) != 0)
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting to exit\n", thread_id);
-                        return (-2); // Exit the thread if nanosleep is interrupted
+                        return (void *)(-2); // Exit the thread if nanosleep is interrupted
                     }
+                    atomic_fetch_add(&thread_counter, -1);
                     return NULL; // Exit the thread
                 }
                 else
@@ -175,7 +177,7 @@ void *multi_thread_sender(void *arg)
                     if(nanosleep(&req_err, NULL) != 0)
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                        return (-2); // Exit the thread if nanosleep is interrupted
+                        return (void *)(-2); // Exit the thread if nanosleep is interrupted
                     }
                     err_cnt++;
                     continue;
@@ -186,7 +188,7 @@ void *multi_thread_sender(void *arg)
                 if(nanosleep(&req_err, NULL) != 0)
                 {
                     LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                    return (-2); // Exit the thread if nanosleep is interrupted
+                    return (void *)(-2); // Exit the thread if nanosleep is interrupted
                 }
                 err_cnt++;
                 break;
@@ -194,7 +196,12 @@ void *multi_thread_sender(void *arg)
     }
 
     sender_cleanup(&sock);
-
+    if (atomic_fetch_add(&thread_counter, -1))
+    {
+        LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
+        sender_cleanup(&sock);
+        return (void *)-1; // Exit the thread if abort flag is set
+    }
 
     return NULL; // Return NULL when the thread is done
 }

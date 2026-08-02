@@ -5,15 +5,57 @@
 #include <pcap.h>
 #include "receiver.h"
 #include <stdlib.h>
+#include <packet_handler.h>
 
-static int multi_thread_receiver_init(pcap_t **pcap_handle_out, char **local_ip_out, uint32_t *link_header_len_out)
+static int build_bpf_filter(const argparse_addr_node_t *addresses, const char *local_ip, char *filter, size_t filter_size){
+    const argparse_addr_node_t *node = addresses;
+    size_t used = 0;
+    int written;
+
+    if (filter == NULL || filter_size == 0)
+        return -1;
+
+    /* Start filter */
+    written = snprintf(filter, filter_size, "(");
+    if (written < 0 || (size_t)written >= filter_size)
+        return -1;
+
+    used = (size_t)written;
+
+    while (node != NULL)
+    {
+        written = snprintf(filter + used,
+                           filter_size - used,
+                           "%ssrc host %s",
+                           (node == addresses) ? "" : " or ",
+                           node->addr);
+
+        if (written < 0 || (size_t)written >= (filter_size - used))
+            return -1;
+
+        used += (size_t)written;
+        node = node->next;
+    }
+
+    written = snprintf(filter + used,
+                       filter_size - used,
+                       ") and dst host %s and (tcp or udp or icmp)",
+                       local_ip);
+
+    if (written < 0 || (size_t)written >= (filter_size - used))
+        return -1;
+
+    return 0;
+}
+
+int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **pcap_handle_out, char **local_ip_out, uint32_t *link_header_len_out)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_if_t *alldevs;
     const char *device_name;
     struct bpf_program fp;
     int datalink;
-    char filter[100];
+    char filter[4096];
 
     if (pcap_findalldevs(&alldevs, errbuf) < 0)
     {
@@ -64,7 +106,17 @@ static int multi_thread_receiver_init(pcap_t **pcap_handle_out, char **local_ip_
         return -1;
     }
 
-    snprintf(filter, sizeof(filter), "dst host %s and (tcp or udp or icmp)", *local_ip_out);
+    if (build_bpf_filter(addresses,
+                        *local_ip_out,
+                        filter,
+                        sizeof(filter)) < 0)
+    {
+        LOGE("Failed to build BPF filter\n");
+        receiver_cleanup(*pcap_handle_out);
+        return -1;
+    }
+
+    LOGD("BPF Filter: %s\n", filter);
 
     if (pcap_compile(*pcap_handle_out, &fp, filter, 1, PCAP_NETMASK_UNKNOWN) < 0)
     {
@@ -84,37 +136,12 @@ static int multi_thread_receiver_init(pcap_t **pcap_handle_out, char **local_ip_
     return 0;
 }
 
-uint8_t multi_thread_receiver_run(const argparse_params_t *params, const multi_thread_command_queue_state_t *last_queued_cmd, scan_result_t *results, uint32_t results_rows, uint32_t results_cols)
+//int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t *response_slot, scan_result_t *results)
+uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results)
 {
 
-    size_t count = 0;
-
-    pcap_t *pcap_handle = NULL;
-    int sock = -1;
-    char *local_ip;
-    uint32_t link_header_len;
-    argparse_port_set_iterator_t port_it;
-    unsigned int port_i;
-
-
-
-    // Initialize receiver handle
-    if (multi_thread_receiver_init(&pcap_handle, &local_ip, &link_header_len) < 0)
-    {
-        LOGE("Failed to initialize receiver\n");
-        return -1;
-    }
-    LOGI("Receiver handle successfully inititalized\n");
-
-    // Move head/tail of queue to let sender threads start sending
-    th_queue_t *cmd_queue = &multi_thread_shared_cmd_queue;
-    th_queue_access_t access;
-    th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_HIGH);
-    multi_thread_command_t data;
-    th_queue_read(&access, &data, NULL);
-
     // Set Receiver timeout
-    //while (1)
+    // while
         // Start receiving
         // if receiver timeout reached
             // Q write suppressed part XXXXXXXXXX
@@ -122,15 +149,24 @@ uint8_t multi_thread_receiver_run(const argparse_params_t *params, const multi_t
             // if udp
                 // set udp flag in flagging array
             // write result
-        // if cmd DONE sent
-            // if #threads == 0
-                // exit while
+        // if #threads == 0
+            // exit while
+    struct pcap_pkthdr *header;
+    const unsigned char *packet;
+    while (atomic_load(&thread_counter) > 0)
+    {
+        //LOGD("Receiver sniffing\n");
+        int res = pcap_next_ex(pcap_handle, &header, &packet);
+        if (res == 1)
+        {
+            LOGD("PACKET PROCESSING\n");
+            LOGD("Header len: %d\n", header->len);
+            multi_thread_process_packet(packet, header->caplen, link_header_len, results);
 
-    //
-    // if (pcap_handle != NULL)
-    // {
-    //     pcap_close(pcap_handle);
-    //     pcap_handle = NULL;
-    //     LOGI("Receiver handle successfully destroyed\n");
-    // }
+        }
+    }
+    return 0;
+
+    
+
 }

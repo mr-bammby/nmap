@@ -170,7 +170,7 @@ int main(int argc, const char *argv[])
             for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
             {
                 LOGD("Scanning %s...\n", current->addr);
-                exec_result = single_thread_exec(current->addr, params.ports, params.scans, &(results[cnt]));
+                exec_result = single_thread_exec(current->addr, params.ports, params.scans, (results[cnt]));
                 if (exec_result != 0)
                 {
                     LOGE("Error scanning %s\n", current->addr);

@@ -27,10 +27,12 @@
 #define DEBUG_MULTI_THREAD_SENDER           (DEBUG && 1)
 #define DEBUG_PACKET_RECEIVE                (DEBUG && 0)
 #define DEBUG_PACKET_SEND                   (DEBUG && 1)
-#define DEBUG_RECEIVER                      (DEBUG && 1)
-#define DEBUG_SENDER                        (DEBUG && 1)
+#define DEBUG_RECEIVER                      (DEBUG && 0)
+#define DEBUG_SENDER                        (DEBUG && 0)
 #define DEBUG_SINGLE_THREAD_EXEC            (DEBUG && 0)
 #define DEBUG_TIMER_UTILS                   (DEBUG && 0)
+
+#define DEBUG_MULTI_THREAD_PACKET_RECEIVE   (DEBUG && 1)
 
 
 /* argument_parser */
@@ -46,15 +48,15 @@
 
 /* protocols */
 #define DEBUG_ICMP                          (DEBUG && 0)
-#define DEBUG_IP                            (DEBUG && 0)
-#define DEBUG_PROTOCOL_UTILS                (DEBUG && 0)
-#define DEBUG_TCP                           (DEBUG && 0)
+#define DEBUG_IP                            (DEBUG && 1)
+#define DEBUG_PROTOCOL_UTILS                (DEBUG && 1)
+#define DEBUG_TCP                           (DEBUG && 1)
 #define DEBUG_UDP                           (DEBUG && 0)
 
 /* result_printer */
-#define DEBUG_PARSER_UTILS                  (DEBUG && 0)
-#define DEBUG_PRINTER_UTILS                 (DEBUG && 0)
-#define DEBUG_RESULT_PRINTER                (DEBUG && 0)
+#define DEBUG_PARSER_UTILS                  (DEBUG && 1)
+#define DEBUG_PRINTER_UTILS                 (DEBUG && 1)
+#define DEBUG_RESULT_PRINTER                (DEBUG && 1)
 
 /* threading */
 #define DEBUG_TH_LOCK                       (DEBUG && 1)
