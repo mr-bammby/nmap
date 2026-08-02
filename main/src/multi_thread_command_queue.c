@@ -8,7 +8,7 @@
 #include "threading_config.h"
 
 
-static void init_payload(multi_thread_command_t *command, const char *address, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
+static void init_payload(multi_thread_command_t *command, const char *address, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
 {
     if (command == NULL)
     {
@@ -21,26 +21,37 @@ static void init_payload(multi_thread_command_t *command, const char *address, u
         strncpy(command->address, address, sizeof(command->address) - 1);
         command->address[sizeof(command->address) - 1] = '\0';
     }
+    command->udp_flag_row_idx = flag_row_idx;
     command->port = port;
     command->udp_flag_arr_idx = flag_arr_idx;
     command->scan = scan_flag;
 }
 
 
-static uint8_t append_scan(const char *address, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
+static uint8_t append_scan(const char *address, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
 {
-    static uint32_t queue_idx = 0;
-
-    if (queue_idx >= multi_thread_shared_cmd_queue.capacity)
+    if (multi_thread_shared_cmd_queue.is_full)
     {
         return 2; // Queue is full
     }
 
     multi_thread_command_t command;
-    init_payload(&command, address, port, flag_arr_idx, scan_flag);
-    multi_thread_shared_cmd_queue.data[queue_idx] = command;
-    queue_idx++;
-    multi_thread_shared_cmd_queue.tail++;
+    init_payload(&command, address, flag_row_idx, port, flag_arr_idx, scan_flag);
+
+    size_t idx = multi_thread_shared_cmd_queue.tail;
+    multi_thread_shared_cmd_queue.data[idx] = command;
+    multi_thread_shared_cmd_queue.is_empty = 0;
+
+    size_t next_tail = idx + 1;
+    if (next_tail >= multi_thread_shared_cmd_queue.capacity)
+    {
+        next_tail = 0;
+    }
+    if (next_tail == multi_thread_shared_cmd_queue.head)
+    {
+        multi_thread_shared_cmd_queue.is_full = 1;
+    }
+    multi_thread_shared_cmd_queue.tail = next_tail;
     return 0;
 }
 
@@ -50,8 +61,7 @@ static uint8_t append_special(multi_thread_special_cmd_e sp_cmd)
     {
         return 1; // Invalid special command
     }
-    multi_thread_shared_cmd_queue.tail++;
-    return append_scan("0.0.0.0", 0, 0, sp_cmd);
+    return append_scan("0.0.0.0", 0, 0, 0, sp_cmd);
 }
 
 uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
@@ -98,7 +108,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
             {
                 if (params->scans & (1 << scan_i))
                 {
-                    uint8_t result = append_scan(current->addr, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << scan_i));
+                    uint8_t result = append_scan(current->addr, queue_state->address_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << scan_i));
                     if (result == 1)
                     {
                         LOGE("Failed to add scan command to queue for address %s\n", current->addr);

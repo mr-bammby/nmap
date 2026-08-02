@@ -21,12 +21,14 @@
 #include "result_printer.h"
 #include "sender.h"
 #include "receiver.h"
+#include "timer_utils.h"
 
 
 #define NUMBER_OF_SCAN_TYPES SCAN_NUMBER_OF_SCAN_TYPES
 #define RESPONSE_WAIT_ATTEMPTS 500
-#define RESPONSE_POLL_SLEEP_US 1000
-
+#define RESPONSE_POLL_TIMEOUT_TCP_US 100
+#define RESPONSE_POLL_TIMEOUT_UDP_US 1000
+#define RESPONSE_POLL_SLEEP_US_LOCAL 10 /* Local override renamed to avoid redefinition with main/inc/sender.h */
 
 
 static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t scan_flag)
@@ -54,6 +56,9 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
     uint32_t link_header_len;
     argparse_port_set_iterator_t port_it;
     unsigned int port_i;
+    nmap_timeout_t timeout;
+
+    timeout_init(&timeout, 0, 0);
 
     argparse_port_iterator_init(&port_it, &ports);
     // Initialize results array
@@ -88,16 +93,25 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                     continue;
                 }
                 *response_slot = RESPONSE_NO_RESPONSE;
-                int max_attempts = RESPONSE_WAIT_ATTEMPTS;
-                if (scan_flag == SCAN_FLG_UDP)
-                    max_attempts = RESPONSE_WAIT_ATTEMPTS * PROTOCOL_UDP_TOTAL_PROBES + 1;
-
-                for (int attempt = 0; attempt < max_attempts; attempt++)
+                for (int probe = 0; probe < ((scan_flag == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
-                    sender_run(sock, target_ip, port_i, local_ip, scan_flag, attempt, response_slot);
-                    // Wait in 1ms polls; UDP may span multiple windows via retries.
-                    usleep(RESPONSE_POLL_SLEEP_US);
-                    if(receiver_run(pcap_handle, link_header_len, response_slot, results) == 1)
+                    uint8_t done = 0;
+                    sender_run(sock, target_ip, port_i, local_ip, scan_flag, probe, response_slot);
+                    (scan_flag == SCAN_FLG_UDP) ? timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_UDP_US) : timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_TCP_US);
+                    while (1)
+                    {
+                        if (timeout_check(&timeout))
+                        {
+                            break;
+                        }
+                        if(receiver_run(pcap_handle, link_header_len, response_slot, results) == 1)
+                        {
+                            done = 1;
+                            break;
+                        }
+                        usleep(RESPONSE_POLL_SLEEP_US_LOCAL);
+                    }
+                    if (done)
                     {
                         break;
                     }

@@ -22,7 +22,7 @@ extern atomic_int thread_counter;
 #define MULTI_THREAD_SHARED_FLAGGING_ARRAY_SIZE 1024
 
 extern th_queue_t multi_thread_shared_cmd_queue;
-extern th_flagging_array_t multi_thread_shared_flagging_array;
+extern th_flagging_array_t *multi_thread_shared_flagging_array;
 
 typedef struct multi_thread_command_queue_state
 {

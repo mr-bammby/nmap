@@ -148,12 +148,26 @@ int main(int argc, const char *argv[])
             address_count++;
         }
 
-        scan_result_t **results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
+        scan_result_t *results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
         if (!results)
         {
             LOGE("Failed to allocate memory for scan results.\n");
             argparse_free_arguments(&params);
             return EXIT_FAILURE;
+        }
+
+        /* Restructure results into rows */
+        scan_result_t **results_rows = malloc(address_count * sizeof(scan_result_t *));
+        if (!results_rows)
+        {
+            LOGE("Failed to allocate memory for scan result row pointers.\n");
+            free(results);
+            argparse_free_arguments(&params);
+            return EXIT_FAILURE;
+        }
+        for (int i = 0; i < address_count; i++)
+        {
+            results_rows[i] = &results[i * RESULTS_CAPACITY];
         }
         
         nmap_timer_t timer;
@@ -162,7 +176,7 @@ int main(int argc, const char *argv[])
 
         if (params.thread_num > 1)
         {
-            multi_thread_exec(&params, results, address_count, RESULTS_CAPACITY);
+            multi_thread_exec(&params, results_rows, address_count, RESULTS_CAPACITY);
         }
         else
         {
@@ -170,7 +184,8 @@ int main(int argc, const char *argv[])
             for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
             {
                 LOGD("Scanning %s...\n", current->addr);
-                exec_result = single_thread_exec(current->addr, params.ports, params.scans, (results[cnt]));
+                /* Pass the per-address results block to single_thread_exec */
+                exec_result = single_thread_exec(current->addr, params.ports, params.scans, results_rows[cnt]);
                 if (exec_result != 0)
                 {
                     LOGE("Error scanning %s\n", current->addr);
@@ -183,10 +198,16 @@ int main(int argc, const char *argv[])
         elapsed_time = read_time_s(&timer);
         
         resprint_print_scan_stats(elapsed_time);
+        /* Print results per-address using the per-address block start */
+        int idx = 0;
         for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
         {
-            resprint_parse_scan_results(results, PORT_START - 1, PORT_END, current->addr, elapsed_time);
+            resprint_parse_scan_results(&results[idx * RESULTS_CAPACITY], PORT_START - 1, PORT_END, current->addr, elapsed_time);
+            idx++;
         }
+
+        free(results_rows);
+        free(results);
     }
 
     argparse_free_arguments(&params);

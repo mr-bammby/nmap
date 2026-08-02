@@ -11,7 +11,7 @@ atomic_bool abort_flag = false;
 atomic_int thread_counter = 0;
 
 th_queue_t multi_thread_shared_cmd_queue = {0};
-th_flagging_array_t multi_thread_shared_flagging_array = {0};
+th_flagging_array_t *multi_thread_shared_flagging_array;
 
 
 void multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
@@ -49,7 +49,7 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
             break;
         }
         args[th_num]->cmd_queue = &multi_thread_shared_cmd_queue;
-        args[th_num]->flagging_array = &multi_thread_shared_flagging_array;
+        args[th_num]->flagging_array = multi_thread_shared_flagging_array;
         args[th_num]->thread_id = th_num;
 
         if ( pthread_create(&thread_list[th_num], NULL, multi_thread_sender, (void *)args[th_num]) != 0)
