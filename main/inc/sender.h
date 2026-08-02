@@ -3,7 +3,7 @@
 
 #include "response_states.h"
 
-#define RESPONSE_WAIT_ATTEMPTS 500
+#define UDP_PROBE_VARIANTS 3u
 #define RESPONSE_POLL_SLEEP_US 1000
 
 int sender_init(int *sock_out);

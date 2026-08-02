@@ -113,8 +113,10 @@
     do {                                                          \
         int err = errno;                                          \
         char buf[1024];                                           \
+        /* Use strerror_r to populate buf, then pass buf. strerror_r may return int or char* depending on libc, so call it separately to avoid type mismatch. */ \
+        (void)strerror_r(err, buf, sizeof(buf));                  \
         LOG_IMPL(stderr, LOG_ERR, fmt ": %s\n",                   \
-                 ##__VA_ARGS__, strerror_r(err, buf, sizeof(buf)));                 \
+                 ##__VA_ARGS__, buf);                             \
     } while (0)
 #define LOGW(fmt, ...) LOG_IMPL(stdout, LOG_WRN, fmt, ##__VA_ARGS__)
 #define LOGI(fmt, ...) LOG_IMPL(stdout, LOG_INF, fmt, ##__VA_ARGS__)
