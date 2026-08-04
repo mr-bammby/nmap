@@ -175,4 +175,8 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     {
         LOGE("sendto failed with sockfd %d and packet_len %d and address %s\n", sockfd, packet_len, inet_ntoa(sin.sin_addr));
     }
+    else
+    {
+        LOGD("sendto succeeded: target=%s port=%d\n", target_ip, port);
+    }
 }

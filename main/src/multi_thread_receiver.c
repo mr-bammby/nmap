@@ -136,7 +136,6 @@ int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **p
     return 0;
 }
 
-//int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t *response_slot, scan_result_t *results)
 uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results)
 {
 

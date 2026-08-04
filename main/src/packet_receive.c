@@ -40,7 +40,13 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t
     transport = (const uint8_t *)(packet + link_header_len + ip_hl);
     ip_payload_len = packet_len - link_header_len - (uint32_t)ip_hl;
 
-    LOGD("IP header parsed: src=%s dst=%s protocol=%d\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src), inet_ntoa(*(struct in_addr *)&ip_hdr.dst), ip_hdr.protocol);
+    char src_str[INET_ADDRSTRLEN];
+    char dst_str[INET_ADDRSTRLEN];
+
+    inet_ntop(AF_INET, &ip_hdr.src, src_str, sizeof(src_str));
+    inet_ntop(AF_INET, &ip_hdr.dst, dst_str, sizeof(dst_str));
+
+    LOGD("IP header parsed: src=%s dst=%s protocol=%d\n", src_str, dst_str, ip_hdr.protocol);
 
     switch (ip_hdr.protocol)
     {

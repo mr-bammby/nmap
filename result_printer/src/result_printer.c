@@ -43,7 +43,7 @@ void resprint_parse_scan_results(const scan_result_t *results, int start, int en
     uint8_t has_open = 0;
     uint8_t has_closed = 0;
 
-    if (results != NULL)
+ if (results != NULL)
     {
         printf("IP address: %s\n", target_ip);
         for (i = start; i < end; i++)
@@ -52,10 +52,12 @@ void resprint_parse_scan_results(const scan_result_t *results, int start, int en
             
             if (current_state == PORT_STATE_OPEN)
             {
+                LOGD("Port state open\n");
                 has_open = 1;
             }
             else if (current_state != PORT_STATE_NOT_SCANNED)
             {
+                LOGD("Port state closed\n");
                 has_closed = 1;
             }
         }
