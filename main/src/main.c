@@ -141,14 +141,16 @@ int main(int argc, const char *argv[])
     else
     {
         resprint_print_scan_header(&params);
-
+        printf("TEST PRINTF AFTER HEADER PRINT\n");
+        LOGD("Start counting addresses\n");
         int address_count = 0;
         for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
         {
+            LOGD("For loop address from current: %s\n", current->addr);
             address_count++;
         }
-
-        scan_result_t *results = malloc(RESULTS_CAPACITY * sizeof(scan_result_t) * address_count);
+        LOGD("Address count: %d\n", address_count);
+        scan_result_t *results = calloc(sizeof(scan_result_t), RESULTS_CAPACITY * address_count);
         if (!results)
         {
             LOGE("Failed to allocate memory for scan results.\n");
@@ -176,6 +178,7 @@ int main(int argc, const char *argv[])
 
         if (params.thread_num > 1)
         {
+            LOGD("Multi threading starts\n");
             multi_thread_exec(&params, results_rows, address_count, RESULTS_CAPACITY);
         }
         else

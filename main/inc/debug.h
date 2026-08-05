@@ -18,6 +18,7 @@
 /* ========================================================================= */
 
 /* main */
+#define DEBUG_ADDR_HASHMAP                  (DEBUG && 1)
 #define DEBUG_BUILD_MESSAGE                 (DEBUG && 0)
 #define DEBUG_MAIN                          (DEBUG && 1)
 #define DEBUG_MULTI_COMMAND_QUEUE           (DEBUG && 1)

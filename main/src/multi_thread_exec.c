@@ -13,9 +13,9 @@ atomic_int thread_counter = 0;
 th_queue_t multi_thread_shared_cmd_queue = {0};
 th_flagging_array_t *multi_thread_shared_flagging_array;
 
-
 void multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
 {
+    addr_hashmap_t hash_map;
     multi_thread_command_queue_state_t queue_state;
     multithread_sender_args_t **args = malloc(sizeof(multithread_sender_args_t *) * (params->thread_num - 1)); // -1 for receiver thread
     pthread_t *thread_list = (pthread_t *)calloc((size_t)params->thread_num - 1, sizeof(pthread_t));
@@ -29,7 +29,7 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
     }
     //First entry in queue is special command for sleep 
 
-    if (multi_thread_init(params, &queue_state, results, results_rows, results_cols) != 0)
+    if (multi_thread_init(params, &queue_state, results, results_rows, results_cols, &hash_map) != 0)
     {
         free(args);
         free(thread_list);
@@ -88,7 +88,7 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
         multi_thread_command_t data;
         th_queue_read(&access, &data, NULL);
 
-        multi_thread_receiver_run(pcap_handle, link_header_len, results);
+        multi_thread_receiver_run(pcap_handle, link_header_len, results, &hash_map);
     }
     for (unsigned int th_num = 0; th_num < (params->thread_num - 1); th_num++)
     {

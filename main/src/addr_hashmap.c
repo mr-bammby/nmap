@@ -1,14 +1,33 @@
+#define MODULE_DEBUG DEBUG_ADDR_HASHMAP
+#include "debug.h"
 #include "addr_hashmap.h"
+
+static uint32_t default_hash_function(uint32_t addr)
+{
+    return addr;
+}
 
 int addr_hashmap_init(addr_hashmap_t *map, size_t size, uint32_t (*hash_func)(uint32_t))
 {
+    LOGD("Entering add_hashmap_init\n");
     map->entries = calloc(size, sizeof(addr_entry_t));
-    if (!map->entries) {
+
+    if (!map->entries)
+    {
         return -1;
     }
     map->size = size;
     map->count = 0;
-    map->hash_func = hash_func;
+
+    LOGD("Assigning hash function\n");
+    if (hash_func == NULL)
+    {
+        map->hash_func = default_hash_function;
+    }
+    else
+    {
+        map->hash_func = hash_func;
+    }
     return 0;
 }
 
@@ -47,7 +66,7 @@ int addr_hashmap_get(const addr_hashmap_t *map, uint32_t addr, uint32_t *idx)
     {
         if (map->entries[hash].addr == addr)
         {
-            *idx = map->entries[hash].idx;
+            *idx = map->entries[hash].idx - 1;
             return 0; // Found
         }
         hash = (hash + 1) % map->size; // Linear probing
