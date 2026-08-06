@@ -89,7 +89,7 @@ static void print_params(const argparse_params_t *params)
     LOGD_WF("\n");
 }
 
-static void main_argumnts(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)
+static void main_arguments(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)
 {
     LOGD("NMAP Argument Parser - Test\n");
     LOGD("===========================\n");
@@ -125,7 +125,7 @@ int main(int argc, const char *argv[])
     int exec_result;
 
     #if DEBUG_MAIN
-    main_argumnts(argc, argv, parse_result, &params);
+    main_arguments(argc, argv, parse_result, &params);
     #endif /* DEBUG_MAIN */
 
     if (parse_result != ARGPARSE_OK)
