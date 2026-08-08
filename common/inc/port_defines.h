@@ -2,6 +2,6 @@
 #define PORT_DEFINES_H
 
 #define PORT_NUMBER_OF_PORTS 1024
-#define PORT_MAX_PORT 65536
+#define PORT_MAX_PORT 65535
 
 #endif /* PORT_DEFINES_H */

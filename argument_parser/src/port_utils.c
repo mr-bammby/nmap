@@ -48,6 +48,66 @@ short argparse_port_add(argparse_port_set_t *set, unsigned int value)
     return 0;
 }
 
+short argparse_port_get(const argparse_port_set_t *set, int index, unsigned int *value)
+{
+    if (set == NULL || value == NULL || index < 0 || index >= set->count)
+    {
+        return -1;
+    }
+    *value = set->data[index];
+    return 0;
+}
+
+static int port_find_linear(const argparse_port_set_t *set, unsigned int target)
+{
+    for (int i = 0; i < set->count; i++)
+    {
+        if (set->data[i] == target)
+            return i;
+    }
+    return -1;
+}
+
+short argparse_port_find(const argparse_port_set_t *set, unsigned int target, int *index)
+{
+    if (set == NULL || index == NULL)
+        return -1;
+
+    if (set->count <= 5)
+    {
+        int found = port_find_linear(set, target);
+        if (found < 0)
+            return -1;
+        *index = found;
+        return 0;
+    }
+
+    int low = 0;
+    int high = set->count - 1;
+
+    while (low <= high)
+    {
+        int mid = low + ((high - low) / 2);
+        unsigned int mid_value = set->data[mid];
+
+        if (mid_value == target)
+        {
+            *index = mid;
+            return 0;
+        }
+        if (mid_value < target)
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
 // --- Iterator Functions ---
 
 // Initializes the iterator and links it to a set

@@ -31,7 +31,7 @@ static inline short port_bitmap_set(argparse_port_set_t *set, uint16_t idx)
 static argparse_return_e parse_port_range_set(const char *input, argparse_port_set_t *set)
 {
     state_t st = START;
-    uint16_t num = 0;
+    uint32_t num = 0;
     int32_t start = -1;
     int32_t end = -1;
     uint32_t start_idx = 0;
@@ -86,7 +86,7 @@ static argparse_return_e parse_port_range_set(const char *input, argparse_port_s
             }
             else if (c == ',' || c == '\0')
             {
-                if (num < 1 || num > PORT_NUMBER_OF_PORTS)
+                if (num < 1 || num > PORT_MAX_PORT)
                     return ARGPARSE_BAD_VALUE;
                 if (port_bitmap_set(set, num) != 0)
                     return ARGPARSE_INTERNAL_ERROR;
@@ -130,7 +130,7 @@ static argparse_return_e parse_port_range_set(const char *input, argparse_port_s
             {
                 end = num;
 
-                if (start < 1 || end > PORT_NUMBER_OF_PORTS || start > end)
+                if (start < 1 || end > PORT_MAX_PORT || start > end)
                 {
                     return ARGPARSE_BAD_VALUE;
                 }

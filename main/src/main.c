@@ -59,8 +59,11 @@ static void print_params(const argparse_params_t *params)
         //LOGD("\t\t%u \n", port);
         if (count % 10 == 0)
             LOGD("\t\t%u", port);
+        else if (count % 10 == 9)
+            LOGD_WF(", %u\n", port);
         else
             LOGD_WF(", %u", port);
+
         count++;
     }
     LOGD_WF("\n");
