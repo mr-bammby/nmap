@@ -50,9 +50,13 @@ short argparse_port_add(argparse_port_set_t *set, unsigned int value)
 
 short argparse_port_get(const argparse_port_set_t *set, int index, unsigned int *value)
 {
-    if (set == NULL || value == NULL || index < 0 || index >= set->count)
+    if (set == NULL || value == NULL || index < 0)
     {
         return -1;
+    }
+    if (index >= set->count)
+    {
+        return -2;
     }
     *value = set->data[index];
     return 0;
@@ -71,7 +75,7 @@ static int port_find_linear(const argparse_port_set_t *set, unsigned int target)
 short argparse_port_find(const argparse_port_set_t *set, unsigned int target, int *index)
 {
     if (set == NULL || index == NULL)
-        return -1;
+        return -2;
 
     if (set->count <= 5)
     {
