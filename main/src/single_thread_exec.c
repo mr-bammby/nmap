@@ -69,11 +69,18 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
         LOGE("Failed to initialize sender socket\n");
         return -1;
     }
+
+    uint32_t target_addr;
+    if (inet_pton(AF_INET, target_ip, &target_addr) != 1)
+    {
+        LOGE("Invalid target IP: %s\n", target_ip);
+        return -1;
+    }
+
     // Initialize receiver
     if (receiver_init(target_ip, &port_it, &pcap_handle, &local_ip, &link_header_len) < 0)
     {
         LOGE("Failed to initialize receiver\n");
-
         return -1;
     }
     
@@ -96,7 +103,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                 for (int probe = 0; probe < ((scan_flag == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     uint8_t done = 0;
-                    sender_run(sock, target_ip, port_i, local_ip, scan_flag, probe, response_slot);
+                    sender_run(sock, target_addr, port_i, local_ip, scan_flag, probe, response_slot);
                     (scan_flag == SCAN_FLG_UDP) ? timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_UDP_US) : timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_TCP_US);
                     while (1)
                     {
