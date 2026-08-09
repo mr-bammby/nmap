@@ -5,7 +5,7 @@
 
 typedef struct multi_thread_command
 {
-    char address[16];
+    uint32_t address;
     uint16_t port;
     uint16_t udp_flag_arr_idx;
     uint16_t udp_flag_row_idx;

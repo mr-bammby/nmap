@@ -6,9 +6,10 @@
 #include "protocol_utils.h"
 #include "scan_defines.h"
 #include "threading_config.h"
+#include <arpa/inet.h>
 
 
-static void init_payload(multi_thread_command_t *command, const char *address, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
+static void init_payload(multi_thread_command_t *command, uint32_t address, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
 {
     if (command == NULL)
     {
@@ -16,11 +17,7 @@ static void init_payload(multi_thread_command_t *command, const char *address, u
     }
 
     memset(command, 0, sizeof(multi_thread_command_t));
-    if (address != NULL)
-    {
-        strncpy(command->address, address, sizeof(command->address) - 1);
-        command->address[sizeof(command->address) - 1] = '\0';
-    }
+    command->address = address;
     command->udp_flag_row_idx = flag_row_idx;
     command->port = port;
     command->udp_flag_arr_idx = flag_arr_idx;
@@ -28,15 +25,21 @@ static void init_payload(multi_thread_command_t *command, const char *address, u
 }
 
 
-static uint8_t append_scan(const char *address, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
+static uint8_t append_scan(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag)
 {
     if (multi_thread_shared_cmd_queue.is_full)
     {
         return 2; // Queue is full
     }
 
+    uint32_t target_ip;
+    if (address_str == NULL || inet_pton(AF_INET, address_str, &target_ip) != 1)
+    {
+        return 1; // Invalid address
+    }
+
     multi_thread_command_t command;
-    init_payload(&command, address, flag_row_idx, port, flag_arr_idx, scan_flag);
+    init_payload(&command, target_ip, flag_row_idx, port, flag_arr_idx, scan_flag);
 
     size_t idx = multi_thread_shared_cmd_queue.tail;
     multi_thread_shared_cmd_queue.data[idx] = command;

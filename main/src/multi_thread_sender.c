@@ -148,7 +148,13 @@ void *multi_thread_sender(void *arg)
                 {
                     th_flagging_array_init_access(&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
                 }
-                LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, cmd.address, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
+
+#if MODULE_DEBUG
+                char target_addr_str[INET_ADDRSTRLEN];
+                struct in_addr target_addr = { .s_addr = cmd.address };
+                inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
+                LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, target_addr_str, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
+#endif
                 for (int probe = 0; probe < ((cmd.scan == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, probe, NULL);
@@ -164,21 +170,32 @@ void *multi_thread_sender(void *arg)
                         sender_cleanup(&sock);
                         return (void *)-1; // Exit the thread if abort flag is set
                     }
+
                     if (cmd.scan == SCAN_FLG_UDP)
                     {
                         uint8_t udp_flag = 0;
                         th_flagging_array_get(&flag_arr, cmd.udp_flag_arr_idx, &udp_flag); // Check if the UDP flag has been set
                         if (udp_flag)
                         {
-                            LOGD("Thread %d: UDP response received for address=%s, port=%d, stopping further probes\n", thread_id, cmd.address, cmd.port);
-                            break; // Stop sending further UDP probes if a response has been received
+                            char done_addr_str[INET_ADDRSTRLEN];
+                            struct in_addr done_target_addr = { .s_addr = cmd.address };
+                            inet_ntop(AF_INET, &done_target_addr, done_addr_str, sizeof(done_addr_str));
+                            LOGD("Thread %d: UDP response received for address=%s, port=%d, stopping further probes\n", thread_id, done_addr_str, cmd.port);
+                            break;
                         }
                     }
                 }
                 break;
             case TH_QUEUE_OK_EMPTY_AFTER_ACCEPT:
-                LOGD("Thread %d: Queue is empty after accepting command, waiting for next command\n", thread_id);
-                sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, 0, NULL); //to do figure out UDP
+                {
+#if MODULE_DEBUG
+                    char target_addr_str[INET_ADDRSTRLEN];
+                    struct in_addr target_addr = { .s_addr = cmd.address };
+                    inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
+                    LOGD("Thread %d: Queue is empty after accepting command, waiting for next command\n", thread_id);
+#endif
+                    sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, 0, NULL); //to do figure out UDP
+                }
                 if(nanosleep(&req_err, NULL) != 0)
                 {
                     LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
