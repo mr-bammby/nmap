@@ -120,11 +120,29 @@ static void main_arguments(int argc, const char *argv[], argparse_return_e ret, 
     #endif /* DEBUG_MAIN */
 }
 
+static short priv_test(void)
+{
+    int s = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (s < 0)
+    {
+        return 1;
+    }
+    close(s);
+    return 0;
+}
+
 int main(int argc, const char *argv[])
 {
+    if (priv_test() != 0)
+    {
+        display_nopriv();
+        return EXIT_FAILURE;
+    }
+
     argparse_params_t params = {0};
 
     argparse_return_e parse_result = argparse_parse_arguments(argc, argv, &params);
+    
     int exec_result;
 
     #if DEBUG_MAIN
