@@ -104,17 +104,17 @@ static int16_t tcp_send_packet(uint8_t *packet, uint32_t packet_len, protocol_ip
     return tcp_packet_len;
 }
 
-static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, const char *target_ip, int port, const char *local_ip, uint8_t scan_type)
+static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, uint32_t target_ip, int port, const char *local_ip, uint8_t scan_type)
 {
     uint8_t scan_id = 0;
 
     memset(packet, 0, 128);
     ip_header->id = htons(rand() % PORT_MAX_PORT);
     ip_header->src = inet_addr(local_ip);
-    ip_header->dst = inet_addr(target_ip);
+    ip_header->dst = target_ip;
     sin->sin_family = AF_INET;
     sin->sin_port = htons(port);
-    sin->sin_addr.s_addr = inet_addr(target_ip);
+    sin->sin_addr.s_addr = target_ip;
 
     while ((scan_type & 1u) == 0u && scan_id < 7)
     {
@@ -124,8 +124,7 @@ static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, s
     *cookie = COOKIE_MAKE(scan_id, port);
 }
 
-// --- Sender Logic ---
-void send_packet(int sockfd, const char *target_ip, int port, const char *local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
+void send_packet_ip(int sockfd, uint32_t target_ip, int port, const char *local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
 {
     uint8_t packet[128];
     protocol_ip_header_t ip_header = {0};
@@ -177,6 +176,10 @@ void send_packet(int sockfd, const char *target_ip, int port, const char *local_
     }
     else
     {
-        LOGD("sendto succeeded: target=%s port=%d\n", target_ip, port);
+        char target_ip_str[INET_ADDRSTRLEN];
+        struct in_addr target_in_addr = { .s_addr = target_ip };
+        inet_ntop(AF_INET, &target_in_addr, target_ip_str, sizeof(target_ip_str));
+        LOGD("sendto succeeded: target=%s port=%d\n", target_ip_str, port);
     }
 }
+
