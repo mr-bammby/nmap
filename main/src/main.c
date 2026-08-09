@@ -2,6 +2,7 @@
 #include "debug.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "argument_parser.h"
 #include "scan_defines.h"
 #include "argument_parser_port.h"
@@ -11,7 +12,7 @@
 #include "scan_context.h"
 #include "timer_utils.h"
 #include "multi_thread_shared.h"
-
+#include "signal_handler.h"
 
 const char *parse_error_to_string(argparse_return_e error)
 {
@@ -92,6 +93,8 @@ static void print_params(const argparse_params_t *params)
     LOGD_WF("\n");
 }
 
+static void cleanup_on_interrupt(void);
+
 static void main_arguments(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)
 {
     LOGD("NMAP Argument Parser - Test\n");
@@ -131,6 +134,11 @@ static short priv_test(void)
     return 0;
 }
 
+static void cleanup_on_interrupt(void)
+{
+    fprintf(stderr, "Cleaning up...\n");
+}
+
 int main(int argc, const char *argv[])
 {
     if (priv_test() != 0)
@@ -142,6 +150,7 @@ int main(int argc, const char *argv[])
     argparse_params_t params = {0};
 
     argparse_return_e parse_result = argparse_parse_arguments(argc, argv, &params);
+    init_signal_handler(cleanup_on_interrupt);
     
     int exec_result;
 

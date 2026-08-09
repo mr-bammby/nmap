@@ -47,7 +47,7 @@ void display_help(void)
             \n\
             REPORTING:\n\
               The program resolves service types and displays a clear summary of \n\
-              results including the execution timeframe.\n", VERSION_MAJOR, VERSION_MINOR);
+              results including the execution timeframe.\n");
 }
 
 void display_nopriv(void)
@@ -56,5 +56,5 @@ void display_nopriv(void)
     printf("\
             Error: Insufficient privileges to run the program.\n\
             Please run as root or with elevated permissions.\n\
-            QUITTING!\n", VERSION_MAJOR, VERSION_MINOR);
+            QUITTING!\n");
 }
