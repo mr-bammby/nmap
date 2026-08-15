@@ -36,5 +36,6 @@ uint8_t multi_thread_init(const argparse_params_t *params, multi_thread_command_
         protocol_utils_initialize_results(results[i]);
     }
     LOGD("Multi-threading initialized: Command queue and flagging array set up, results array initialized.\n");
+    
     return multi_thread_command_queue_init(params, queue_state, results, results_rows, results_cols);
 }

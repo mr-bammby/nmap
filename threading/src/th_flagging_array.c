@@ -83,3 +83,14 @@ th_flagging_array_status_t th_flagging_array_reset(th_flagging_array_access_t *a
     }
     return TH_FLAGGING_ARRAY_OK_GENERIC;
 }
+
+void th_flagging_array_free(th_flagging_array_t *arr)
+{
+    if (arr->array)
+    {
+        free(arr->array);
+        arr->array = NULL;
+    }
+    arr->size = 0;
+}
+

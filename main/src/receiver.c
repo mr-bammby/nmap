@@ -38,7 +38,6 @@ int get_link_header_len(int datalink)
 char* get_local_ip(const char *iface_name)
 {
     struct ifaddrs *ifaddr, *ifa;
-    static char ip_addr[INET_ADDRSTRLEN];
 
     if (getifaddrs(&ifaddr) == -1)
     {
@@ -54,7 +53,18 @@ char* get_local_ip(const char *iface_name)
             if (strcmp(ifa->ifa_name, iface_name) == 0)
             {
                 struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
-                strcpy(ip_addr, inet_ntoa(sa->sin_addr));
+                char *ip_addr = malloc(INET_ADDRSTRLEN);
+                if (ip_addr == NULL)
+                {
+                    freeifaddrs(ifaddr);
+                    return NULL;
+                }
+                if (inet_ntop(AF_INET, &sa->sin_addr, ip_addr, INET_ADDRSTRLEN) == NULL)
+                {
+                    free(ip_addr);
+                    freeifaddrs(ifaddr);
+                    return NULL;
+                }
                 freeifaddrs(ifaddr);
                 return ip_addr;
             }
@@ -102,7 +112,7 @@ int receiver_init(const char *target_ip, const argparse_port_set_iterator_t *por
         LOGE("Failed to open handle: %s\n", errbuf);
         return -1;
     }
-
+    pcap_freealldevs(alldevs);
     datalink = pcap_datalink(*pcap_handle_out);
     *link_header_len_out = (uint32_t)get_link_header_len(datalink);
     if (*link_header_len_out < 0)
@@ -117,6 +127,7 @@ int receiver_init(const char *target_ip, const argparse_port_set_iterator_t *por
     sprintf(filter, "src host %s", target_ip);
     pcap_compile(*pcap_handle_out, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
     pcap_setfilter(*pcap_handle_out, &fp);
+    pcap_freecode(&fp);
 
     return 0;
 }

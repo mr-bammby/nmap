@@ -6,57 +6,129 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-
-atomic_bool abort_flag = false;
-atomic_int thread_counter = 0;
-
+th_flagging_array_t *multi_thread_shared_flagging_array = NULL;
 th_queue_t multi_thread_shared_cmd_queue = {0};
-th_flagging_array_t *multi_thread_shared_flagging_array;
 
-void multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
+/* Define the global atomic flags declared in multi_thread_shared.h */
+atomic_bool abort_flag = ATOMIC_VAR_INIT(false);
+atomic_int thread_counter = ATOMIC_VAR_INIT(0);
+
+struct multi_thread_allocs
 {
-    addr_hashmap_t hash_map;
-    multi_thread_command_queue_state_t queue_state;
-    multithread_sender_args_t **args = malloc(sizeof(multithread_sender_args_t *) * (params->thread_num - 1)); // -1 for receiver thread
-    pthread_t *thread_list = (pthread_t *)calloc((size_t)params->thread_num - 1, sizeof(pthread_t));
+    uint32_t address_count;
 
-    if (args == NULL || thread_list == NULL)
+    pthread_t *thread_list;
+    multithread_sender_args_t **args;
+    uint32_t thread_num;
+
+    addr_hashmap_t hash_map;
+
+    pcap_t *pcap_handle;
+    int sock;
+    char *local_ip;
+
+};
+
+struct multi_thread_allocs g_multi_thread_allocs = {0, NULL, NULL, 0, {0}, NULL, -1, NULL };
+
+
+void multi_thread_cleanup(void)
+{
+    atomic_store(&abort_flag, true);
+
+    if (g_multi_thread_allocs.pcap_handle != NULL)
     {
-        free(args);
-        free(thread_list);
+        receiver_cleanup(g_multi_thread_allocs.pcap_handle);
+        g_multi_thread_allocs.pcap_handle = NULL;
+    }
+
+    if (g_multi_thread_allocs.local_ip != NULL)
+    {
+        free(g_multi_thread_allocs.local_ip);
+        g_multi_thread_allocs.local_ip = NULL;
+    }
+
+    th_queue_free(&multi_thread_shared_cmd_queue);
+
+    if (multi_thread_shared_flagging_array != NULL)
+    {
+        for (uint32_t i = 0; i < g_multi_thread_allocs.address_count; i++)
+        {
+            th_flagging_array_free(&multi_thread_shared_flagging_array[i]);
+        }
+    }
+
+    free(multi_thread_shared_flagging_array);
+    multi_thread_shared_flagging_array = NULL;
+
+    addr_hashmap_free(&g_multi_thread_allocs.hash_map);
+    if (g_multi_thread_allocs.thread_list != NULL || g_multi_thread_allocs.args != NULL)
+    {
+        /* Join all sender threads and free per-thread args */
+        for (unsigned int th_num = 0; th_num < g_multi_thread_allocs.thread_num; th_num++)
+        {
+            if (g_multi_thread_allocs.thread_list != NULL && g_multi_thread_allocs.thread_list[th_num] != 0)
+            {
+                (void)pthread_join(g_multi_thread_allocs.thread_list[th_num], NULL);
+                g_multi_thread_allocs.thread_list[th_num] = 0;
+            }
+            if (g_multi_thread_allocs.args != NULL && g_multi_thread_allocs.args[th_num] != NULL)
+            {
+                free(g_multi_thread_allocs.args[th_num]);
+                g_multi_thread_allocs.args[th_num] = NULL;
+            }
+        }
+        free(g_multi_thread_allocs.args);
+        g_multi_thread_allocs.args = NULL;
+        free(g_multi_thread_allocs.thread_list);
+        g_multi_thread_allocs.thread_list = NULL;
+    }
+}
+
+uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
+{
+
+    multi_thread_command_queue_state_t queue_state;
+    g_multi_thread_allocs.address_count = results_rows;
+    g_multi_thread_allocs.thread_num = params->thread_num - 1; // -1 for receiver thread
+    g_multi_thread_allocs.args = malloc(sizeof(multithread_sender_args_t *) * g_multi_thread_allocs.thread_num);
+    g_multi_thread_allocs.thread_list = (pthread_t *)calloc((size_t)g_multi_thread_allocs.thread_num, sizeof(pthread_t));
+
+    if (g_multi_thread_allocs.args == NULL || g_multi_thread_allocs.thread_list == NULL)
+    {
+        multi_thread_cleanup();
         LOGE("Failed to allocate memory for thread arguments\n");
-        return;
+        return 1;
     }
     //First entry in queue is special command for sleep 
 
-    if (multi_thread_init(params, &queue_state, results, results_rows, results_cols, &hash_map) != 0)
+    if (multi_thread_init(params, &queue_state, results, results_rows, results_cols, &g_multi_thread_allocs.hash_map) != 0)
     {
-        free(args);
-        free(thread_list);
+        multi_thread_cleanup();
         LOGE("Failed to initialize multi-threading\n");
-        return;
+        return 1;
     }
     LOGD("Starting multi-threaded execution with %d threads...\n", params->thread_num);
     uint8_t senders_started = 1;
-    for (unsigned int th_num = 0; th_num < (params->thread_num - 1); th_num++) // -1 for receiver thread
+    for (unsigned int th_num = 0; th_num < g_multi_thread_allocs.thread_num; th_num++) // -1 for receiver thread
     {
-        args[th_num] = malloc(sizeof(multithread_sender_args_t));
-        if (args[th_num] == NULL)
+        g_multi_thread_allocs.args[th_num] = calloc(1, sizeof(multithread_sender_args_t));
+        if (g_multi_thread_allocs.args[th_num] == NULL)
         {
-            atomic_store(&abort_flag, true);
+            multi_thread_cleanup();
             senders_started = 0;
             LOGE("Failed to allocate memory for thread arguments\n");
             break;
         }
-        args[th_num]->cmd_queue = &multi_thread_shared_cmd_queue;
-        args[th_num]->flagging_array = multi_thread_shared_flagging_array;
-        args[th_num]->thread_id = th_num;
+        g_multi_thread_allocs.args[th_num]->cmd_queue = &multi_thread_shared_cmd_queue;
+        g_multi_thread_allocs.args[th_num]->flagging_array = multi_thread_shared_flagging_array;
+        g_multi_thread_allocs.args[th_num]->thread_id = th_num;
 
-        if ( pthread_create(&thread_list[th_num], NULL, multi_thread_sender, (void *)args[th_num]) != 0)
+        if ( pthread_create(&g_multi_thread_allocs.thread_list[th_num], NULL, multi_thread_sender, (void *)g_multi_thread_allocs.args[th_num]) != 0)
         {
             LOGE("Failed to create sender thread %d\n", th_num);
-            free(args[th_num]);
-            args[th_num] = NULL;
+            free(g_multi_thread_allocs.args[th_num]);
+            g_multi_thread_allocs.args[th_num] = NULL;
             senders_started = 0;
             atomic_store(&abort_flag, true);
             break;
@@ -65,19 +137,17 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
 
     size_t count = 0;
 
-    pcap_t *pcap_handle = NULL;
-    int sock = -1;
-    char *local_ip;
+    
     uint32_t link_header_len;
     argparse_port_set_iterator_t port_it;
     unsigned int port_i;
     if (senders_started)
     {
         // Initialize receiver handle
-        if (multi_thread_receiver_init(params->address, &pcap_handle, &local_ip, &link_header_len) < 0)
+        if (multi_thread_receiver_init(params->address, &g_multi_thread_allocs.pcap_handle, &g_multi_thread_allocs.local_ip, &link_header_len) < 0)
         {
-            LOGE("mFailed to initialize receiver\n");
-            return;
+            LOGE("Failed to initialize receiver\n");
+            return 1;
         }
         LOGI("Receiver handle successfully inititalized\n");
 
@@ -88,24 +158,36 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
         multi_thread_command_t data;
         th_queue_read(&access, &data, NULL);
 
-        multi_thread_receiver_run(pcap_handle, link_header_len, results, &hash_map);
-    }
-    
-    for (unsigned int th_num = 0; th_num < (params->thread_num - 1); th_num++)
-    {
-        if (args[th_num] != NULL)
+        if (multi_thread_receiver_run(g_multi_thread_allocs.pcap_handle, link_header_len, results, &g_multi_thread_allocs.hash_map) != 0)
         {
-            pthread_join(thread_list[th_num], NULL);
-            LOGD("Thread %d joined successfully\n", th_num);
-            free(args[th_num]);
+            LOGE("Receiver encountered an error during execution\n");
+            multi_thread_cleanup();
+            return 1;
         }
     }
-    if (pcap_handle != NULL)
+    
+    for (unsigned int th_num = 0; th_num < g_multi_thread_allocs.thread_num; th_num++)
     {
-        pcap_close(pcap_handle);
-        pcap_handle = NULL;
-        LOGI("Receiver handle successfully destroyed\n");
+        if (g_multi_thread_allocs.args[th_num] != NULL)
+        {
+            pthread_join(g_multi_thread_allocs.thread_list[th_num], NULL);
+            LOGD("Thread %d joined successfully\n", th_num);
+            g_multi_thread_allocs.thread_list[th_num] = 0;
+            free(g_multi_thread_allocs.args[th_num]);
+            g_multi_thread_allocs.args[th_num] = NULL;
+        }
     }
-    free(args);
-    free(thread_list);
+    /* Free thread arrays once after joining */
+    if (g_multi_thread_allocs.thread_list != NULL)
+    {
+        free(g_multi_thread_allocs.thread_list);
+        g_multi_thread_allocs.thread_list = NULL;
+    }
+    if (g_multi_thread_allocs.args != NULL)
+    {
+        free(g_multi_thread_allocs.args);
+        g_multi_thread_allocs.args = NULL;
+    }
+    multi_thread_cleanup();
+    return 0;
 }

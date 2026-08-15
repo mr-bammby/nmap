@@ -6,6 +6,7 @@
 #include "receiver.h"
 #include <stdlib.h>
 #include <packet_handler.h>
+#include "exec.h"
 
 static int build_bpf_filter(const argparse_addr_node_t *addresses, const char *local_ip, char *filter, size_t filter_size){
     const argparse_addr_node_t *node = addresses;
@@ -88,7 +89,7 @@ int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **p
         LOGE("Failed to open handle: %s\n", errbuf);
         return -1;
     }
-
+    pcap_freealldevs(alldevs);
     datalink = pcap_datalink(*pcap_handle_out);
     *link_header_len_out = (uint32_t)get_link_header_len(datalink);
     if (*link_header_len_out < 0)
@@ -132,7 +133,7 @@ int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **p
         receiver_cleanup(*pcap_handle_out);
         return -1;
     }
-
+    pcap_freecode(&fp);
     return 0;
 }
 
@@ -150,11 +151,19 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
             // write result
         // if #threads == 0
             // exit while
+    uint8_t ret = 0;
     struct pcap_pkthdr *header;
     const unsigned char *packet;
     while (atomic_load(&thread_counter) > 0)
     {
         //LOGD("Receiver sniffing\n");
+        if (atomic_load(&interrupt_flag))
+        {
+            atomic_store(&abort_flag, true);
+            LOGE("Abort flag set, exiting receiver\n");
+            ret = 1;
+            break;
+        }
         int res = pcap_next_ex(pcap_handle, &header, &packet);
         if (res == 1)
         {
@@ -164,8 +173,20 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
 
         }
     }
-    return 0;
-
-    
-
+    if (ret == 1)
+    {
+        uint8_t cnt = 0;
+        while (atomic_load(&thread_counter) > 0)
+        {
+            LOGD("Waiting for sender threads to finish...\n");
+            sleep(1);
+            if (cnt > 10)
+            {
+                LOGE("Timeout waiting for sender threads to finish, forcing exit\n");
+                break;
+            }
+            cnt++;
+        }
+    }
+    return ret;
 }

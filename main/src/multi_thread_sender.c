@@ -84,6 +84,7 @@ char *get_local_ip_sender(void)
         return NULL;
     }
     LOGD("Using Local IP: %s\n", local_ip);
+    pcap_freealldevs(alldevs);
     return local_ip;
 }
 
@@ -102,13 +103,16 @@ void *multi_thread_sender(void *arg)
     th_queue_t *cmd_queue = args->cmd_queue;
     th_flagging_array_t *flagging_array = args->flagging_array;
     uint16_t thread_id = args->thread_id;
-    int sock;
+    int sock = -1;
     th_queue_access_t access;
     th_flagging_array_access_t flag_arr;
     int err_cnt = 0;
     struct timespec req_err, req_exit, req_tcp, req_udp;
     char *local_ip = get_local_ip_sender();
-
+    #if MODULE_DEBUG
+                char target_addr_str[INET_ADDRSTRLEN];
+                struct in_addr target_addr;
+    #endif
     req_err.tv_sec = SLEEP_ERR_S;
     req_err.tv_nsec = SLEEP_ERR_NS;
     req_exit.tv_sec = SLEEP_EXIT_S;
@@ -120,8 +124,16 @@ void *multi_thread_sender(void *arg)
 
     LOGD("Thread %d: Starting sender thread\n", thread_id);
     atomic_fetch_add(&thread_counter, 1);
-    sender_init(&sock);
+    if (sender_init(&sock) < 0)
+    {
+        LOGE("Thread %d: Failed to initialize sender socket, exiting thread\n", thread_id);
+        sender_cleanup(&sock);
+        atomic_fetch_add(&thread_counter, -1);
+        return (void *)-1;
+    }
     LOGD("Thread %d: Sender socket initialized\n", thread_id);
+    /* Helper to cleanup socket and decrement thread counter before exiting */
+#define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
     th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_LOW);
     LOGD("Thread %d: Sender thread initialized and ready to process commands\n", thread_id);
     while (1)
@@ -129,14 +141,12 @@ void *multi_thread_sender(void *arg)
         if (atomic_load(&abort_flag))
         {
             LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
-            sender_cleanup(&sock);
-            return (void *)-1; // Exit the thread if abort flag is set
+            THREAD_EXIT((void *)-1);
         }
         if (err_cnt > MAX_ERR_COUNT)
         {
             LOGE("Thread %d: Exceeded maximum error count, exiting thread\n", thread_id);
-            sender_cleanup(&sock);
-            return (void *)-1; // Exit the thread if too many errors occur
+            THREAD_EXIT((void *)-1);
         }
         TH_QUEUE_DATA_TYPE cmd;
         th_queue_status_t status;
@@ -150,8 +160,7 @@ void *multi_thread_sender(void *arg)
                 }
 
 #if MODULE_DEBUG
-                char target_addr_str[INET_ADDRSTRLEN];
-                struct in_addr target_addr = { .s_addr = cmd.address };
+                target_addr.s_addr = cmd.address;
                 inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
                 LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, target_addr_str, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
 #endif
@@ -162,13 +171,12 @@ void *multi_thread_sender(void *arg)
                     if (nanosleep(sleep_time, NULL) != 0) // Sleep for a short duration to avoid overwhelming the network
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                        return (void *)-2; // Exit the thread if nanosleep is interrupted
+                        THREAD_EXIT((void *)-2);
                     }
                     if (atomic_load(&abort_flag))
                     {
                         LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
-                        sender_cleanup(&sock);
-                        return (void *)-1; // Exit the thread if abort flag is set
+                        THREAD_EXIT((void *)-1);
                     }
 
                     if (cmd.scan == SCAN_FLG_UDP)
@@ -187,21 +195,50 @@ void *multi_thread_sender(void *arg)
                 }
                 break;
             case TH_QUEUE_OK_EMPTY_AFTER_ACCEPT:
+                if (cmd.scan == SCAN_FLG_UDP)
                 {
+                      (&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
+                }
+
 #if MODULE_DEBUG
-                    char target_addr_str[INET_ADDRSTRLEN];
-                    struct in_addr target_addr = { .s_addr = cmd.address };
-                    inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
-                    LOGD("Thread %d: Queue is empty after accepting command, waiting for next command\n", thread_id);
+                target_addr.s_addr = cmd.address;
+                inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
+                LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, target_addr_str, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
 #endif
-                    sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, 0, NULL); //to do figure out UDP
+                for (int probe = 0; probe < ((cmd.scan == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
+                {
+                    sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, probe, NULL);
+                    struct timespec *sleep_time = (cmd.scan == SCAN_FLG_UDP) ? &req_udp : &req_tcp;
+                    if (nanosleep(sleep_time, NULL) != 0) // Sleep for a short duration to avoid overwhelming the network
+                    {
+                        LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
+                        THREAD_EXIT((void *)-2);
+                    }
+                    if (atomic_load(&abort_flag))
+                    {
+                        LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
+                        THREAD_EXIT((void *)-1);
+                    }
+
+                    if (cmd.scan == SCAN_FLG_UDP)
+                    {
+                        uint8_t udp_flag = 0;
+                        th_flagging_array_get(&flag_arr, cmd.udp_flag_arr_idx, &udp_flag); // Check if the UDP flag has been set
+                        if (udp_flag)
+                        {
+                            char done_addr_str[INET_ADDRSTRLEN];
+                            struct in_addr done_target_addr = { .s_addr = cmd.address };
+                            inet_ntop(AF_INET, &done_target_addr, done_addr_str, sizeof(done_addr_str));
+                            LOGD("Thread %d: UDP response received for address=%s, port=%d, stopping further probes\n", thread_id, done_addr_str, cmd.port);
+                            break;
+                        }
+                    }
                 }
                 if(nanosleep(&req_err, NULL) != 0)
                 {
                     LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                    return (void *)-2; // Exit the thread if nanosleep is interrupted
+                    THREAD_EXIT((void *)-2);
                 }
-                continue;
                 break;
             case TH_QUEUE_OK_CONDITION_REJECTED:
                 if (cmd.scan == MULTI_TH_SP_CMD_SKIP) // Check if the highest bit of scan is set
@@ -210,7 +247,7 @@ void *multi_thread_sender(void *arg)
                     if(nanosleep(&req_err, NULL) != 0)
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                        return (void *)-2; // Exit the thread if nanosleep is interrupted
+                        THREAD_EXIT((void *)-2);
                     }
                     #ifdef MULTITHREAD_SENDER_TEST_MODE
                         err_cnt++;
@@ -220,14 +257,12 @@ void *multi_thread_sender(void *arg)
                 else if (cmd.scan == MULTI_TH_SP_CMD_END)
                 {
                     LOGD("Thread %d: Received end command, exiting thread\n", thread_id);
-                    sender_cleanup(&sock);
                     if(nanosleep(&req_exit, NULL) != 0)
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting to exit\n", thread_id);
-                        return (void *)-2; // Exit the thread if nanosleep is interrupted
+                        THREAD_EXIT((void *)-2);
                     }
-                    atomic_fetch_add(&thread_counter, -1);
-                    return NULL; // Exit the thread
+                    THREAD_EXIT(NULL);
                 }
                 else
                 {
@@ -235,7 +270,7 @@ void *multi_thread_sender(void *arg)
                     if(nanosleep(&req_err, NULL) != 0)
                     {
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                        return (void *)-2; // Exit the thread if nanosleep is interrupted
+                        THREAD_EXIT((void *)-2);
                     }
                     err_cnt++;
                     continue;
@@ -246,7 +281,7 @@ void *multi_thread_sender(void *arg)
                 if(nanosleep(&req_err, NULL) != 0)
                 {
                     LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                    return (void *)-2; // Exit the thread if nanosleep is interrupted
+                    THREAD_EXIT((void *)-2);
                 }
                 err_cnt++;
                 break;
@@ -257,7 +292,6 @@ void *multi_thread_sender(void *arg)
     if (atomic_fetch_add(&thread_counter, -1))
     {
         LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
-        sender_cleanup(&sock);
         return (void *)-1; // Exit the thread if abort flag is set
     }
 

@@ -22,6 +22,7 @@
 #include "sender.h"
 #include "receiver.h"
 #include "timer_utils.h"
+#include "exec.h"
 
 
 #define NUMBER_OF_SCAN_TYPES SCAN_NUMBER_OF_SCAN_TYPES
@@ -30,6 +31,36 @@
 #define RESPONSE_POLL_TIMEOUT_UDP_US 1000
 #define RESPONSE_POLL_SLEEP_US_LOCAL 10 /* Local override renamed to avoid redefinition with main/inc/sender.h */
 
+
+struct nmap_single_thread_allocs
+{
+    int sender_socket;
+    pcap_t *pcap_handle;
+    char *local_ip;
+};
+
+struct nmap_single_thread_allocs g_single_thread_allocs = { -1, NULL, NULL };
+
+void single_thread_cleanup(void)
+{
+    printf("Cleaning up single-threaded execution resources...\n");
+    if (g_single_thread_allocs.pcap_handle != NULL)
+    {
+        printf("Cleaning up receiver...\n");
+        receiver_cleanup(g_single_thread_allocs.pcap_handle);
+        printf("Receiver cleanup complete.\n");
+        g_single_thread_allocs.pcap_handle = NULL;
+    }
+    printf("Cleaning up sender socket...\n");
+    sender_cleanup(&g_single_thread_allocs.sender_socket);
+    printf("Cleaning up local IP...\n");
+    if (g_single_thread_allocs.local_ip != NULL)
+    {
+        free(g_single_thread_allocs.local_ip);
+        g_single_thread_allocs.local_ip = NULL;
+    }
+    printf("Single-threaded execution cleanup complete.\n");
+}
 
 static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t scan_flag)
 {
@@ -50,9 +81,6 @@ static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t sc
 
 int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bitmap_t scans, scan_result_t results[RESULTS_CAPACITY])
 {
-    pcap_t *pcap_handle = NULL;
-    int sock = -1;
-    char *local_ip;
     uint32_t link_header_len;
     argparse_port_set_iterator_t port_it;
     unsigned int port_i;
@@ -64,9 +92,10 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
     // Initialize results array
     protocol_utils_initialize_results(results);
     // Initialize sender socket
-    if (sender_init(&sock) < 0)
+    if (sender_init(&g_single_thread_allocs.sender_socket) < 0)
     {
         LOGE("Failed to initialize sender socket\n");
+        single_thread_cleanup();
         return -1;
     }
 
@@ -74,16 +103,28 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
     if (inet_pton(AF_INET, target_ip, &target_addr) != 1)
     {
         LOGE("Invalid target IP: %s\n", target_ip);
+        single_thread_cleanup();
         return -1;
     }
-
+    if (atomic_load(&interrupt_flag))
+    {
+        LOGE("Interrupt signal received before starting execution\n");
+        single_thread_cleanup();
+        return -1;
+    }
     // Initialize receiver
-    if (receiver_init(target_ip, &port_it, &pcap_handle, &local_ip, &link_header_len) < 0)
+    if (receiver_init(target_ip, &port_it, &g_single_thread_allocs.pcap_handle, &g_single_thread_allocs.local_ip, &link_header_len) < 0)
     {
         LOGE("Failed to initialize receiver\n");
+        single_thread_cleanup();
         return -1;
     }
-    
+    if (atomic_load(&interrupt_flag))
+    {
+        LOGE("Interrupt signal received before starting execution\n");
+        single_thread_cleanup();
+        return -1;
+    }
     while (argparse_port_iterator_next(&port_it, &port_i) == 0)
     {
         for (int scan_i = 0; scan_i < NUMBER_OF_SCAN_TYPES; scan_i++)
@@ -103,15 +144,22 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                 for (int probe = 0; probe < ((scan_flag == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     uint8_t done = 0;
-                    sender_run(sock, target_addr, port_i, local_ip, scan_flag, probe, response_slot);
+                    sender_run(g_single_thread_allocs.sender_socket, target_addr, port_i, g_single_thread_allocs.local_ip, scan_flag, probe, response_slot);
+                    
                     (scan_flag == SCAN_FLG_UDP) ? timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_UDP_US) : timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_TCP_US);
                     while (1)
                     {
+                        if (atomic_load(&interrupt_flag))
+                        {
+                            LOGE("Interrupt signal received before starting execution\n");
+                            single_thread_cleanup();
+                            return -1;
+                        }
                         if (timeout_check(&timeout))
                         {
                             break;
                         }
-                        if(receiver_run(pcap_handle, link_header_len, response_slot, results) == 1)
+                        if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, response_slot, results) == 1)
                         {
                             done = 1;
                             break;
@@ -127,8 +175,6 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
             }
         }
     }
-    receiver_cleanup(pcap_handle);
-    sender_cleanup(&sock);
-
+    single_thread_cleanup();
     return 0;
 }

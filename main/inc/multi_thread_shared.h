@@ -51,8 +51,9 @@ typedef enum
 // HERE JUST FOR NOW SO WE HAVE STARTING POINT FOR MULTI-THREADING IMPLEMENTATION
 uint8_t multi_thread_init(const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, scan_result_t **results, uint32_t results_rows, uint32_t results_cols, addr_hashmap_t *hash_map);
 uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, scan_result_t **results, uint32_t results_rows, uint32_t results_cols);
-void multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols);
+uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols);
 int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **pcap_handle_out, char **local_ip_out, uint32_t *link_header_len_out);
 uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map);
 void *multi_thread_sender(void *arg);
+void multi_thread_cleanup(void);
 #endif // MULTI_THREAD_SHARED_H

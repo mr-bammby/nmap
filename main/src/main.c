@@ -14,6 +14,27 @@
 #include "multi_thread_shared.h"
 #include "signal_handler.h"
 
+typedef enum nmap_stage
+{
+    NMAP_STAGE_INIT = 0,
+    NMAP_STAGE_SINGLE_THREAD_EXEC,
+    NMAP_STAGE_MULTI_THREAD_EXEC,
+    NMAP_STAGE_EXEC_DONE
+} nmap_stage_t;
+
+struct nmap_allocs
+{
+    nmap_stage_t stage;
+    argparse_params_t params;
+    scan_result_t *results;
+    scan_result_t **results_rows;
+    pthread_t signal_handler_thread;
+};
+
+struct nmap_allocs g_allocs = {NMAP_STAGE_INIT, {0}, NULL, NULL, 0};
+
+atomic_bool interrupt_flag = ATOMIC_VAR_INIT(false);
+
 const char *parse_error_to_string(argparse_return_e error)
 {
     switch (error)
@@ -93,7 +114,12 @@ static void print_params(const argparse_params_t *params)
     LOGD_WF("\n");
 }
 
-static void cleanup_on_interrupt(void);
+/* Signal callback used by init_signal_handler -- must be async-signal-safe */
+static void signal_callback(void)
+{
+    /* Set the global interrupt flag observed by threads */
+    atomic_store(&interrupt_flag, true);
+}
 
 static void main_arguments(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)
 {
@@ -134,9 +160,36 @@ static short priv_test(void)
     return 0;
 }
 
-static void cleanup_on_interrupt(void)
+static void cleanup(void)
 {
     fprintf(stderr, "Cleaning up...\n");
+
+    free(g_allocs.results_rows);
+    g_allocs.results_rows = NULL;
+    free(g_allocs.results);
+    g_allocs.results = NULL;
+    argparse_free_arguments(&g_allocs.params);
+}
+
+void cleanup_on_interrupt(void)
+{
+    fprintf(stderr, "Interrupt received. Cleaning up...\n");
+    switch (g_allocs.stage)
+    {
+        case NMAP_STAGE_SINGLE_THREAD_EXEC:
+            cleanup();
+            break;
+        case NMAP_STAGE_MULTI_THREAD_EXEC:
+            multi_thread_cleanup();
+            cleanup();
+            break;
+        case NMAP_STAGE_EXEC_DONE:
+        case NMAP_STAGE_INIT:
+        default:
+            cleanup();
+            break;
+    }
+
 }
 
 int main(int argc, const char *argv[])
@@ -146,16 +199,14 @@ int main(int argc, const char *argv[])
         display_nopriv();
         return EXIT_FAILURE;
     }
-
-    argparse_params_t params = {0};
-
-    argparse_return_e parse_result = argparse_parse_arguments(argc, argv, &params);
-    init_signal_handler(cleanup_on_interrupt);
-    
     int exec_result;
+    /* Register the full cleanup to be called directly from the signal handler */
+    init_signal_handler(signal_callback);
+    g_allocs.stage = NMAP_STAGE_INIT;
+    argparse_return_e parse_result = argparse_parse_arguments(argc, argv, &g_allocs.params);
 
     #if DEBUG_MAIN
-    main_arguments(argc, argv, parse_result, &params);
+    main_arguments(argc, argv, parse_result, &g_allocs.params);
     #endif /* DEBUG_MAIN */
 
     if (parse_result != ARGPARSE_OK)
@@ -163,87 +214,92 @@ int main(int argc, const char *argv[])
         if (parse_result == ARGPARSE_HELP_REQUEST)
         {
             display_help();
+            cleanup();
             return EXIT_SUCCESS;
         }
         display_help();
+        cleanup();
         return EXIT_FAILURE;
     }
     else
     {
-        resprint_print_scan_header(&params);
-        printf("TEST PRINTF AFTER HEADER PRINT\n");
+        resprint_print_scan_header(&g_allocs.params);
         LOGD("Start counting addresses\n");
         int address_count = 0;
-        for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+        for (argparse_addr_node_t *current = g_allocs.params.address; current != NULL; current = current->next)
         {
             LOGD("For loop address from current: %s\n", current->addr);
             address_count++;
         }
         LOGD("Address count: %d\n", address_count);
-        scan_result_t *results = calloc(sizeof(scan_result_t), RESULTS_CAPACITY * address_count);
-        if (!results)
+        g_allocs.results = calloc(sizeof(scan_result_t), RESULTS_CAPACITY * address_count);
+        if (!g_allocs.results)
         {
             LOGE("Failed to allocate memory for scan results.\n");
-            argparse_free_arguments(&params);
+            cleanup();
             return EXIT_FAILURE;
         }
-
         /* Restructure results into rows */
-        scan_result_t **results_rows = malloc(address_count * sizeof(scan_result_t *));
-        if (!results_rows)
+        g_allocs.results_rows  = malloc(address_count * sizeof(scan_result_t *));
+        if (!g_allocs.results_rows)
         {
             LOGE("Failed to allocate memory for scan result row pointers.\n");
-            free(results);
-            argparse_free_arguments(&params);
+            free(g_allocs.results);
+            cleanup();
             return EXIT_FAILURE;
         }
         for (int i = 0; i < address_count; i++)
         {
-            results_rows[i] = &results[i * RESULTS_CAPACITY];
+            g_allocs.results_rows[i] = &g_allocs.results[i * RESULTS_CAPACITY];
         }
         
         nmap_timer_t timer;
         float elapsed_time;
         start_timer(&timer);
 
-        if (params.thread_num > 1)
+        if (g_allocs.params.thread_num > 1)
         {
+            g_allocs.stage = NMAP_STAGE_MULTI_THREAD_EXEC;
             LOGD("Multi threading starts\n");
-            multi_thread_exec(&params, results_rows, address_count, RESULTS_CAPACITY);
+            if (multi_thread_exec(&g_allocs.params, g_allocs.results_rows, address_count, RESULTS_CAPACITY) != 0)
+            {
+                LOGE("Error during multi-threaded execution\n");
+                cleanup();
+                return EXIT_FAILURE;
+            }
         }
         else
         {
+            g_allocs.stage = NMAP_STAGE_SINGLE_THREAD_EXEC;
             uint32_t cnt = 0;
-            for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+            for (argparse_addr_node_t *current = g_allocs.params.address; current != NULL; current = current->next)
             {
                 LOGD("Scanning %s...\n", current->addr);
                 /* Pass the per-address results block to single_thread_exec */
-                exec_result = single_thread_exec(current->addr, params.ports, params.scans, results_rows[cnt]);
+                exec_result = single_thread_exec(current->addr, g_allocs.params.ports, g_allocs.params.scans, g_allocs.results_rows[cnt]);
                 if (exec_result != 0)
                 {
                     LOGE("Error scanning %s\n", current->addr);
+                    cleanup();
+                    return EXIT_FAILURE;
                 }
                 cnt++;
             }
         }
-
+        g_allocs.stage = NMAP_STAGE_EXEC_DONE;
         stop_timer(&timer);
         elapsed_time = read_time_s(&timer);
         
         resprint_print_scan_stats(elapsed_time);
         /* Print results per-address using the per-address block start */
         int idx = 0;
-        for (argparse_addr_node_t *current = params.address; current != NULL; current = current->next)
+        for (argparse_addr_node_t *current = g_allocs.params.address; current != NULL; current = current->next)
         {
-            resprint_parse_scan_results(&results[idx * RESULTS_CAPACITY], PORT_START - 1, PORT_END, current->addr, elapsed_time);
+            resprint_parse_scan_results(&g_allocs.results[idx * RESULTS_CAPACITY], PORT_START - 1, PORT_END, current->addr, elapsed_time);
             idx++;
         }
-
-        free(results_rows);
-        free(results);
     }
-
-    argparse_free_arguments(&params);
+    cleanup();
 
     return (parse_result == ARGPARSE_OK || parse_result == ARGPARSE_HELP_REQUEST) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

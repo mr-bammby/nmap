@@ -8,70 +8,61 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "signal_handler.h"
+#include <pthread.h>
 
 static interrupt_callback_t g_interrupt_callback = NULL;
+static sigset_t g_sigset;
 
-static void interrupt_handler(int signum)
+static void *signal_waiter(void *arg)
 {
-    char buf[64];
-    size_t idx = 0;
-
-    if (g_interrupt_callback != NULL)
+    (void)arg;
+    int sig;
+    while (1)
     {
-        g_interrupt_callback();
-    }
-
-
-    const char *prefix = "Interrupted ";
-    const char *suffix = " QUITING!\n";
-
-    for (const char *p = prefix; *p != '\0'; p++)
-    {
-        buf[idx++] = *p;
-    }
-
-    unsigned int value = (unsigned int)signum;
-    char digits[16];
-    size_t digit_count = 0;
-
-    if (value == 0)
-    {
-        digits[digit_count++] = '0';
-    }
-    else
-    {
-        while (value > 0)
+        if (sigwait(&g_sigset, &sig) == 0)
         {
-            digits[digit_count++] = (char)('0' + (value % 10));
-            value /= 10;
+            if (g_interrupt_callback != NULL)
+            {
+                g_interrupt_callback();
+            }
+            /* Write a brief message to stderr in a safe way */
+            const char *msg = "Interrupted - quitting!\n";
+            (void)write(STDERR_FILENO, msg, strlen(msg));
         }
     }
-
-    for (size_t i = 0; i < digit_count; i++)
-    {
-        buf[idx++] = digits[digit_count - 1 - i];
-    }
-
-    for (const char *p = suffix; *p != '\0'; p++)
-    {
-        buf[idx++] = *p;
-    }
-
-    (void)write(STDERR_FILENO, buf, idx);
-
-    _exit(EXIT_FAILURE);
+    return NULL;
 }
 
 void init_signal_handler(interrupt_callback_t callback)
 {
     g_interrupt_callback = callback;
 
-    struct sigaction action = {0};
-    action.sa_handler = interrupt_handler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
+    sigemptyset(&g_sigset);
+    sigaddset(&g_sigset, SIGINT);
+    sigaddset(&g_sigset, SIGTERM);
+    sigaddset(&g_sigset, SIGQUIT);
 
-    sigaction(SIGINT, &action, NULL);
-    sigaction(SIGTERM, &action, NULL);
-    sigaction(SIGQUIT, &action, NULL);
+    /* Block signals in all threads; the signal waiter thread will handle them */
+    pthread_sigmask(SIG_BLOCK, &g_sigset, NULL);
+
+    pthread_t tid;
+    if (pthread_create(&tid, NULL, signal_waiter, NULL) != 0)
+    {
+        /* Fallback: if thread creation fails, leave default handlers */
+        sigemptyset(&g_sigset);
+        sigaddset(&g_sigset, SIGINT);
+        sigaddset(&g_sigset, SIGTERM);
+        sigaddset(&g_sigset, SIGQUIT);
+        struct sigaction action = {0};
+        action.sa_handler = SIG_DFL;
+        sigaction(SIGINT, &action, NULL);
+        sigaction(SIGTERM, &action, NULL);
+        sigaction(SIGQUIT, &action, NULL);
+
+        return;
+    }
+    else
+    {
+        pthread_detach(tid);
+    }
 }

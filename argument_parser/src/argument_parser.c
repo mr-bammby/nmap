@@ -100,6 +100,7 @@ void argparse_free_arguments(argparse_params_t *parameters)
     if (parameters->address != NULL)
     {
         ap_address_free_list(&parameters->address);
+        parameters->address = NULL;
     }
 
     /* clear other fields */

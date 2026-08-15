@@ -159,3 +159,19 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
     return(TH_QUEUE_ERR_EMPTY);
 
 }
+
+void th_queue_free(th_queue_t *queue)
+{
+    if (queue == NULL)
+        return;
+    if (queue->data != NULL)
+    {
+        free(queue->data);
+        queue->data = NULL;
+    }
+    queue->capacity = 0;
+    queue->head = 0;
+    queue->tail = 0;
+    queue->is_empty = 1;
+    queue->is_full = 0;
+}

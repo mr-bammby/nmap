@@ -46,4 +46,7 @@ th_queue_status_t th_queue_init_access(th_queue_access_t *access, th_queue_t *qu
 th_queue_status_t th_queue_write(th_queue_access_t *queue, const TH_QUEUE_DATA_TYPE *data);
 th_queue_status_t th_queue_read(th_queue_access_t *queue, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond));
 
+/* Free resources held by the queue (data buffer) */
+void th_queue_free(th_queue_t *queue);
+
 #endif // TH_QUEUE_H

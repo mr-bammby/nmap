@@ -33,6 +33,7 @@ th_flagging_array_status_t th_flagging_array_init_access(th_flagging_array_acces
 th_flagging_array_status_t th_flagging_array_get(th_flagging_array_access_t *access, size_t idx, uint8_t *ret);
 th_flagging_array_status_t th_flagging_array_set(th_flagging_array_access_t *access, size_t idx, uint8_t val);
 th_flagging_array_status_t th_flagging_array_reset(th_flagging_array_access_t *access);
+void th_flagging_array_free(th_flagging_array_t *arr);
 
 
 #endif // TH_FLAGGING_ARRAY_H
