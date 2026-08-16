@@ -5,6 +5,7 @@
 #include "th_flagging_array.h"
 #include "protocol_utils.h"
 #include "scan_defines.h"
+#include "scan_context.h"
 #include "threading_config.h"
 #include <arpa/inet.h>
 
@@ -111,7 +112,24 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
             {
                 if (params->scans & (1 << scan_i))
                 {
-                    uint8_t result = append_scan(current->addr, queue_state->address_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << scan_i));
+                    /* Mark the results slot as attempted so lack of reply is recorded */
+                    uint8_t scan_flag = (uint8_t)(1u << scan_i);
+                    if (results != NULL && queue_state->address_idx < results_rows) {
+                        scan_result_t *row = results[queue_state->address_idx];
+                        if (row != NULL && port_value >= PORT_START && port_value <= PORT_END) {
+                            switch (scan_flag) {
+                                case SCAN_FLG_SYN:  row[port_value - 1].response_syn  = RESPONSE_NO_RESPONSE; break;
+                                case SCAN_FLG_NULL: row[port_value - 1].response_null = RESPONSE_NO_RESPONSE; break;
+                                case SCAN_FLG_ACK:  row[port_value - 1].response_ack  = RESPONSE_NO_RESPONSE; break;
+                                case SCAN_FLG_FIN:  row[port_value - 1].response_fin  = RESPONSE_NO_RESPONSE; break;
+                                case SCAN_FLG_XMAS: row[port_value - 1].response_xmas = RESPONSE_NO_RESPONSE; break;
+                                case SCAN_FLG_UDP:  row[port_value - 1].response_udp  = RESPONSE_NO_RESPONSE; break;
+                                default: break;
+                            }
+                        }
+                    }
+
+                    uint8_t result = append_scan(current->addr, queue_state->address_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, scan_flag);
                     if (result == 1)
                     {
                         LOGE("Failed to add scan command to queue for address %s\n", current->addr);
@@ -156,6 +174,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
             queue_state->port_idx = 0;
             queue_state->scan_idx = MULTI_TH_SP_CMD_END;
             LOGD("All commands added to queue successfully.\n");
+            LOGI("Queue state after init: head=%zu tail=%zu is_empty=%u is_full=%u capacity=%zu\n", multi_thread_shared_cmd_queue.head, multi_thread_shared_cmd_queue.tail, multi_thread_shared_cmd_queue.is_empty, multi_thread_shared_cmd_queue.is_full, multi_thread_shared_cmd_queue.capacity);
         }
 
     }

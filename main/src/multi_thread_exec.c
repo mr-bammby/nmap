@@ -110,30 +110,6 @@ uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **resul
     }
     LOGD("Starting multi-threaded execution with %d threads...\n", params->thread_num);
     uint8_t senders_started = 1;
-    for (unsigned int th_num = 0; th_num < g_multi_thread_allocs.thread_num; th_num++) // -1 for receiver thread
-    {
-        g_multi_thread_allocs.args[th_num] = calloc(1, sizeof(multithread_sender_args_t));
-        if (g_multi_thread_allocs.args[th_num] == NULL)
-        {
-            multi_thread_cleanup();
-            senders_started = 0;
-            LOGE("Failed to allocate memory for thread arguments\n");
-            break;
-        }
-        g_multi_thread_allocs.args[th_num]->cmd_queue = &multi_thread_shared_cmd_queue;
-        g_multi_thread_allocs.args[th_num]->flagging_array = multi_thread_shared_flagging_array;
-        g_multi_thread_allocs.args[th_num]->thread_id = th_num;
-
-        if ( pthread_create(&g_multi_thread_allocs.thread_list[th_num], NULL, multi_thread_sender, (void *)g_multi_thread_allocs.args[th_num]) != 0)
-        {
-            LOGE("Failed to create sender thread %d\n", th_num);
-            free(g_multi_thread_allocs.args[th_num]);
-            g_multi_thread_allocs.args[th_num] = NULL;
-            senders_started = 0;
-            atomic_store(&abort_flag, true);
-            break;
-        }
-    }
 
     size_t count = 0;
 
@@ -151,12 +127,39 @@ uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **resul
         }
         LOGI("Receiver handle successfully inititalized\n");
 
-        // Move head of queue to let sender threads start sending
-        th_queue_t *cmd_queue = &multi_thread_shared_cmd_queue;
-        th_queue_access_t access;
-        th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_HIGH);
-        multi_thread_command_t data;
-        th_queue_read(&access, &data, NULL);
+            // Move head of queue to let sender threads start sending
+            th_queue_t *cmd_queue = &multi_thread_shared_cmd_queue;
+            th_queue_access_t access;
+            LOGI("Queue state before initial read: head=%zu tail=%zu is_empty=%u is_full=%u capacity=%zu\n", cmd_queue->head, cmd_queue->tail, cmd_queue->is_empty, cmd_queue->is_full, cmd_queue->capacity);
+            th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_HIGH);
+            multi_thread_command_t data;
+            th_queue_read(&access, &data, NULL);
+
+            // Now start sender threads (after receiver and initial read to avoid races)
+            for (unsigned int th_num = 0; th_num < g_multi_thread_allocs.thread_num; th_num++) // -1 for receiver thread
+            {
+                g_multi_thread_allocs.args[th_num] = calloc(1, sizeof(multithread_sender_args_t));
+                if (g_multi_thread_allocs.args[th_num] == NULL)
+                {
+                    multi_thread_cleanup();
+                    senders_started = 0;
+                    LOGE("Failed to allocate memory for thread arguments\n");
+                    break;
+                }
+                g_multi_thread_allocs.args[th_num]->cmd_queue = &multi_thread_shared_cmd_queue;
+                g_multi_thread_allocs.args[th_num]->flagging_array = multi_thread_shared_flagging_array;
+                g_multi_thread_allocs.args[th_num]->thread_id = th_num;
+
+                if ( pthread_create(&g_multi_thread_allocs.thread_list[th_num], NULL, multi_thread_sender, (void *)g_multi_thread_allocs.args[th_num]) != 0)
+                {
+                    LOGE("Failed to create sender thread %d\n", th_num);
+                    free(g_multi_thread_allocs.args[th_num]);
+                    g_multi_thread_allocs.args[th_num] = NULL;
+                    senders_started = 0;
+                    atomic_store(&abort_flag, true);
+                    break;
+                }
+            }
 
         if (multi_thread_receiver_run(g_multi_thread_allocs.pcap_handle, link_header_len, results, &g_multi_thread_allocs.hash_map) != 0)
         {

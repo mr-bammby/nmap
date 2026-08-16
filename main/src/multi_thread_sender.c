@@ -151,9 +151,11 @@ void *multi_thread_sender(void *arg)
         TH_QUEUE_DATA_TYPE cmd;
         th_queue_status_t status;
         status = th_queue_read(&access, &cmd, is_normal_cmd);
+        LOGI("Thread %d: th_queue_read status=%d (head=%zu tail=%zu is_empty=%u is_full=%u)\n", thread_id, status, cmd_queue->head, cmd_queue->tail, cmd_queue->is_empty, cmd_queue->is_full);
         switch (status)
         {
             case TH_QUEUE_OK_GENERIC:
+                err_cnt = 0; // Reset error count on successful read
                 if (cmd.scan == SCAN_FLG_UDP)
                 {
                     th_flagging_array_init_access(&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
@@ -195,9 +197,10 @@ void *multi_thread_sender(void *arg)
                 }
                 break;
             case TH_QUEUE_OK_EMPTY_AFTER_ACCEPT:
+                err_cnt = 0; // Reset error count on successful read
                 if (cmd.scan == SCAN_FLG_UDP)
                 {
-                      (&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
+                    th_flagging_array_init_access(&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
                 }
 
 #if MODULE_DEBUG
