@@ -9,15 +9,20 @@
 #include <unistd.h>
 #include "signal_handler.h"
 #include <pthread.h>
+#include <stdatomic.h>
+#include <string.h>
 
 static interrupt_callback_t g_interrupt_callback = NULL;
 static sigset_t g_sigset;
+
+static pthread_t g_tid = 0;
+static atomic_int g_should_exit = ATOMIC_VAR_INIT(0);
 
 static void *signal_waiter(void *arg)
 {
     (void)arg;
     int sig;
-    while (1)
+    while (atomic_load(&g_should_exit) == 0)
     {
         if (sigwait(&g_sigset, &sig) == 0)
         {
@@ -63,6 +68,23 @@ void init_signal_handler(interrupt_callback_t callback)
     }
     else
     {
-        pthread_detach(tid);
+        g_tid = tid;
+        /* Leave thread joinable so we can cleanly shut it down */
+    }
+}
+
+void shutdown_signal_handler(void)
+{
+    if (g_tid != 0)
+    {
+        atomic_store(&g_should_exit, 1);
+        /* Wake the sigwait by sending one of the caught signals to the thread */
+        pthread_kill(g_tid, SIGINT);
+        /* If called from the signal waiter thread itself, don't join (would deadlock) */
+        if (!pthread_equal(pthread_self(), g_tid))
+        {
+            pthread_join(g_tid, NULL);
+        }
+        g_tid = 0;
     }
 }

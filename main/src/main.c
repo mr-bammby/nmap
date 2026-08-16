@@ -164,6 +164,8 @@ static short priv_test(void)
 
 static void cleanup(void)
 {
+    /* Ensure signal waiter thread is shutdown before freeing resources */
+    shutdown_signal_handler();
     fprintf(stderr, "Cleaning up...\n");
 
     free(g_allocs.results_rows);
