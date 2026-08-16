@@ -33,6 +33,8 @@ struct nmap_allocs
 
 struct nmap_allocs g_allocs = {NMAP_STAGE_INIT, {0}, NULL, NULL, 0};
 
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 atomic_bool interrupt_flag = ATOMIC_VAR_INIT(false);
 
 const char *parse_error_to_string(argparse_return_e error)

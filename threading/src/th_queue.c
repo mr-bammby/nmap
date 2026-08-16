@@ -37,17 +37,8 @@ th_queue_status_t th_queue_init(th_queue_t *queue,  size_t capacity)
         queue->data = NULL;
         return TH_QUEUE_ERR_GENERIC;
     }
-    if (pthread_mutex_init(&queue->lock.assignment_lock, NULL) != 0)
-    {
-        pthread_cond_destroy(&queue->lock.high_prio_cond);
-        pthread_cond_destroy(&queue->lock.low_prio_cond);
-        free(queue->data);
-        queue->data = NULL;
-        return TH_QUEUE_ERR_GENERIC;
-    }
     if (pthread_mutex_init(&queue->lock.lock, NULL) != 0)
     {
-        pthread_mutex_destroy(&queue->lock.assignment_lock);
         pthread_cond_destroy(&queue->lock.high_prio_cond);
         pthread_cond_destroy(&queue->lock.low_prio_cond);
         free(queue->data);
@@ -157,6 +148,12 @@ static th_queue_status_t th_queue_accept(th_queue_t *queue)
 
 th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data,  TH_QUEUE_ACCEPT_COND(cond))
 {
+    size_t head;
+    size_t tail;
+    int is_empty;
+    int is_full;
+    th_queue_status_t chk;
+
     if (access->queue == NULL)
         return TH_QUEUE_ERR_INVALID_PARAM; 
     if (th_lock_take(&(access->access)) != TH_LOCK_OK_GENERIC)
@@ -164,8 +161,13 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
         LOGE("Failed to take lock for queue access\n");
         return TH_QUEUE_ERR_LOCK;
     }
-    th_queue_status_t chk = th_queue_chk(access, data);
-    LOGI("th_queue_read: head=%zu tail=%zu is_empty=%u is_full=%u chk=%d\n", access->queue->head, access->queue->tail, access->queue->is_empty, access->queue->is_full, chk);
+
+    chk = th_queue_chk(access, data);
+    head = access->queue->head;
+    tail = access->queue->tail;
+    is_empty = access->queue->is_empty;
+    is_full = access->queue->is_full;
+
     if (chk == TH_QUEUE_OK_GENERIC)
     {
         if (cond != NULL)
@@ -181,7 +183,6 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
             }
         }
         int ret = th_queue_accept(access->queue);
-        LOGI("AFTER ACCEPT head=%zu tail=%zu is_empty=%u is_full=%u ret=%d\n", access->queue->head, access->queue->tail, access->queue->is_empty, access->queue->is_full, ret);
         if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
         {
             LOGE("Failed to release lock for queue access\n");
@@ -194,7 +195,6 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
         LOGE("Failed to release lock for queue access\n");
         return TH_QUEUE_ERR_LOCK;
     }
-    LOGI("th_queue_read: queue empty\n");
     return(TH_QUEUE_ERR_EMPTY);
 
 }
@@ -207,7 +207,6 @@ void th_queue_free(th_queue_t *queue)
     {
         /* Destroy synchronization primitives initialized in th_queue_init */
         (void)pthread_mutex_destroy(&queue->lock.lock);
-        (void)pthread_mutex_destroy(&queue->lock.assignment_lock);
         (void)pthread_cond_destroy(&queue->lock.high_prio_cond);
         (void)pthread_cond_destroy(&queue->lock.low_prio_cond);
         free(queue->data);

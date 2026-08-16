@@ -17,7 +17,6 @@ typedef struct
     uint32_t low_prio_total;
     uint32_t low_prio_serving;
     pthread_cond_t low_prio_cond;
-    pthread_mutex_t assignment_lock;
     pthread_mutex_t lock;
 } th_lock_control_t;
 
