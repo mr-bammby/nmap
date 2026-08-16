@@ -22,7 +22,7 @@ uint8_t multi_thread_init(const argparse_params_t *params, multi_thread_command_
     th_queue_init(&multi_thread_shared_cmd_queue, MULTI_THREAD_SHARED_QUEUE_SIZE);
 
     /* Allocate an array of flagging arrays, one per results row (address) */
-    multi_thread_shared_flagging_array = malloc(sizeof(th_flagging_array_t) * results_rows);
+    multi_thread_shared_flagging_array = calloc(results_rows, sizeof(th_flagging_array_t));
     if (!multi_thread_shared_flagging_array)
     {
         LOGE("Failed to allocate multi_thread_shared_flagging_array\n");
