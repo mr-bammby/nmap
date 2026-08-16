@@ -38,6 +38,7 @@ typedef struct mult_thread_sender_args
     th_queue_t *cmd_queue;
     th_flagging_array_t *flagging_array;
     uint16_t thread_id;
+    uint32_t local_ip;
 } multithread_sender_args_t;
 
 //TODO: Move to a more appropriate location.

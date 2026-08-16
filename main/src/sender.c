@@ -42,13 +42,16 @@ int sender_cleanup(int *sock)
     return 0;
 }
 
-void sender_run(int sock, uint32_t target_ip, int port_i, const char *local_ip, uint8_t scan_flag, uint8_t probe, response_type_t *response_slot)
+void sender_run(int sock, uint32_t target_ip, int port_i, uint32_t local_ip, uint8_t scan_flag, uint8_t probe, response_type_t *response_slot)
 {
 #if MODULE_DEBUG
     char target_ip_str[INET_ADDRSTRLEN];
+    char local_ip_str[INET_ADDRSTRLEN];
     struct in_addr target_addr = { .s_addr = target_ip };
+    struct in_addr local_addr = { .s_addr = local_ip };
     inet_ntop(AF_INET, &target_addr, target_ip_str, sizeof(target_ip_str));
-    LOGD("Sender run: target_ip=%s, port=%d, local_ip=%s, scan_flag=%u, probe=%u\n", target_ip_str, port_i, local_ip, scan_flag, probe);
+    inet_ntop(AF_INET, &local_addr, local_ip_str, sizeof(local_ip_str));
+    LOGD("Sender run: target_ip=%s, port=%d, local_ip=%s, scan_flag=%u, probe=%u\n", target_ip_str, port_i, local_ip_str, scan_flag, probe);
 #endif
     response_type_t null_response = RESPONSE_NO_RESPONSE;
     if (response_slot == NULL)

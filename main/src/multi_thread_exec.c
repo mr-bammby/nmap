@@ -149,6 +149,7 @@ uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **resul
                 g_multi_thread_allocs.args[th_num]->cmd_queue = &multi_thread_shared_cmd_queue;
                 g_multi_thread_allocs.args[th_num]->flagging_array = multi_thread_shared_flagging_array;
                 g_multi_thread_allocs.args[th_num]->thread_id = th_num;
+                g_multi_thread_allocs.args[th_num]->local_ip = inet_addr(g_multi_thread_allocs.local_ip);
 
                 if ( pthread_create(&g_multi_thread_allocs.thread_list[th_num], NULL, multi_thread_sender, (void *)g_multi_thread_allocs.args[th_num]) != 0)
                 {

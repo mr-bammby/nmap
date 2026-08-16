@@ -144,7 +144,8 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                 for (int probe = 0; probe < ((scan_flag == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     uint8_t done = 0;
-                    sender_run(g_single_thread_allocs.sender_socket, target_addr, port_i, g_single_thread_allocs.local_ip, scan_flag, probe, response_slot);
+                    uint32_t local_ip = inet_addr(g_single_thread_allocs.local_ip);
+                    sender_run(g_single_thread_allocs.sender_socket, target_addr, port_i, local_ip, scan_flag, probe, response_slot);
                     
                     (scan_flag == SCAN_FLG_UDP) ? timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_UDP_US) : timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_TCP_US);
                     while (1)

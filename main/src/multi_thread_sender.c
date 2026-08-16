@@ -24,69 +24,7 @@
 #define SLEEP_TCP_NS 100000
 #define SLEEP_UDP_NS 0
 
-
-// --- Helper: Get Local IP for Checksum ---
-static char* get_local_ip(const char *iface_name)
-{
-    struct ifaddrs *ifaddr, *ifa;
-    static char ip_addr[INET_ADDRSTRLEN];
-
-    if (getifaddrs(&ifaddr) == -1)
-    {
-        perror("getifaddrs");
-        return NULL;
-    }
-
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
-    {
-        if (ifa->ifa_addr == NULL) continue;
-        if (ifa->ifa_addr->sa_family == AF_INET)
-        {
-            if (strcmp(ifa->ifa_name, iface_name) == 0)
-            {
-                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
-                strcpy(ip_addr, inet_ntoa(sa->sin_addr));
-                freeifaddrs(ifaddr);
-                return ip_addr;
-            }
-        }
-    }
-    freeifaddrs(ifaddr);
-    return NULL;
-}
-
-char *get_local_ip_sender(void)
-{
-    pcap_if_t *alldevs;
-    char errbuf[PCAP_ERRBUF_SIZE];
-    const char *device_name;
-
-    if (pcap_findalldevs(&alldevs, errbuf) == -1)
-    {
-        LOGE("Error finding devices: %s\n", errbuf);
-        return NULL;
-    }
-
-    if (alldevs == NULL)
-    {
-        LOGE("No devices found\n");
-        return NULL;
-    }
-
-    device_name = alldevs->name;
-    LOGD("Using device: %s\n", device_name);
-
-    // Get the IP for this specific device
-    char *local_ip = get_local_ip(device_name);
-    if (!local_ip)
-    {
-        LOGE("Could not find IP for %s\n", device_name);
-        return NULL;
-    }
-    LOGD("Using Local IP: %s\n", local_ip);
-    pcap_freealldevs(alldevs);
-    return local_ip;
-}
+#define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
 
 int is_normal_cmd(const TH_QUEUE_DATA_TYPE * data_ptr)
 {
@@ -103,13 +41,14 @@ void *multi_thread_sender(void *arg)
     th_queue_t *cmd_queue = args->cmd_queue;
     th_flagging_array_t *flagging_array = args->flagging_array;
     uint16_t thread_id = args->thread_id;
+    uint32_t local_ip = args->local_ip;
     int sock = -1;
     th_queue_access_t access;
     th_flagging_array_access_t flag_arr;
     int err_cnt = 0;
     struct timespec req_err, req_exit, req_tcp, req_udp;
-    char *local_ip = get_local_ip_sender();
-    #if MODULE_DEBUG
+
+#if MODULE_DEBUG
                 char target_addr_str[INET_ADDRSTRLEN];
                 struct in_addr target_addr;
     #endif
@@ -133,7 +72,7 @@ void *multi_thread_sender(void *arg)
     }
     LOGD("Thread %d: Sender socket initialized\n", thread_id);
     /* Helper to cleanup socket and decrement thread counter before exiting */
-#define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
+
     th_queue_init_access(&access, cmd_queue, TH_LOCK_PRIORITY_LOW);
     LOGD("Thread %d: Sender thread initialized and ready to process commands\n", thread_id);
     while (1)
@@ -150,8 +89,9 @@ void *multi_thread_sender(void *arg)
         }
         TH_QUEUE_DATA_TYPE cmd;
         th_queue_status_t status;
+
         status = th_queue_read(&access, &cmd, is_normal_cmd);
-        LOGI("Thread %d: th_queue_read status=%d (head=%zu tail=%zu is_empty=%u is_full=%u)\n", thread_id, status, cmd_queue->head, cmd_queue->tail, cmd_queue->is_empty, cmd_queue->is_full);
+        LOGD("Thread %d: th_queue_read status=%d\n", thread_id, status);
         switch (status)
         {
             case TH_QUEUE_OK_GENERIC:

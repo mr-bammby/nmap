@@ -104,13 +104,13 @@ static int16_t tcp_send_packet(uint8_t *packet, uint32_t packet_len, protocol_ip
     return tcp_packet_len;
 }
 
-static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, uint32_t target_ip, int port, const char *local_ip, uint8_t scan_type)
+static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, uint32_t target_ip, int port, uint32_t local_ip, uint8_t scan_type)
 {
     uint8_t scan_id = 0;
 
     memset(packet, 0, 128);
     ip_header->id = htons(rand() % PORT_MAX_PORT);
-    ip_header->src = inet_addr(local_ip);
+    ip_header->src = local_ip;
     ip_header->dst = target_ip;
     sin->sin_family = AF_INET;
     sin->sin_port = htons(port);
@@ -124,7 +124,7 @@ static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, s
     *cookie = COOKIE_MAKE(scan_id, port);
 }
 
-void send_packet_ip(int sockfd, uint32_t target_ip, int port, const char *local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
+void send_packet_ip(int sockfd, uint32_t target_ip, int port, uint32_t local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
 {
     uint8_t packet[128];
     protocol_ip_header_t ip_header = {0};
