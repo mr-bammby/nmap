@@ -104,11 +104,12 @@ static int16_t tcp_send_packet(uint8_t *packet, uint32_t packet_len, protocol_ip
     return tcp_packet_len;
 }
 
-static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, uint32_t target_ip, int port, uint32_t local_ip, uint8_t scan_type)
+static void send_packet_init(uint8_t *packet, size_t packet_buf_len, protocol_ip_header_t *ip_header, struct sockaddr_in *sin, uint32_t *cookie, uint32_t target_ip, int port, uint32_t local_ip, uint8_t scan_type)
 {
     uint8_t scan_id = 0;
 
-    memset(packet, 0, 128);
+    if (packet != NULL && packet_buf_len > 0)
+        memset(packet, 0, packet_buf_len);
     ip_header->id = htons(rand() % PORT_MAX_PORT);
     ip_header->src = local_ip;
     ip_header->dst = target_ip;
@@ -126,7 +127,7 @@ static void send_packet_init(uint8_t *packet, protocol_ip_header_t *ip_header, s
 
 void send_packet_ip(int sockfd, uint32_t target_ip, int port, uint32_t local_ip, uint8_t scan_type, uint8_t udp_probe_variant)
 {
-    uint8_t packet[128];
+    uint8_t packet[1500];
     protocol_ip_header_t ip_header = {0};
     protocol_tcp_header_t tcp_header = {0};
     protocol_udp_header_t udp_header = {0};
@@ -135,7 +136,7 @@ void send_packet_ip(int sockfd, uint32_t target_ip, int port, uint32_t local_ip,
     uint32_t cookie;
     uint32_t payload = 0xb4050402; // Generic probe payload for UDP only
 
-    send_packet_init(packet, &ip_header, &sin, &cookie, target_ip, port, local_ip, scan_type);
+    send_packet_init(packet, sizeof(packet), &ip_header, &sin, &cookie, target_ip, port, local_ip, scan_type);
 
     if (set_scan_type_flag(&ip_header, &tcp_header, scan_type) < 0)
         return;

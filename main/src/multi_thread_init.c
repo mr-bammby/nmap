@@ -33,7 +33,7 @@ uint8_t multi_thread_init(const argparse_params_t *params, multi_thread_command_
     {
         /* Initialize each flagging array for the row with capacity = results_cols */
         th_flagging_array_init(&multi_thread_shared_flagging_array[i], results_cols);
-        protocol_utils_initialize_results(results[i]);
+        protocol_utils_initialize_results(results[i], &params->ports);
     }
     LOGD("Multi-threading initialized: Command queue and flagging array set up, results array initialized.\n");
     

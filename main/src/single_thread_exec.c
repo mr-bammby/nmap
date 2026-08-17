@@ -90,7 +90,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
 
     argparse_port_iterator_init(&port_it, &ports);
     // Initialize results array
-    protocol_utils_initialize_results(results);
+    protocol_utils_initialize_results(results, &ports);
     // Initialize sender socket
     if (sender_init(&g_single_thread_allocs.sender_socket) < 0)
     {
@@ -134,7 +134,14 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                 uint8_t scan_flag = (uint8_t)(1u << scan_i);
                 response_type_t *response_slot;
                 LOGD("Scanning port %d with scan type %s...\n", port_i, scan_valid_tokens[scan_i]);
-                response_slot = response_slot_for_scan(&results[port_i - 1], scan_flag);
+                int port_index = -1;
+                if (argparse_port_find(&ports, port_i, &port_index) != 0)
+                {
+                    LOGD("Port %u not in active scan set.\n", port_i);
+                    continue;
+                }
+
+                response_slot = response_slot_for_scan(&results[port_index], scan_flag);
                 if (response_slot == NULL)
                 {
                     LOGD("Done for port %d.\n", port_i);
@@ -160,7 +167,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                         {
                             break;
                         }
-                        if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, response_slot, results) == 1)
+                        if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, response_slot, results, &ports) == 1)
                         {
                             done = 1;
                             break;
@@ -177,8 +184,18 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
         }
     }
     /* Allow some extra time to collect any late responses before tearing down */
-    LOGD("Waiting %u us for late responses before cleanup\n", (unsigned)RESPONSE_FINAL_WAIT_US);
-    usleep(RESPONSE_FINAL_WAIT_US);
+    LOGD("Polling for late responses for %u us before cleanup\n", (unsigned)RESPONSE_FINAL_WAIT_US);
+    {
+        unsigned int waited_us = 0;
+        /* Poll receiver_run repeatedly so packets arriving during this window are processed. */
+        while (waited_us < RESPONSE_FINAL_WAIT_US)
+        {
+            response_type_t dummy_response = RESPONSE_NO_RESPONSE;
+            (void)receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, &dummy_response, results, &ports);
+            usleep(RESPONSE_POLL_SLEEP_US_LOCAL);
+            waited_us += RESPONSE_POLL_SLEEP_US_LOCAL;
+        }
+    }
     single_thread_cleanup();
     return 0;
 }

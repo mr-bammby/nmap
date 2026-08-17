@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include "protocol_utils.h"
 #include "scan_context.h"
+#include "argument_parser_port.h"
 
 
 /// --- Checksum Calculation Functions ---
@@ -77,11 +78,19 @@ void print_bytes(const void *addr, uint32_t len)
 }
 
 // --- Initialize Results Array ---
-void protocol_utils_initialize_results(scan_result_t results[PORT_END - PORT_START + 1])
+void protocol_utils_initialize_results(scan_result_t results[PORT_NUMBER_OF_PORTS], const argparse_port_set_t *ports)
 {
-    for (int i = 0; i < (PORT_END - PORT_START + 1); i++)
+    for (int i = 0; i < PORT_NUMBER_OF_PORTS; i++)
     {
-        results[i].port = i + PORT_START;
+        unsigned int port_value = 0;
+        if (ports == NULL || argparse_port_get(ports, i, &port_value))
+        {
+            results[i].port = 0;
+        }
+        else
+        {
+            results[i].port = (uint16_t)port_value;
+        }
         results[i].protocol = 0;
         results[i].response_syn = RESPONSE_NOT_EXPECTED;
         results[i].response_null = RESPONSE_NOT_EXPECTED;

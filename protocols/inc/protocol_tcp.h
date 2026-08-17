@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include "protocol_ip.h"
 #include "response_states.h"
+#include "argument_parser_types.h"
 
 /* TCP Flag definitions */
 #define PROTOCOL_TCP_FLAG_FIN 0x01
@@ -57,6 +58,6 @@ int16_t protocol_tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const pr
 */
 int16_t protocol_tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, protocol_tcp_header_t *header, const protocol_ip_header_t *ip_header);
 
-int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results);
+int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports);
 
 #endif // TCP_H

@@ -15,7 +15,7 @@
 
 
 // --- Receiver Logic ---
-int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t *results)
+int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t *results, argparse_port_set_t *ports)
 {
     //link_header_len is the number of bytes in the link-layer (L2) header of captured packets.
     //Captured packets start with L2 header (Ethernet/Linux cooked/etc), not IP directly.
@@ -52,14 +52,14 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t
     {
     case IPPROTO_TCP:
         LOGD("Received TCP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results);
+        return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results, ports);
     case IPPROTO_ICMP:
         LOGD("Received ICMP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results);
+        return protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results, ports);
     
     case IPPROTO_UDP:
         LOGD("Received UDP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return protocol_udp_response_process(transport, ip_payload_len, results);
+        return protocol_udp_response_process(transport, ip_payload_len, results, ports);
     default:
         LOGD("No packet received from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
         return 0;

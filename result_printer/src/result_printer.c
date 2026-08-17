@@ -39,60 +39,82 @@ void resprint_print_scan_stats(double scan_time_s)
 
 void resprint_parse_scan_results(const scan_result_t *results, int start, int end, const char *target_ip, double scan_time_s)
 {
-    int i;
     uint8_t has_open = 0;
     uint8_t has_closed = 0;
 
- if (results != NULL)
+    if (results == NULL)
     {
-        printf("IP address: %s\n", target_ip);
-        for (i = start; i < end; i++)
-        {
-            port_state_t current_state = rp_get_final_state(&results[i]);
-            
-            if (current_state == PORT_STATE_OPEN)
-            {
-                LOGD("Port state open\n");
-                has_open = 1;
-            }
-            else if (current_state != PORT_STATE_NOT_SCANNED)
-            {
-                LOGD("Port state closed\n");
-                has_closed = 1;
-            }
-        }
-
-        if (has_open)
-        {
-            printf("\nOpen ports:\n");
-            printf("%-*s %-*s %-*s %s\n", RP_COL_WIDTH_PORT, "Port", RP_COL_WIDTH_SERVICE, "Service Name (if applicable)", RP_COL_WIDTH_RESULTS, "Results", "Conclusion");
-            printf("------------------------------------------------------------------------------------------------------\n");
-            
-            for (i = start; i < end; i++)
-            {
-                if (rp_get_final_state(&results[i]) == PORT_STATE_OPEN)
-                {
-                    rp_print_single_port_row(&results[i], GET_SERVICE_NAME(results[i].port));
-                }
-            }
-        }
-
-        if (has_closed)
-        {
-            printf("\nClosed/Filtered/Unfiltered ports:\n");
-            printf("%-*s %-*s %-*s %s\n", RP_COL_WIDTH_PORT, "Port", RP_COL_WIDTH_SERVICE, "Service Name (if applicable)", RP_COL_WIDTH_RESULTS, "Results", "Conclusion");
-            printf("------------------------------------------------------------------------------------------------------\n");
-            
-            for (i = start; i < end; i++)
-            {
-                port_state_t st = rp_get_final_state(&results[i]);
-                
-                if ((st != PORT_STATE_OPEN) && (st != PORT_STATE_NOT_SCANNED))
-                {
-                    rp_print_single_port_row(&results[i], GET_SERVICE_NAME(results[i].port));
-                }
-            }
-        }
-        printf("\n");
+        return;
     }
+
+    printf("IP address: %s\n", target_ip);
+
+    /* Determine if there are any open or closed ports within the requested range
+       by scanning the results array directly. The results array has one entry
+       per potential port slot and each entry's `.port` field is non-zero when
+       that slot corresponds to an active scanned port. */
+    for (int i = 0; i < PORT_NUMBER_OF_PORTS; i++)
+    {
+        const scan_result_t *port_result = &results[i];
+        if (port_result->port == 0)
+            continue; /* unused slot */
+
+        if ((int)port_result->port < start || (int)port_result->port > end)
+            continue;
+
+        port_state_t current_state = rp_get_final_state(port_result);
+        if (current_state == PORT_STATE_OPEN)
+        {
+            has_open = 1;
+        }
+        else if (current_state != PORT_STATE_NOT_SCANNED)
+        {
+            has_closed = 1;
+        }
+    }
+
+    if (has_open)
+    {
+        printf("\nOpen ports:\n");
+        printf("%-*s %-*s %-*s %s\n", RP_COL_WIDTH_PORT, "Port", RP_COL_WIDTH_SERVICE, "Service Name (if applicable)", RP_COL_WIDTH_RESULTS, "Results", "Conclusion");
+        printf("------------------------------------------------------------------------------------------------------\n");
+
+        for (int i = 0; i < PORT_NUMBER_OF_PORTS; i++)
+        {
+            const scan_result_t *port_result = &results[i];
+            if (port_result->port == 0)
+                continue;
+            if ((int)port_result->port < start || (int)port_result->port > end)
+                continue;
+
+            if (rp_get_final_state(port_result) == PORT_STATE_OPEN)
+            {
+                rp_print_single_port_row(port_result, GET_SERVICE_NAME(port_result->port));
+            }
+        }
+    }
+
+    if (has_closed)
+    {
+        printf("\nClosed/Filtered/Unfiltered ports:\n");
+        printf("%-*s %-*s %-*s %s\n", RP_COL_WIDTH_PORT, "Port", RP_COL_WIDTH_SERVICE, "Service Name (if applicable)", RP_COL_WIDTH_RESULTS, "Results", "Conclusion");
+        printf("------------------------------------------------------------------------------------------------------\n");
+
+        for (int i = 0; i < PORT_NUMBER_OF_PORTS; i++)
+        {
+            const scan_result_t *port_result = &results[i];
+            if (port_result->port == 0)
+                continue;
+            if ((int)port_result->port < start || (int)port_result->port > end)
+                continue;
+
+            port_state_t st = rp_get_final_state(port_result);
+            if ((st != PORT_STATE_OPEN) && (st != PORT_STATE_NOT_SCANNED))
+            {
+                rp_print_single_port_row(port_result, GET_SERVICE_NAME(port_result->port));
+            }
+        }
+    }
+
+    printf("\n");
 }

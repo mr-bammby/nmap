@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include "response_states.h"
+#include "argument_parser_types.h"
+
 /**
  * Calculate checksum for data (typically used for IP/TCP/UDP headers)
  * 
@@ -23,7 +25,7 @@ uint16_t protocol_utils_checksum_final(const void *data, uint32_t len, uint32_t 
  */
 void protocol_utils_print_bytes(const void *addr, uint32_t len);
 
-void protocol_utils_initialize_results(scan_result_t *results);
+void protocol_utils_initialize_results(scan_result_t *results, const argparse_port_set_t *ports);
 
 
 #endif // PROTOCOL_UTILS_H

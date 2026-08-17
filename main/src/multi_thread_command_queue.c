@@ -117,14 +117,17 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
                     if (results != NULL && queue_state->address_idx < results_rows) {
                         scan_result_t *row = results[queue_state->address_idx];
                         if (row != NULL && port_value >= PORT_START && port_value <= PORT_END) {
-                            switch (scan_flag) {
-                                case SCAN_FLG_SYN:  row[port_value - 1].response_syn  = RESPONSE_NO_RESPONSE; break;
-                                case SCAN_FLG_NULL: row[port_value - 1].response_null = RESPONSE_NO_RESPONSE; break;
-                                case SCAN_FLG_ACK:  row[port_value - 1].response_ack  = RESPONSE_NO_RESPONSE; break;
-                                case SCAN_FLG_FIN:  row[port_value - 1].response_fin  = RESPONSE_NO_RESPONSE; break;
-                                case SCAN_FLG_XMAS: row[port_value - 1].response_xmas = RESPONSE_NO_RESPONSE; break;
-                                case SCAN_FLG_UDP:  row[port_value - 1].response_udp  = RESPONSE_NO_RESPONSE; break;
-                                default: break;
+                            int port_index = -1;
+                            if (argparse_port_find(&params->ports, port_value, &port_index) == 0 && port_index >= 0) {
+                                switch (scan_flag) {
+                                    case SCAN_FLG_SYN:  row[port_index].response_syn  = RESPONSE_NO_RESPONSE; break;
+                                    case SCAN_FLG_NULL: row[port_index].response_null = RESPONSE_NO_RESPONSE; break;
+                                    case SCAN_FLG_ACK:  row[port_index].response_ack  = RESPONSE_NO_RESPONSE; break;
+                                    case SCAN_FLG_FIN:  row[port_index].response_fin  = RESPONSE_NO_RESPONSE; break;
+                                    case SCAN_FLG_XMAS: row[port_index].response_xmas = RESPONSE_NO_RESPONSE; break;
+                                    case SCAN_FLG_UDP:  row[port_index].response_udp  = RESPONSE_NO_RESPONSE; break;
+                                    default: break;
+                                }
                             }
                         }
                     }

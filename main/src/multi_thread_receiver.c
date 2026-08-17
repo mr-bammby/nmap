@@ -5,6 +5,7 @@
 #include <pcap.h>
 #include "receiver.h"
 #include <stdlib.h>
+#include <unistd.h>
 #include <packet_handler.h>
 #include "exec.h"
 
@@ -137,7 +138,7 @@ int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **p
     return 0;
 }
 
-uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map)
+uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map, const argparse_port_set_t *ports)
 {
 
     // Set Receiver timeout
@@ -169,7 +170,7 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
         {
             LOGD("PACKET PROCESSING\n");
             LOGD("Header len: %d\n", header->len);
-            multi_thread_process_packet(packet, header->caplen, link_header_len, results, hash_map);
+            multi_thread_process_packet(packet, header->caplen, link_header_len, results, hash_map, ports);
 
         }
     }

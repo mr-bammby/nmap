@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include "response_states.h"
 #include "scan_context.h"
+#include "argument_parser_port.h"
 
 
 int16_t protocol_udp_header_create(uint8_t *buffer, uint8_t buffer_len, const protocol_udp_header_t *header)
@@ -76,9 +77,9 @@ int16_t protocol_udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pro
     return PROTOCOL_UDP_HEADER_SIZE;
 }
 
-int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results)
+int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results, const argparse_port_set_t *ports)
 {
-    if (transport == NULL || ip_payload_len < PROTOCOL_UDP_HEADER_SIZE)
+    if (transport == NULL || ip_payload_len < PROTOCOL_UDP_HEADER_SIZE || results == NULL || ports == NULL)
         return 0;
 
     // For UDP, a reply to the probe indicates the port is open.
@@ -87,6 +88,10 @@ int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_paylo
     if (port < PORT_START || port > PORT_END)
         return 0;
 
-    results[port - 1].response_udp = RESPONSE_UDP_REPLY;
+    int port_index = 0;
+    if (argparse_port_find(ports, port, &port_index) != 0)
+        return 0;
+
+    results[port_index].response_udp = RESPONSE_UDP_REPLY;
     return 1;
 }

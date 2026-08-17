@@ -142,7 +142,7 @@ int receiver_cleanup(pcap_t *pcap_handle)
     return 0;
 }
 
-int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t *response_slot, scan_result_t *results)
+int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t *response_slot, scan_result_t *results, argparse_port_set_t *ports)
 {
     struct pcap_pkthdr *header;
     const unsigned char *packet;
@@ -150,7 +150,7 @@ int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t 
     if (res == 1)
     {
         LOGD("PACKET PROCESSING\n");
-        process_packet(packet, header->caplen, link_header_len, results);
+        process_packet(packet, header->caplen, link_header_len, results, ports);
         /* Only stop when this specific probe got a conclusive response. */
         if (*response_slot != RESPONSE_NO_RESPONSE)
             return 1; // Stop receiving for this probe

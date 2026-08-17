@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include "protocol_ip.h"
 #include "response_states.h"
+#include "argument_parser_types.h"
 
 #define PROTOCOL_ICMP_HEADER_LEN 8
 #define PROTOCOL_ICMP_TYPE_ECHO_REQUEST 8
@@ -46,6 +47,6 @@ int16_t protocol_icmp_header_encapsulate(uint8_t *buffer, uint16_t payload_lengt
  */
 int16_t protocol_icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, protocol_icmp_header_t *header);
 
-int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results);
+int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports);
 
 #endif // ICMP_H

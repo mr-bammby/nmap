@@ -8,6 +8,7 @@
 #include "response_states.h"
 #include "scan_context.h"
 #include "scan_defines.h"
+#include "argument_parser_port.h"
 
 
 int16_t protocol_icmp_header_init(uint8_t *buffer, uint8_t buffer_len, const protocol_icmp_header_t *header)
@@ -80,7 +81,7 @@ int16_t protocol_icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pr
 }
 
 //TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
-int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results)
+int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports)
 {
     (void)ip_hdr;
     protocol_icmp_header_t icmp_hdr;
@@ -129,16 +130,20 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
             scan_id = COOKIE_SCAN(cookie);
             scan_flag = (uint8_t)(1u << scan_id);
 
+            int port_index = 0;
+            if (ports == NULL || argparse_port_find(ports, port, &port_index) != 0)
+                return 0;
+
             if (scan_flag == SCAN_FLG_SYN)
-                results[port - 1].response_syn = RESPONSE_ICMP_UNREACHABLE;
+                results[port_index].response_syn = RESPONSE_ICMP_UNREACHABLE;
             else if (scan_flag == SCAN_FLG_ACK)
-                results[port - 1].response_ack = RESPONSE_ICMP_UNREACHABLE;
+                results[port_index].response_ack = RESPONSE_ICMP_UNREACHABLE;
             else if (scan_flag == SCAN_FLG_NULL)
-                results[port - 1].response_null = RESPONSE_ICMP_UNREACHABLE;
+                results[port_index].response_null = RESPONSE_ICMP_UNREACHABLE;
             else if (scan_flag == SCAN_FLG_FIN)
-                results[port - 1].response_fin = RESPONSE_ICMP_UNREACHABLE;
+                results[port_index].response_fin = RESPONSE_ICMP_UNREACHABLE;
             else if (scan_flag == SCAN_FLG_XMAS)
-                results[port - 1].response_xmas = RESPONSE_ICMP_UNREACHABLE;
+                results[port_index].response_xmas = RESPONSE_ICMP_UNREACHABLE;
             else
                 return 0;
         }
@@ -148,12 +153,16 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
             if (port < PORT_START || port > PORT_END)
                 return 0;
 
+            int port_index = 0;
+            if (ports == NULL || argparse_port_find(ports, port, &port_index) != 0)
+                return 0;
+
             if (icmp_hdr.code == 3)
-                results[port - 1].response_udp = RESPONSE_ICMP_UNREACHABLE;
+                results[port_index].response_udp = RESPONSE_ICMP_UNREACHABLE;
             else if (icmp_hdr.code == 1 || icmp_hdr.code == 2 ||
                      icmp_hdr.code == 9 || icmp_hdr.code == 10 ||
                      icmp_hdr.code == 13)
-                results[port - 1].response_udp = RESPONSE_ICMP_FILTERED;
+                results[port_index].response_udp = RESPONSE_ICMP_FILTERED;
             else
                 return 0;
         }

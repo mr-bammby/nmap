@@ -8,6 +8,7 @@
 #include "response_states.h"
 #include "scan_context.h"
 #include "scan_defines.h"
+#include "argument_parser_port.h"
 
 
 #define PROTOCOL_TCP_WINDOW_SIZE 65535
@@ -130,7 +131,7 @@ int16_t protocol_tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pro
     return 20;
 }
 
-int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results)
+int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports)
 {
     protocol_tcp_header_t tcp_hdr;
     uint32_t cookie = 0;
@@ -143,11 +144,6 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         return 0;
     }
 
-    if (tcp_hdr.src_port < PORT_START || tcp_hdr.src_port > PORT_END)
-    {
-        LOGE("Received TCP packet with source port %d outside of expected range\n", tcp_hdr.src_port);
-        return 0;
-    }
 
     ack_num = ntohl(*(const uint32_t *)(transport + 8));
     if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)
@@ -169,24 +165,24 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     uint8_t scan_id = COOKIE_SCAN(cookie);
     uint8_t scan_flag = (uint8_t)(1u << scan_id);
     uint16_t port   = COOKIE_PORT(cookie);
-    if (port < PORT_START || port > PORT_END)
+
+    int port_index = 0;
+    if (argparse_port_find(ports, port, &port_index) != 0)
     {
-        LOGE("Received TCP packet with invalid cookie-derived port %d\n", port);
         return 0;
     }
-    // now write results[port - 1].response_<scan_id>
 
     switch (scan_flag)
     {
     case SCAN_FLG_SYN:
         if ((tcp_hdr.flags & PROTOCOL_TCP_FLAG_SYN) && (tcp_hdr.flags & PROTOCOL_TCP_FLAG_ACK))
         {
-            results[port - 1].response_syn = RESPONSE_SYN_ACK;
+            results[port_index].response_syn = RESPONSE_SYN_ACK;
             return 1;
         }
         else if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)
         {
-            results[port - 1].response_syn = RESPONSE_RST;
+            results[port_index].response_syn = RESPONSE_RST;
             return 1;
         }
         else
@@ -197,7 +193,7 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         break;
     case SCAN_FLG_ACK:
         if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
-            results[port - 1].response_ack = RESPONSE_RST;
+            results[port_index].response_ack = RESPONSE_RST;
             return 1;
         }
         else        {
@@ -207,7 +203,7 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         break;
     case SCAN_FLG_NULL:
         if (tcp_hdr.flags == 0)        {
-            results[port - 1].response_null = RESPONSE_SYN_ACK; // Reuse RESPONSE_SYN_ACK to indicate open for NULL scan
+            results[port_index].response_null = RESPONSE_SYN_ACK; // Reuse RESPONSE_SYN_ACK to indicate open for NULL scan
             return 1;
         }
         else        {
@@ -217,7 +213,7 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         break;
     case SCAN_FLG_FIN:
         if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
-            results[port - 1].response_fin = RESPONSE_RST;
+            results[port_index].response_fin = RESPONSE_RST;
             return 1;
         }
         else        {
@@ -227,7 +223,7 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         break;
     case SCAN_FLG_XMAS:
         if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
-            results[port - 1].response_xmas = RESPONSE_RST;
+            results[port_index].response_xmas = RESPONSE_RST;
             return 1;
         }
         else        {
