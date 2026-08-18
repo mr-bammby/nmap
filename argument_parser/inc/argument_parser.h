@@ -4,6 +4,7 @@
 #include "argument_parser_types.h"
 #include "arguments_handlers.h"
 
+/* Parsed input arguments are stored in this structure. */
 typedef struct argparse_params
 {
     argparse_addr_node_t *address;
@@ -12,8 +13,10 @@ typedef struct argparse_params
     scan_bitmap_t scans;
 } argparse_params_t;
 
+/* Type for argument handler functions. */
 typedef argparse_return_e (*argparse_argument_handler_t)(argparse_params_t *param, const char *value);
 
+/* Internal flag descriptor */
 typedef struct
 {
     const char *flag;
@@ -21,17 +24,10 @@ typedef struct
     uint8_t param_num;
 } argparse_flag_t;
 
-static const argparse_flag_t FLAG_TABLE[] = {
-    {"--help", ap_handler_help, 0},
-    {"--ip", ap_handler_address, 1},
-    {"--file", ap_handler_file, 1},
-    {"--port", ap_handler_port, 1},
-    {"--scan", ap_handler_scan, 1},
-    {"--speedup", ap_handler_speedup, 1}};
-
-#define FLAG_COUNT (sizeof(FLAG_TABLE) / sizeof(argparse_flag_t))
-
+/* Parse arguments into `parameters`; caller must call `argparse_free_arguments` to free any allocation. */
 argparse_return_e argparse_parse_arguments(int arg, const char **argv, argparse_params_t *parameters);
+
+/* Free resources in `parameters` (safe to call with NULL). */
 void argparse_free_arguments(argparse_params_t *parameters);
 
 #endif /* ARGUMENT_PARSER_H */

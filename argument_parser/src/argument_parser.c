@@ -10,6 +10,16 @@
 #define DEFAULT_THREAD_NUM 1
 #define DEFAULT_SCANS 0x3f
 
+static const argparse_flag_t FLAG_TABLE[] = {
+    {"--help", ap_handler_help, 0},
+    {"--ip", ap_handler_address, 1},
+    {"--file", ap_handler_file, 1},
+    {"--port", ap_handler_port, 1},
+    {"--scan", ap_handler_scan, 1},
+    {"--speedup", ap_handler_speedup, 1}};
+
+#define FLAG_COUNT (sizeof(FLAG_TABLE) / sizeof(argparse_flag_t))
+
 
 argparse_return_e argparse_parse_arguments(int arg, const char **argv, argparse_params_t *parameters)
 {
