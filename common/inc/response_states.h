@@ -38,4 +38,4 @@ typedef struct {
     response_type_t response_udp;  /* For UDP, what response we got (if any) */
 } scan_result_t;
 
-#endif // RESPONSE_STATES_H
+#endif /* RESPONSE_STATES_H */

@@ -8,11 +8,16 @@
 
 void argparse_port_init_set(argparse_port_set_t *set)
 {
+    if (set == NULL)
+        return;
     set->count = 0;
 }
 
 short argparse_port_add(argparse_port_set_t *set, unsigned int value)
 {
+    if (set == NULL)
+        return -1;
+
     for (int i = 0; i < set->count; i++)
     {
         if (set->data[i] == value)
@@ -117,6 +122,8 @@ short argparse_port_find(const argparse_port_set_t *set, unsigned int target, in
 // Initializes the iterator and links it to a set
 void argparse_port_iterator_init(argparse_port_set_iterator_t *it, const argparse_port_set_t *set)
 {
+    if (it == NULL)
+        return;
     it->set = set;
     it->index = 0;
 }
@@ -124,6 +131,11 @@ void argparse_port_iterator_init(argparse_port_set_iterator_t *it, const argpars
 // Manual control over the iterator position
 void argparse_port_iterator_set_index(argparse_port_set_iterator_t *it, int index)
 {
+    if (it == NULL || it->set == NULL)
+    {
+        LOGW("Iterator or set is NULL.\n");
+        return;
+    }
     if (index >= 0 && index < it->set->count)
     {
         it->index = index;
@@ -137,6 +149,9 @@ void argparse_port_iterator_set_index(argparse_port_set_iterator_t *it, int inde
 // Fetches the current value and moves the pointer forward
 short argparse_port_iterator_next(argparse_port_set_iterator_t *it, unsigned int *out_value)
 {
+    if (it == NULL || it->set == NULL || out_value == NULL)
+        return -1;
+
     if (it->index < it->set->count)
     {
         *out_value = it->set->data[it->index++];
@@ -147,6 +162,8 @@ short argparse_port_iterator_next(argparse_port_set_iterator_t *it, unsigned int
 
 int argparse_port_set_get_size(const argparse_port_set_t *set)
 {
+    if (set == NULL)
+        return 0;
     return set->count;
 }
 
