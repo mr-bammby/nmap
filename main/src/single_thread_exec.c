@@ -16,7 +16,6 @@
 #include "argument_parser_port.h"
 #include "port_map.h"
 #include "packet_handler.h"
-#include "scan_parser.h"
 #include "protocol_utils.h"
 #include "result_printer.h"
 #include "sender.h"
