@@ -42,23 +42,17 @@ struct nmap_single_thread_allocs g_single_thread_allocs = { -1, NULL, NULL };
 
 void single_thread_cleanup(void)
 {
-    printf("Cleaning up single-threaded execution resources...\n");
     if (g_single_thread_allocs.pcap_handle != NULL)
     {
-        printf("Cleaning up receiver...\n");
         receiver_cleanup(g_single_thread_allocs.pcap_handle);
-        printf("Receiver cleanup complete.\n");
         g_single_thread_allocs.pcap_handle = NULL;
     }
-    printf("Cleaning up sender socket...\n");
     sender_cleanup(&g_single_thread_allocs.sender_socket);
-    printf("Cleaning up local IP...\n");
     if (g_single_thread_allocs.local_ip != NULL)
     {
         free(g_single_thread_allocs.local_ip);
         g_single_thread_allocs.local_ip = NULL;
     }
-    printf("Single-threaded execution cleanup complete.\n");
 }
 
 static response_type_t *response_slot_for_scan(scan_result_t *result, uint8_t scan_flag)
