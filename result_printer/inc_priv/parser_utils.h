@@ -3,6 +3,7 @@
 
 #include "response_states.h"
 
+/* Functions to determine the final port state based on scan results. */
 port_state_t rp_get_final_state(const scan_result_t *port_result);
 port_state_t rp_get_syn_state(const scan_result_t *port_result);
 port_state_t rp_get_ack_state(const scan_result_t *port_result);
