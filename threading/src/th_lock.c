@@ -50,13 +50,24 @@ static th_lock_status_t th_assign_ticket(th_lock_access_t *access)
 
 th_lock_status_t th_lock_take(th_lock_access_t *access)
 {
+    if (access == NULL || access->control == NULL)
+    {
+        LOGE("Invalid parameter: access or control is NULL\n");
+        return TH_LOCK_ERR_INVALID_PARAM;
+    }
+
     if (th_assign_ticket(access) != TH_LOCK_OK_GENERIC)
         return TH_LOCK_ERR_LOCK;
 
     if (pthread_mutex_lock(&(access->control->lock)) != 0)
+    {
+        LOGE("Failed to lock main mutex while acquiring the queue lock\n");
+        return TH_LOCK_ERR_LOCK;
+    }
+
     if (access->priority == TH_LOCK_PRIORITY_HIGH)
     {
-        while (!(access->assigned_ticket_number == access->control->high_prio_serving))
+        while (access->assigned_ticket_number != access->control->high_prio_serving)
         {
             int ret = pthread_cond_wait(&(access->control->high_prio_cond), &(access->control->lock));
             if (ret != 0)
@@ -69,7 +80,8 @@ th_lock_status_t th_lock_take(th_lock_access_t *access)
     }
     else
     {
-        while (access->assigned_ticket_number != access->control->low_prio_serving || access->control->high_prio_serving != access->control->high_prio_total)
+        while (access->assigned_ticket_number != access->control->low_prio_serving ||
+               access->control->high_prio_serving != access->control->high_prio_total)
         {
             int ret = pthread_cond_wait(&(access->control->low_prio_cond), &(access->control->lock));
             if (ret != 0)
@@ -90,10 +102,12 @@ th_lock_status_t th_lock_release(th_lock_access_t *access)
     {
         return TH_LOCK_ERR_INVALID_PARAM;
     }
+
     if (access->priority == TH_LOCK_PRIORITY_HIGH)
         access->control->high_prio_serving++;
     else
         access->control->low_prio_serving++;
+
     if ((ret = pthread_cond_broadcast(&(access->control->high_prio_cond))) != 0)
     {
         pthread_mutex_unlock(&(access->control->lock));
