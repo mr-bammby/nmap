@@ -5,13 +5,15 @@
 #include "response_states.h"
 #include "argument_parser_types.h"
 
-/* Error codes */
+/* UDP Error codes */
 #define PROTOCOL_UDP_ERR_BUFFER_TOO_SMALL -1
 #define PROTOCOL_UDP_ERR_CHECKSUM -2
 #define PROTOCOL_UDP_ERR_INVALID_ARGUMENT -3
 
+/* UDP Header length in bytes */
 #define PROTOCOL_UDP_HEADER_SIZE 8
 
+/* Number of different UDP probe variants used in scanning */
 #define PROTOCOL_UDP_TOTAL_PROBES 3
 
 /**
@@ -48,5 +50,15 @@ int16_t protocol_udp_header_create(uint8_t *buffer, uint8_t buffer_len, const pr
 */
 int16_t protocol_udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, protocol_udp_header_t *header);
 
+/**
+ * Process a UDP response packet and update scan results.
+ *
+ * @param transport Pointer to the transport layer data (UDP).
+ * @param ip_payload_len Length of the IP payload in bytes.
+ * @param results Pointer to the scan results structure to update.
+ * @param ports Pointer to the set of ports being scanned.
+ * @return 0 on success, or a negative error code on failure.
+ */
 int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results, const argparse_port_set_t *ports);
-#endif // UDP_H
+
+#endif /* UDP_H */

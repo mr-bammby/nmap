@@ -24,19 +24,12 @@
 
 #define PROTOCOL_TCP_HEADER_SIZE 20
 
-/**
- * TCP Header structure
- * 
- * @param src_port Source port number
- * @param dst_port Destination port number
- * @param seq_num Sequence number
- * @param flags TCP flags
- */
+/* TCP Header structure */
 typedef struct {
-    uint16_t src_port;
-    uint16_t dst_port;
-    uint32_t seq_num;
-    uint8_t flags;
+    uint16_t src_port; /* Source port number */
+    uint16_t dst_port; /* Destination port number */
+    uint32_t seq_num;  /* Sequence number */
+    uint8_t flags;     /* TCP flags */
 } protocol_tcp_header_t;
 
 /**
@@ -58,6 +51,16 @@ int16_t protocol_tcp_header_create(uint8_t *buffer, uint8_t buffer_len, const pr
 */
 int16_t protocol_tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, protocol_tcp_header_t *header, const protocol_ip_header_t *ip_header);
 
+/**
+ * Process a TCP response packet and update scan results.
+ *
+ * @param transport Pointer to the transport layer data (TCP).
+ * @param ip_payload_len Length of the IP payload in bytes.
+ * @param ip_hdr Pointer to the parsed IP header.
+ * @param results Pointer to the scan results structure to update.
+ * @param ports Pointer to the set of ports being scanned.
+ * @return 0 on success, or a negative error code on failure.
+ */
 int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports);
 
-#endif // TCP_H
+#endif /* TCP_H */
