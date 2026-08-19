@@ -19,7 +19,8 @@ typedef enum th_queue_status
     TH_QUEUE_ERR_LOCK = -4,
     TH_QUEUE_ERR_INVALID_PARAM = -5,
     TH_QUEUE_OK_EMPTY_AFTER_ACCEPT = 1,
-    TH_QUEUE_OK_CONDITION_REJECTED = 2
+    TH_QUEUE_OK_CONDITION_REJECTED = 2,
+    TH_QUEUE_OK_FULL_AFTER  = 3
 } th_queue_status_t;
 
 /* Define a function pointer type for the condition function used in th_queue_read. */

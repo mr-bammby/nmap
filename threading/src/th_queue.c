@@ -96,7 +96,7 @@ th_queue_status_t th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_
         LOGE("Failed to release lock for queue access\n");
         return TH_QUEUE_ERR_LOCK;
     }
-    return access->queue->is_full ? TH_QUEUE_OK_EMPTY_AFTER_ACCEPT : TH_QUEUE_OK_GENERIC;
+    return access->queue->is_full ? TH_QUEUE_OK_FULL_AFTER : TH_QUEUE_OK_GENERIC;
 }
 
 static th_queue_status_t th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *data)
@@ -105,6 +105,7 @@ static th_queue_status_t th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_T
         return TH_QUEUE_ERR_INVALID_PARAM;
     if (access->queue->is_empty)
     {
+        LOGD("Access queue is empty\n");
         return TH_QUEUE_ERR_EMPTY;
     }
     (void)memcpy(data, &(access->queue->data[access->queue->head]), sizeof(TH_QUEUE_DATA_TYPE));
@@ -144,14 +145,16 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
     {
         if (cond != NULL && cond(data) <= 0)
         {
-            /* Keep the item in-place when the predicate rejects it so the next
-             * worker can decide whether to consume or skip it. */
-            if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+            if (cond(data) <= 0)
             {
-                LOGE("Failed to release lock for queue access\n");
-                return TH_QUEUE_ERR_LOCK;
+                if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
+                {
+                    LOGE("Failed to release lock for queue access\n");
+                    return TH_QUEUE_ERR_LOCK;
+                }
+                LOGD("Queue read accept condition rejected\n");
+                return TH_QUEUE_OK_CONDITION_REJECTED;
             }
-            return TH_QUEUE_OK_CONDITION_REJECTED;
         }
         int ret = th_queue_accept(access->queue);
         if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)

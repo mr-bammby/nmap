@@ -162,7 +162,7 @@ uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **resul
                 }
             }
 
-        if (multi_thread_receiver_run(g_multi_thread_allocs.pcap_handle, link_header_len, results, &g_multi_thread_allocs.hash_map, &params->ports) != 0)
+        if (multi_thread_receiver_run(g_multi_thread_allocs.pcap_handle, link_header_len, results, &g_multi_thread_allocs.hash_map, &access, params, &queue_state, results_rows, results_cols) != 0)
         {
             LOGE("Receiver encountered an error during execution\n");
             multi_thread_cleanup();
