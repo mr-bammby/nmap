@@ -13,6 +13,7 @@
 #include "timer_utils.h"
 #include "multi_thread_shared.h"
 #include "signal_handler.h"
+#include "version.h"
 
 typedef enum nmap_stage
 {

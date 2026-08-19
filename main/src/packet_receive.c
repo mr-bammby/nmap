@@ -12,15 +12,9 @@
 #include "protocol_icmp.h"
 #include "protocol_udp.h"
 
-
-
 // --- Receiver Logic ---
 int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t *results, argparse_port_set_t *ports)
-{
-    //link_header_len is the number of bytes in the link-layer (L2) header of captured packets.
-    //Captured packets start with L2 header (Ethernet/Linux cooked/etc), not IP directly.
-    //The parser needs to skip those bytes before calling ip_header_parse().
-    
+{  
     if (packet == NULL || packet_len < link_header_len + PROTOCOL_IP_MIN_HEADER_LEN)
         return 0;
 

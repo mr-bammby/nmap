@@ -19,7 +19,6 @@ int addr_hashmap_init(addr_hashmap_t *map, size_t size, uint32_t (*hash_func)(ui
     map->size = size;
     map->count = 0;
 
-    LOGD("Assigning hash function\n");
     if (hash_func == NULL)
     {
         map->hash_func = default_hash_function;
