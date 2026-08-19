@@ -152,122 +152,124 @@ static argparse_addr_node_t *get_addr_node_by_idx(argparse_addr_node_t *address_
     return address_ptr;
 }
 
+static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state)
+{
+    static uint8_t init_flag = 0;
+    static nmap_timeout_t timeout;
+    static argparse_addr_node_t *current_addr = NULL;
+    static uint16_t current_addr_idx = 0;
+
+    static unsigned int current_port = 0;
+    static argparse_port_set_iterator_t port_it = {0};
+
+    static uint8_t current_scan = 0 ;
+    static uint8_t end_added_successfully = 0;
+
+    static uint8_t queue_full = 0;
+
+    if (!init_flag)
+    {
+        timeout_start(&timeout, 3000);
+        current_addr = get_addr_node_by_idx(params->address, queue_state->address_idx);
+        current_addr_idx = queue_state->address_idx;
+
+        current_port = queue_state->port_idx;
+        argparse_port_iterator_init(&port_it, &(params->ports));
+        current_scan = queue_state->scan_idx;
+
+        if (queue_state->address_idx == 0 && queue_state->port_idx == 0 && queue_state->scan_idx == MULTI_TH_SP_CMD_END)
+            end_added_successfully = 1;
+
+        LOGD("Copied queue states: add %s, port idx %d and scan idx%d\n", current_addr->addr, current_port, current_scan);
+
+        init_flag = 1;
+    }
+
+
+    if (timeout_check(&timeout) && !end_added_successfully)
+    {
+        while (current_addr != NULL && !end_added_successfully)
+        {
+            LOGD("Adding %s...\n", current_addr->addr);
+            LOGD("Size of set %d and current port %d \n", port_it.set->count, current_port );
+            argparse_port_iterator_set_index(&port_it, current_port);
+            unsigned int port_value;
+
+            while (argparse_port_iterator_next(&port_it, &port_value) == 0)
+            {
+                LOGD("Port iterator loop with port idx%d\n", port_it.index);
+                for (; current_scan < 6; current_scan++)
+                {
+                    LOGD("Scan index loop with scan_i %d\n", current_scan);
+                    if (!(params->scans & (1 << current_scan)))
+                        continue;
+                    LOGD("Receiver adding scan for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan); 
+                    uint8_t result = append_scan_receiver_run(current_addr->addr,  current_addr_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << current_scan), access);//const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
+                    if (result == 0)
+                    {
+                        LOGD("Successfully appended address %s, port %d and scan id %d to command queue\n", current_addr->addr, port_value, current_scan);
+                    }
+                    else if (result == TH_QUEUE_APPEND_OK_FULL_AFTER)
+                    {
+                        LOGE("Queue is full while receiver is adding scan command for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan);
+                        queue_full = 1;
+                        timeout_start(&timeout, 3000);
+                        break;
+                    }
+                    else
+                    {
+                        LOGD("Error while appending command in receiver thread\n");
+                        return -1; //implement graceful termination
+                    }
+                }
+                current_scan = 0;
+                if (port_it.set->count == current_port)
+                    current_port = 0;
+                if (queue_full)
+                    break;
+            }
+            if (queue_full)
+                break;
+            current_addr = current_addr->next;
+            current_addr_idx++;
+            current_port = 0;
+            current_scan = 0;
+            LOGD("Queue state indexes for address %s, port %d and scan %d\n", current_addr->addr, current_port, current_scan);     
+        }
+
+        if (current_addr == NULL)
+        {
+            uint8_t result = append_special(MULTI_TH_SP_CMD_END); // Add an end command to signal completion
+            if (result == 1)
+            {
+                LOGE("Failed to add end command to queue in receiver run\n");
+                //return 1; // Error, terminate gracefully
+            }
+            else if (result == 2)
+            {
+                LOGE("Queue is full while adding end command in receiver run\n");
+                timeout_start(&timeout, 1000);
+            }
+            else
+            {
+                end_added_successfully = 1;
+                timeout_stop(&timeout);
+                LOGD("All commands added to queue successfully.\n");
+            }
+        }
+    }
+}
+
 uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols)
 {
-
-    // Set Receiver timeout
-    // while
-        // Start receiving
-        // if receiver timeout reached
-            // Q write suppressed part XXXXXXXXXX
-        //. if packet received
-            //. if udp
-                //. set udp flag in flagging array
-            //. write result
-        //. if #threads == 0
-            //. exit while
     struct pcap_pkthdr *header;
     const unsigned char *packet;
     
-    nmap_timeout_t timeout;
-    timeout_start(&timeout, 3000);
 
-    argparse_addr_node_t *current_addr = get_addr_node_by_idx(params->address, queue_state->address_idx);
-    uint16_t current_addr_idx = queue_state->address_idx;
-    unsigned int current_port = queue_state->port_idx;
-    argparse_port_set_iterator_t port_it;
-    argparse_port_iterator_init(&port_it, &(params->ports));
-    uint8_t current_scan = queue_state->scan_idx;
-    uint8_t end_added_successfully = 0;
-    if (queue_state->address_idx == 0 && queue_state->port_idx == 0 && queue_state->scan_idx == MULTI_TH_SP_CMD_END)
-        end_added_successfully = 1;
-    LOGD("Copied queue states: add %s, port idx %d and scan idx%d\n", current_addr->addr, current_port, current_scan);
-    uint8_t queue_full = 0;
     while (atomic_load(&thread_counter) > 0)
     {
-        if (timeout_check(&timeout) && !end_added_successfully)
-        {
-            //ToDo: later make multi_thread_command_queue_append out from the below code
-         
-
-            while (current_addr != NULL && !end_added_successfully)
-            {
-                LOGD("Adding %s...\n", current_addr->addr);
-                LOGD("Size of set %d and current port %d \n", port_it.set->count, current_port );
-                argparse_port_iterator_set_index(&port_it, current_port);
-                unsigned int port_value;
-
-                while (argparse_port_iterator_next(&port_it, &port_value) == 0)
-                {
-                    //argparse_port_iterator_set_index(&port_it, current_port);
-                    LOGD("Port iterator loop with port idx%d\n", port_it.index);
-                    for (; current_scan < 6; current_scan++)
-                    {
-                        LOGD("Scan index loop with scan_i %d\n", current_scan);
-                        if (!(params->scans & (1 << current_scan)))
-                            continue;
-                        LOGD("Receiver adding scan for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan); 
-                                // uint8_t receiver_append_scan(const char *ad, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)                   
-                        uint8_t result = receiver_append_scan(current_addr->addr,  current_addr_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << current_scan), access);//const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
-                        if (result == 0)
-                        {
-                            // if (end_added_successfully)
-                            // {
-                            //     timeout_stop(&timeout);
-                            //     break;
-                            // }
-                        }
-                        else if (result == TH_QUEUE_APPEND_OK_FULL_AFTER)
-                        {
-                            LOGE("Queue is full while receiver is adding scan command for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan);
-                            queue_full = 1;
-                            timeout_start(&timeout, 3000);
-                            break;
-                        }
-                        else
-                        {
-                            LOGD("Error while appending command in receiver thread\n");
-                            return -1; //implement graceful termination
-                        }
-                    }
-                    current_scan = 0;
-                    if (port_it.set->count == current_port)
-                        current_port = 0;
-                    if (queue_full)
-                        break;
-                }
-                if (queue_full)
-                    break;
-                current_addr = current_addr->next;
-                current_addr_idx++;
-                current_port = 0;
-                current_scan = 0;
-                LOGD("Queue state indexes for address %s, port %d and scan %d\n", current_addr->addr, current_port, current_scan);     
-            }
-
-            if (current_addr == NULL)
-            {
-                uint8_t result = append_special(MULTI_TH_SP_CMD_END); // Add an end command to signal completion
-                if (result == 1)
-                {
-                    LOGE("Failed to add end command to queue in receiver run\n");
-                    //return 1; // Error
-                }
-                else if (result == 2)
-                {
-                    LOGE("Queue is full while adding end command in receiver run\n");
-                    timeout_start(&timeout, 1000);
-                    //return 2; // Queue is full
-                }
-                else
-                {
-                    end_added_successfully = 1;
-                    timeout_stop(&timeout);
-                    LOGD("All commands added to queue successfully.\n");
-                }
-            }
-        }
-
+        //Append of command queue
+        multi_thread_receiver_run_append_queue(access, params, queue_state);
 
         //LOGD("Receiver sniffing\n");
         int res = pcap_next_ex(pcap_handle, &header, &packet);

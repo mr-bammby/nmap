@@ -60,7 +60,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
 void multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols);
 int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **pcap_handle_out, char **local_ip_out, uint32_t *link_header_len_out);
 uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols);
-uint8_t receiver_append_scan(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access);
+uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access);
 void *multi_thread_sender(void *arg);
 uint8_t append_special(multi_thread_special_cmd_e sp_cmd);
 #endif // MULTI_THREAD_SHARED_H

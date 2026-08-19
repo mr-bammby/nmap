@@ -24,13 +24,7 @@ static void init_queue_element(multi_thread_command_t *command, uint32_t address
     command->scan = scan_flag;
 }
 
-//TH_QUEUE_ERR_INVALID_PARAM -5 // terminate gracefully
-//TH_QUEUE_ERR_LOCK  -4// terminate gracefully
-//TH_QUEUE_OK_GENERIC 0 // OK Status
-//TH_QUEUE_ERR_FULL -2 // stop filling (no successful write), marker full to be set
-//TH_QUEUE_OK_FULL_AFTER 3//  stop filling (successful write), marker full to be set
-
-uint8_t receiver_append_scan(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
+uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
 {
     if (multi_thread_shared_cmd_queue.is_full)
     {
@@ -73,8 +67,7 @@ uint8_t receiver_append_scan(const char *address_str, uint16_t flag_row_idx, uin
         ret = TH_QUEUE_APPEND_OK_FULL_AFTER; //ToDo:  reset timer
     }
     multi_thread_shared_cmd_queue.tail = next_tail;
-    LOGD("HEAD %d and TAIL %d\n", multi_thread_shared_cmd_queue.head, multi_thread_shared_cmd_queue.tail);
-    LOGD("Return of receiver append %d\n", ret);
+    LOGD("Return value of receiver append %d\n", ret);
     return ret;
 }
 
