@@ -212,9 +212,7 @@ void *multi_thread_sender(void *arg)
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
                         return (void *)-2; // Exit the thread if nanosleep is interrupted
                     }
-                    #ifdef MULTITHREAD_SENDER_TEST_MODE
-                        err_cnt++;
-                    #endif /* MULTITHREAD_SENDER_TEST_MODE */
+                    err_cnt++;
                     continue;
                 }
                 else if (cmd.scan == MULTI_TH_SP_CMD_END)

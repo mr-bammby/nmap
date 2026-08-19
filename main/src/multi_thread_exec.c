@@ -88,7 +88,7 @@ void multi_thread_exec(const argparse_params_t *params, scan_result_t **results,
         multi_thread_command_t data;
         th_queue_read(&access, &data, NULL);
 
-        multi_thread_receiver_run(pcap_handle, link_header_len, results, &hash_map);
+        multi_thread_receiver_run(pcap_handle, link_header_len, results, &hash_map, &access, params, &queue_state, results_rows, results_cols);
     }
     
     for (unsigned int th_num = 0; th_num < (params->thread_num - 1); th_num++)

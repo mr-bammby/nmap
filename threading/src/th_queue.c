@@ -69,7 +69,7 @@ th_queue_status_t th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_
                 LOGE("Failed to release lock for queue access\n");
                 return TH_QUEUE_ERR_LOCK;
             }
-            return TH_QUEUE_OK_EMPTY_AFTER_ACCEPT;
+            return TH_QUEUE_OK_FULL_AFTER;
         }
     }
     else if (access->queue->tail == (access->queue->capacity - 1))
@@ -82,7 +82,7 @@ th_queue_status_t th_queue_write(th_queue_access_t *access, const TH_QUEUE_DATA_
                 LOGE("Failed to release lock for queue access\n");
                 return TH_QUEUE_ERR_LOCK;
             }
-            return TH_QUEUE_OK_EMPTY_AFTER_ACCEPT;
+            return TH_QUEUE_OK_FULL_AFTER;
         }
     }
     if (th_lock_release(&(access->access)) != TH_LOCK_OK_GENERIC)
@@ -97,6 +97,7 @@ static th_queue_status_t th_queue_chk(th_queue_access_t *access, TH_QUEUE_DATA_T
 {
     if (access->queue->is_empty)
     {
+        LOGD("Access queue is empty\n");
         return TH_QUEUE_ERR_EMPTY;
     }
     (void)memcpy(data, &(access->queue->data[access->queue->head]), sizeof(TH_QUEUE_DATA_TYPE));
@@ -139,6 +140,7 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
                     LOGE("Failed to release lock for queue access\n");
                     return TH_QUEUE_ERR_LOCK;
                 }
+                LOGD("Queue read accept condition rejected\n");
                 return TH_QUEUE_OK_CONDITION_REJECTED;
             }
         }
@@ -157,5 +159,4 @@ th_queue_status_t th_queue_read(th_queue_access_t *access, TH_QUEUE_DATA_TYPE *d
         return TH_QUEUE_ERR_LOCK;
     }
     return(TH_QUEUE_ERR_EMPTY);
-
 }
