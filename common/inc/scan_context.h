@@ -10,6 +10,9 @@
 
 /* Define a magic number for validating scan context cookies. */
 #define COOKIE_MAGIC    0xA58UL
+/* Macro for cookie creation. */
+#define COOKIE_MAKE(scan_id, port) \
+    ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0xF) << 16) | ((port) & 0xFFFF))
 /* Macros for extracting scan type and port number from a cookie. */
 #define COOKIE_SCAN(c)  (((c) >> 16) & 0x7)
 #define COOKIE_PORT(c)  ((c) & 0xFFFF)
