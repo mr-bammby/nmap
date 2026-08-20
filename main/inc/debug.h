@@ -6,11 +6,21 @@
 #include <string.h>
 
 /* ========================================================================= */
-/* Global debug switch                                                       */
+/* Global debug level                                                        */
 /* ========================================================================= */
 
-#ifndef DEBUG
-#define DEBUG 0
+#define DEBUG_LEVEL_NONE 0
+#define DEBUG_LEVEL_ERROR 1
+#define DEBUG_LEVEL_WARNING 2
+#define DEBUG_LEVEL_INFO 3
+#define DEBUG_LEVEL_DEBUG 4
+
+#ifndef DEBUG_LEVEL
+#ifdef DEBUG
+#define DEBUG_LEVEL DEBUG
+#else
+#define DEBUG_LEVEL DEBUG_LEVEL_NONE
+#endif
 #endif
 
 /* ========================================================================= */
@@ -18,54 +28,54 @@
 /* ========================================================================= */
 
 /* main */
-#define DEBUG_ADDR_HASHMAP                  (DEBUG && 1)
-#define DEBUG_BUILD_MESSAGE                 (DEBUG && 0)
-#define DEBUG_MAIN                          (DEBUG && 1)
-#define DEBUG_MULTI_COMMAND_QUEUE           (DEBUG && 1)
-#define DEBUG_MULTI_THREAD_EXEC             (DEBUG && 1)
-#define DEBUG_MULTI_THREAD_INIT             (DEBUG && 1)
-#define DEBUG_MULTI_THREAD_RECEIVER         (DEBUG && 1)
-#define DEBUG_MULTI_THREAD_SENDER           (DEBUG && 1)
-#define DEBUG_PACKET_RECEIVE                (DEBUG && 1)
-#define DEBUG_PACKET_SEND                   (DEBUG && 1)
-#define DEBUG_RECEIVER                      (DEBUG && 1)
-#define DEBUG_SENDER                        (DEBUG && 0)
-#define DEBUG_SINGLE_THREAD_EXEC            (DEBUG && 0)
-#define DEBUG_TIMER_UTILS                   (DEBUG && 0)
+#define DEBUG_ADDR_HASHMAP                  (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_BUILD_MESSAGE                 (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MAIN                          (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MULTI_COMMAND_QUEUE           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MULTI_THREAD_EXEC             (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MULTI_THREAD_INIT             (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MULTI_THREAD_RECEIVER         (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MULTI_THREAD_SENDER           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_PACKET_RECEIVE                (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_PACKET_SEND                   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_RECEIVER                      (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_SENDER                        (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_SINGLE_THREAD_EXEC            (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_TIMER_UTILS                   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
-#define DEBUG_MULTI_THREAD_PACKET_RECEIVE   (DEBUG && 1)
+#define DEBUG_MULTI_THREAD_PACKET_RECEIVE   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 
 /* argument_parser */
-#define DEBUG_ADRESS_UTILS                  (DEBUG && 0)
-#define DEBUG_ARGUMENT_HANDLER_ADRESS       (DEBUG && 0)
-#define DEBUG_ARGUMENT_HANDLER_FILE         (DEBUG && 0)
-#define DEBUG_ARGUMENT_HANDLER_HELP         (DEBUG && 0)
-#define DEBUG_ARGUMENT_HANDLER_SCANS        (DEBUG && 0)
-#define DEBUG_ARGUMENT_HANDLER_SPEEDUP      (DEBUG && 0)
-#define DEBUG_ARGUMENT_PARSER               (DEBUG && 0)
-#define DEBUG_ARGUMENT_HANDLER_PORTS        (DEBUG && 0)
-#define DEBUG_PORT_UTILS                    (DEBUG && 0)
+#define DEBUG_ADRESS_UTILS                  (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_HANDLER_ADRESS       (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_HANDLER_FILE         (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_HANDLER_HELP         (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_HANDLER_SCANS        (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_HANDLER_SPEEDUP      (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_PARSER               (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_ARGUMENT_HANDLER_PORTS        (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_PORT_UTILS                    (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 /* protocols */
-#define DEBUG_ICMP                          (DEBUG && 0)
-#define DEBUG_IP                            (DEBUG && 0)
-#define DEBUG_PROTOCOL_UTILS                (DEBUG && 0)
-#define DEBUG_TCP                           (DEBUG && 0)
-#define DEBUG_UDP                           (DEBUG && 0)
+#define DEBUG_ICMP                          (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_IP                            (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_PROTOCOL_UTILS                (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_TCP                           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_UDP                           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 /* result_printer */
-#define DEBUG_PARSER_UTILS                  (DEBUG && 1)
-#define DEBUG_PRINTER_UTILS                 (DEBUG && 1)
-#define DEBUG_RESULT_PRINTER                (DEBUG && 1)
+#define DEBUG_PARSER_UTILS                  (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_PRINTER_UTILS                 (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_RESULT_PRINTER                (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 /* threading */
-#define DEBUG_TH_LOCK                       (DEBUG && 0)
-#define DEBUG_TH_FLAGGING_ARRAY             (DEBUG && 0)
-#define DEBUG_TH_QUEUE                      (DEBUG && 0)
+#define DEBUG_TH_LOCK                       (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_TH_FLAGGING_ARRAY             (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_TH_QUEUE                      (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 /* threading test */
-#define DEBUG_TH_MAIN                       (DEBUG && 1)
+#define DEBUG_TH_MAIN                       (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 
 /* ========================================================================= */
@@ -111,19 +121,34 @@
 #define MODULE_DEBUG 0
 #endif
 
+#if DEBUG_LEVEL >= DEBUG_LEVEL_ERROR
 #define LOGE(fmt, ...) LOG_IMPL(stderr, LOG_ERR, fmt, ##__VA_ARGS__)
 #define LOGE_ERRNO(fmt, ...)                                      \
     do {                                                          \
         int err = errno;                                          \
         char buf[1024];                                           \
-        /* Use strerror_r to populate buf, then pass buf. strerror_r may return int or char* depending on libc, so call it separately to avoid type mismatch. */ \
         (void)strerror_r(err, buf, sizeof(buf));                  \
         LOG_IMPL(stderr, LOG_ERR, fmt ": %s\n",                   \
                  ##__VA_ARGS__, buf);                             \
     } while (0)
+#else
+#define LOGE(...) ((void)0)
+#define LOGE_ERRNO(...) ((void)0)
+#endif
+
+#if DEBUG_LEVEL >= DEBUG_LEVEL_WARNING
 #define LOGW(fmt, ...) LOG_IMPL(stdout, LOG_WRN, fmt, ##__VA_ARGS__)
+#else
+#define LOGW(...) ((void)0)
+#endif
+
+#if DEBUG_LEVEL >= DEBUG_LEVEL_INFO
 #define LOGI(fmt, ...) LOG_IMPL(stdout, LOG_INF, fmt, ##__VA_ARGS__)
 #define LOGI_WF(fmt, ...) LOG_IMPL_WF(stdout, fmt, ##__VA_ARGS__)
+#else
+#define LOGI(...) ((void)0)
+#define LOGI_WF(...) ((void)0)
+#endif
 
 #ifdef MODULE_DEBUG
 #if MODULE_DEBUG

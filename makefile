@@ -1,6 +1,8 @@
 CC = gcc 
 CCFLAGS = -g
-CPPFLAGS =
+DEBUG_LEVEL ?= 0
+CPPFLAGS = -DDEBUG_LEVEL=$(DEBUG_LEVEL)
+.DEFAULT_GOAL := all
 
 RM = rm -f 
 
@@ -24,6 +26,7 @@ SRCD = $(ARG_PARSER_DIR)/src \
 SRCS	= $(filter-out threading/src/th_main.c threading/src/th_main_queue.c,$(foreach dir,$(SRCD),$(wildcard $(dir)/*.c)))
 
 OBJD		= ./obj/
+DEBUG_FLAG = $(OBJD)/.debug_level_$(DEBUG_LEVEL)
 
 OBJF	= $(patsubst %.c,$(OBJD)%.o,$(SRCS))
 HDRS	= $(foreach dir,$(SRCD),$(wildcard $(dir)/../inc/*.h $(dir)/../inc_priv/*.h))
@@ -40,7 +43,12 @@ LIBS = -lpcap -pthread
 NAME = ft_nmap.out
 TEST_MAIN = multi_thread_test.out
 
-$(OBJD)%.o: %.c $(HDRS)
+$(DEBUG_FLAG):
+	@mkdir -p $(OBJD)
+	@rm -f $(OBJD)/.debug_level_*
+	@touch $@
+
+$(OBJD)%.o: %.c $(HDRS) $(DEBUG_FLAG)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CCFLAGS) $(INCLUDES) -c -o $@ $<
 
@@ -50,7 +58,7 @@ $(NAME): $(filter-out $(TEST_OBJF),$(OBJF))
 $(TEST_MAIN): $(filter-out ./obj/main/src/main.o ./obj/main/src/multi_thread_test_main.o,$(OBJF)) $(TEST_OBJF)
 	$(CC) $(CPPFLAGS) $(CCFLAGS) $(INCLUDES) -o $(TEST_MAIN) $(filter-out ./obj/main/src/main.o ./obj/main/src/multi_thread_test_main.o,$(OBJF)) $(TEST_OBJF) $(LIBS)
 
-all: fclean ${NAME} 
+all: ${NAME} 
 
 clean:
 	${RM} -r ${OBJD}
@@ -58,8 +66,8 @@ clean:
 fclean: clean
 	${RM} ${NAME} ${TEST_MAIN}
 
-debug: CPPFLAGS += -DDEBUG=1
-debug: fclean $(NAME)
+debug:
+	$(MAKE) DEBUG_LEVEL=4 $(NAME)
 
 re: fclean all 
 
