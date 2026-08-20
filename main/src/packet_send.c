@@ -20,10 +20,6 @@
 #define MIN_SRC_PORT 1024
 #define MAX_SRC_PORT PORT_MAX_PORT
 
-#define COOKIE_MAKE(scan_id, port) \
-    ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0xF) << 16) | ((port) & 0xFFFF))
-
-
 static void print_message(const uint8_t *buffer, uint16_t length)
 {
     LOGD("Constructed Packet (Hex):\n");

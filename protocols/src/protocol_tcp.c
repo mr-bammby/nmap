@@ -165,7 +165,7 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     uint8_t scan_id = COOKIE_SCAN(cookie);
     uint8_t scan_flag = (uint8_t)(1u << scan_id);
     uint16_t port   = COOKIE_PORT(cookie);
-
+    LOGD("ScanID %d, ScanFlag %d and Port %d\n", scan_id, scan_flag, port);
     int port_index = 0;
     if (argparse_port_find(ports, port, &port_index) != 0)
     {

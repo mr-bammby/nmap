@@ -129,6 +129,7 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
 
             scan_id = COOKIE_SCAN(cookie);
             scan_flag = (uint8_t)(1u << scan_id);
+            LOGD("ScanID %d, ScanFlag %d and Port %d\n", scan_id, scan_flag, port);
 
             int port_index = 0;
             if (ports == NULL || argparse_port_find(ports, port, &port_index) != 0)
