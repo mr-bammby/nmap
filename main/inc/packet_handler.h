@@ -6,7 +6,7 @@
 #include "protocol_tcp.h"
 #include "protocol_udp.h"
 #include "argument_parser_types.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
 #include "argument_parser_types.h"
 
 /* Sends IP packets to target ip depending on the scan type, probe and port. */

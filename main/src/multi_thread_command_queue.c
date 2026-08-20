@@ -1,6 +1,6 @@
 #define MODULE_DEBUG DEBUG_MULTI_COMMAND_QUEUE
 #include "debug.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
 #include "th_queue.h"
 #include "th_flagging_array.h"
 #include "protocol_utils.h"
@@ -30,13 +30,13 @@ uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx,
     if (multi_thread_shared_cmd_queue.is_full)
     {
         LOGD("Queue is full on entering init_append_scan in receiver run with address %s and port %d and scan %d\n", address_str, port, scan_flag);
-        return TH_QUEUE_APPEND_ERR_FULL; // Queue is full
+        return MULTI_TH_QUEUE_APPEND_ERR_FULL; // Queue is full
     }
 
     uint32_t target_ip;
     if (address_str == NULL || inet_pton(AF_INET, address_str, &target_ip) != 1)
     {
-        return TH_QUEUE_APPEND_ERR_INVALID_PARAM; // Invalid address
+        return MULTI_TH_QUEUE_APPEND_ERR_INVALID_PARAM; // Invalid address
     }
 
     multi_thread_command_t command;
@@ -46,17 +46,17 @@ uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx,
     switch (th_queue_write(access, &command))
     {
     case TH_QUEUE_ERR_INVALID_PARAM:
-        exit (TH_QUEUE_APPEND_ERR_INVALID_PARAM); //ToDo: terminate gracefully
+        exit (MULTI_TH_QUEUE_APPEND_ERR_INVALID_PARAM); //ToDo: terminate gracefully
     case TH_QUEUE_ERR_LOCK:
-        exit (TH_QUEUE_APPEND_ERR_LOCK); //ToDo: terminate gracefully
+        exit (MULTI_TH_QUEUE_APPEND_ERR_LOCK); //ToDo: terminate gracefully
     case TH_QUEUE_ERR_FULL:
-        return (TH_QUEUE_APPEND_ERR_FULL); //ToDo: wait for 3 attempts and then terminate gracefully if unsuccessfull 
+        return (MULTI_TH_QUEUE_APPEND_ERR_FULL); //ToDo: wait for 3 attempts and then terminate gracefully if unsuccessfull
     default:
         break;
     }
 
     multi_thread_shared_cmd_queue.is_empty = 0;
-    uint16_t ret = TH_QUEUE_APPEND_OK_GENERIC;
+    uint16_t ret = MULTI_TH_QUEUE_APPEND_OK_GENERIC;
     size_t next_tail = idx + 1;
     if (next_tail >= multi_thread_shared_cmd_queue.capacity)
     {
@@ -65,7 +65,7 @@ uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx,
     if (next_tail == multi_thread_shared_cmd_queue.head)
     {
         multi_thread_shared_cmd_queue.is_full = 1;
-        ret = TH_QUEUE_APPEND_OK_FULL_AFTER; //ToDo:  reset timer
+        ret = MULTI_TH_QUEUE_APPEND_OK_FULL_AFTER; //ToDo:  reset timer
     }
     multi_thread_shared_cmd_queue.tail = next_tail;
     LOGD("Return value of receiver append %d\n", ret);
@@ -106,13 +106,23 @@ static uint8_t init_append_scan(const char *address_str, uint16_t flag_row_idx, 
     return 0;
 }
 
-uint8_t append_special(multi_thread_special_cmd_e sp_cmd)
+static uint8_t init_append_special(multi_thread_special_cmd_e sp_cmd)
 {
     if (sp_cmd != MULTI_TH_SP_CMD_SKIP && sp_cmd != MULTI_TH_SP_CMD_END)
     {
         return 1; // Invalid special command
     }
     return init_append_scan("0.0.0.0", 0, 0, 0, sp_cmd);
+}
+
+uint8_t append_special_receiver_run(multi_thread_special_cmd_e sp_cmd, th_queue_access_t *access)
+{
+    if (sp_cmd != MULTI_TH_SP_CMD_SKIP && sp_cmd != MULTI_TH_SP_CMD_END)
+    {
+        return MULTI_TH_QUEUE_APPEND_ERR_INVALID_PARAM;
+    }
+
+    return append_scan_receiver_run("0.0.0.0", 0, 0, 0, sp_cmd, access);
 }
 
 uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
@@ -126,7 +136,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
     argparse_port_set_iterator_t port_it;
     unsigned int port_value = 0;
 
-    append_special(MULTI_TH_SP_CMD_SKIP); // Add a skip command to signal waiting until receiver is intitalized
+    init_append_special(MULTI_TH_SP_CMD_SKIP); // Add a skip command to signal waiting until receiver is intitalized
 
     uint32_t done = 0;
     for (argparse_addr_node_t *current = params->address; current != NULL; current = current->next)
@@ -191,7 +201,7 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
     
     if (!done)
     {
-        uint8_t result = append_special(MULTI_TH_SP_CMD_END); // Add an end command to signal completion
+        uint8_t result = init_append_special(MULTI_TH_SP_CMD_END); // Add an end command to signal completion
         if (result == 1)
         {
             LOGE("Failed to add end command to queue\n");

@@ -1,6 +1,7 @@
 #define MODULE_DEBUG DEBUG_MULTI_THREAD_EXEC
 #include "debug.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
+#include "multi_thread.h"
 #include <pcap.h>
 #include "receiver.h"
 #include <stdlib.h>
@@ -9,7 +10,7 @@
 th_flagging_array_t *multi_thread_shared_flagging_array = NULL;
 th_queue_t multi_thread_shared_cmd_queue = {0};
 
-/* Define the global atomic flags declared in multi_thread_shared.h */
+/* Define the global atomic flags declared in multi_thread_shared_res.h */
 atomic_bool abort_flag = ATOMIC_VAR_INIT(false);
 atomic_int thread_counter = ATOMIC_VAR_INIT(0);
 
@@ -162,7 +163,7 @@ uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **resul
                 }
             }
 
-        if (multi_thread_receiver_run(g_multi_thread_allocs.pcap_handle, link_header_len, results, &g_multi_thread_allocs.hash_map, &access, params, &queue_state, results_rows, results_cols) != 0)
+        if (multi_thread_receiver_run(g_multi_thread_allocs.pcap_handle, link_header_len, results, &g_multi_thread_allocs.hash_map, &access, params, &queue_state, results_rows, results_cols) < 0)
         {
             LOGE("Receiver encountered an error during execution\n");
             multi_thread_cleanup();

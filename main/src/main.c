@@ -11,7 +11,7 @@
 #include "exec.h"
 #include "scan_context.h"
 #include "timer_utils.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
 #include "signal_handler.h"
 #include "version.h"
 

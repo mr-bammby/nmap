@@ -1,7 +1,7 @@
 
 #define MODULE_DEBUG DEBUG_MULTI_THREAD_RECEIVER
 #include "debug.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
 #include <pcap.h>
 #include "receiver.h"
 #include <stdlib.h>
@@ -211,7 +211,7 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
                     {
                         LOGD("Successfully appended address %s, port %d and scan id %d to command queue\n", current_addr->addr, port_value, current_scan);
                     }
-                    else if (result == TH_QUEUE_APPEND_OK_FULL_AFTER)
+                    else if (result == MULTI_TH_QUEUE_APPEND_OK_FULL_AFTER)
                     {
                         LOGE("Queue is full while receiver is adding scan command for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan);
                         queue_full = 1;
@@ -241,7 +241,7 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
 
         if (current_addr == NULL)
         {
-            uint8_t result = append_special(MULTI_TH_SP_CMD_END); // Add an end command to signal completion
+            uint8_t result = append_special_receiver_run(MULTI_TH_SP_CMD_END, access); // Add an end command to signal completion
             if (result == 1)
             {
                 LOGE("Failed to add end command to queue in receiver run\n");
@@ -279,7 +279,7 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
         {
             atomic_store(&abort_flag, true);
             LOGE("Abort flag set, exiting receiver\n");
-            ret = 1;
+            ret = -1;
             break;
         }
         int res = pcap_next_ex(pcap_handle, &header, &packet);
@@ -291,7 +291,7 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
 
         }
     }
-    if (ret == 1)
+    if (ret < 0)
     {
         uint8_t cnt = 0;
         while (atomic_load(&thread_counter) > 0)

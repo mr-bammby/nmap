@@ -1,6 +1,7 @@
 #define MODULE_DEBUG DEBUG_MULTI_THREAD_SENDER
 #include "debug.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
+#include "multi_thread.h"
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <time.h>

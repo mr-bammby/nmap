@@ -11,7 +11,7 @@
 #include "protocol_tcp.h"
 #include "protocol_icmp.h"
 #include "protocol_udp.h"
-#include "multi_thread_shared.h"
+#include "multi_thread_shared_res.h"
 
 // --- Receiver Logic ---
 int8_t multi_thread_process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map, const argparse_port_set_t *ports)
