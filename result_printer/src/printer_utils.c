@@ -66,9 +66,9 @@ static uint8_t collect_active_tokens(const scan_result_t *res, char tokens[6][32
 
     states[0] = rp_get_syn_state(res);
     states[1] = rp_get_null_state(res);
-    states[2] = rp_get_fin_state(res);
-    states[3] = rp_get_xmas_state(res);
-    states[4] = rp_get_ack_state(res);
+    states[2] = rp_get_ack_state(res);
+    states[3] = rp_get_fin_state(res);
+    states[4] = rp_get_xmas_state(res);
     states[5] = rp_get_udp_state(res);
 
     for (uint8_t i = 0u; i < 6u; i++)

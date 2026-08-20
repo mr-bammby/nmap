@@ -18,12 +18,11 @@ void resprint_print_scan_header(const argparse_params_t *params)
         printf("No of Ports to scan : %u\n", params->ports.count);
         
         printf("Scans to be performed : ");
-        if ((params->scans & SCAN_FLG_SYN) != 0u)  { printf("SYN ");  }
-        if ((params->scans & SCAN_FLG_NULL) != 0u) { printf("NULL "); }
-        if ((params->scans & SCAN_FLG_FIN) != 0u)  { printf("FIN ");  }
-        if ((params->scans & SCAN_FLG_XMAS) != 0u) { printf("XMAS "); }
-        if ((params->scans & SCAN_FLG_ACK) != 0u)  { printf("ACK ");  }
-        if ((params->scans & SCAN_FLG_UDP) != 0u)  { printf("UDP ");  }
+        for (int scan_idx = 0; scan_idx < SCAN_NUMBER_OF_SCAN_TYPES; scan_idx++)
+        {
+            if ((params->scans & (1u << scan_idx)) != 0u)
+                printf("%s ", scan_valid_tokens[scan_idx]);
+        }
         printf("\n");
         
         printf("No of threads : %u\n", (uint32_t)params->thread_num);
