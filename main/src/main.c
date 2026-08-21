@@ -158,7 +158,7 @@ static void cleanup(void)
 {
     /* Ensure signal waiter thread is shutdown before freeing resources */
     shutdown_signal_handler();
-    fprintf(stderr, "Cleaning up...\n");
+    LOGE("Cleaning up...\n");
 
     free(g_allocs.results_rows);
     g_allocs.results_rows = NULL;

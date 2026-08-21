@@ -30,9 +30,11 @@ static void *signal_waiter(void *arg)
             {
                 g_interrupt_callback();
             }
+#if DEBUG_MAIN
             /* Write a brief message to stderr in a safe way */
             const char *msg = "Interrupted - quitting!\n";
             (void)write(STDERR_FILENO, msg, strlen(msg));
+#endif
         }
     }
     return NULL;

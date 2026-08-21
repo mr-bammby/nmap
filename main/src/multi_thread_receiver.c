@@ -224,6 +224,7 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
                         return -1; //implement graceful termination
                     }
                 }
+                current_port++;
                 current_scan = 0;
                 if (port_it.set->count == current_port)
                     current_port = 0;
