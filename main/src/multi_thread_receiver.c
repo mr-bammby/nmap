@@ -168,6 +168,8 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
     static uint8_t end_added_successfully = 0;
 
     static uint8_t queue_full = 0;
+    if (!access->queue->is_full)
+        queue_full = 0;
 
     if (!init_flag)
     {
