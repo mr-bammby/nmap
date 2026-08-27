@@ -154,7 +154,7 @@ static argparse_addr_node_t *get_addr_node_by_idx(argparse_addr_node_t *address_
     return address_ptr;
 }
 
-static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state)
+static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, scan_result_t **results)
 {
     static uint8_t init_flag = 0;
     static nmap_timeout_t timeout;
@@ -195,20 +195,34 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
         while (current_addr != NULL && !end_added_successfully)
         {
             LOGD("Adding %s...\n", current_addr->addr);
-            LOGD("Size of set %d and current port %d \n", port_it.set->count, current_port );
+            //LOGD("Size of set %d and current port %d \n", port_it.set->count, current_port );
             argparse_port_iterator_set_index(&port_it, current_port);
             unsigned int port_value;
 
             while (argparse_port_iterator_next(&port_it, &port_value) == 0)
             {
-                LOGD("Port iterator loop with port idx%d\n", port_it.index);
+                //LOGD("Port iterator loop with port idx%d\n", port_it.index);
                 for (; current_scan < 6; current_scan++)
                 {
-                    LOGD("Scan index loop with scan_i %d\n", current_scan);
+                    //LOGD("Scan index loop with scan_i %d\n", current_scan);
                     if (!(params->scans & (1 << current_scan)))
                         continue;
-                    LOGD("Receiver adding scan for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan); 
+                    //LOGD("Receiver adding scan for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan); 
                     uint8_t result = append_scan_receiver_run(current_addr->addr,  current_addr_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << current_scan), access);//const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
+                    scan_result_t *row = results[current_addr_idx];
+                    if (argparse_port_find(&params->ports, port_value, &current_port) == 0 && current_port >= 0)
+                    {
+                        switch (1u << current_scan)
+                        {
+                            case SCAN_FLG_SYN:  row[current_port].response_syn  = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_NULL: row[current_port].response_null = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_ACK:  row[current_port].response_ack  = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_FIN:  row[current_port].response_fin  = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_XMAS: row[current_port].response_xmas = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_UDP:  row[current_port].response_udp  = RESPONSE_NO_RESPONSE; break;
+                            default: break;
+                        }
+                    }
                     if (result == 0)
                     {
                         LOGD("Successfully appended address %s, port %d and scan id %d to command queue\n", current_addr->addr, port_value, current_scan);
@@ -275,7 +289,7 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
     while (atomic_load(&thread_counter) > 0)
     {
         //Append of command queue
-        multi_thread_receiver_run_append_queue(access, params, queue_state);
+        multi_thread_receiver_run_append_queue(access, params, queue_state, results);
 
         //LOGD("Receiver sniffing\n");
         if (atomic_load(&interrupt_flag))
