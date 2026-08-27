@@ -16,7 +16,7 @@ static interrupt_callback_t g_interrupt_callback = NULL;
 static sigset_t g_sigset;
 
 static pthread_t g_tid = 0;
-static atomic_int g_should_exit = ATOMIC_VAR_INIT(0);
+static atomic_int g_should_exit = 0;
 
 static void *signal_waiter(void *arg)
 {

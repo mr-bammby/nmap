@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdatomic.h>
 #include "argument_parser.h"
 #include "scan_defines.h"
 #include "argument_parser_port.h"
@@ -27,7 +28,7 @@ struct nmap_allocs g_allocs = { {0}, NULL, NULL, 0 };
 
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-atomic_bool interrupt_flag = ATOMIC_VAR_INIT(false);
+atomic_bool interrupt_flag = false;
 
 static const char *parse_error_to_string(argparse_return_e error)
 {

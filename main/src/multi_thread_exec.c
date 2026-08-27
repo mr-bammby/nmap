@@ -11,8 +11,8 @@ th_flagging_array_t *multi_thread_shared_flagging_array = NULL;
 th_queue_t multi_thread_shared_cmd_queue = {0};
 
 /* Define the global atomic flags declared in multi_thread_shared_res.h */
-atomic_bool abort_flag = ATOMIC_VAR_INIT(false);
-atomic_int thread_counter = ATOMIC_VAR_INIT(0);
+atomic_bool abort_flag = false;
+atomic_int thread_counter = 0;
 
 struct multi_thread_allocs
 {
