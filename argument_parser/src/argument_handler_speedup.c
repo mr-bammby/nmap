@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#define MAX_THREAD_NUM 250
+
 
 argparse_return_e ap_handler_speedup(argparse_params_t *param, const char *value)
 {
@@ -15,9 +17,9 @@ argparse_return_e ap_handler_speedup(argparse_params_t *param, const char *value
         return ARGPARSE_BAD_VALUE;
 
     long val = strtol(value, NULL, 10);
-    if (val <= 0 || val > UINT16_MAX)
+    if (val < 0 || val > MAX_THREAD_NUM)
         return ARGPARSE_BAD_VALUE;
 
-    param->thread_num = (uint16_t)val;
+    param->thread_num = (uint16_t)val + 1;
     return ARGPARSE_OK;
 }
