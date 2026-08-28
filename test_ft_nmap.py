@@ -58,11 +58,11 @@ def test_port_parsing(ports_arg, valid):
         assert res.returncode != 0
 
 @pytest.mark.parametrize("speedup,valid", [
-    ("0", False),    # Speedup 0 displays help / exits with error
-    ("1", True),      # Min valid thread bound
+    ("0", True),    
+    ("1", True),   
     ("150", True),
     ("250", True),
-    ("251", True),    # Parser allows >250 threads natively
+    ("251", False),   
     ("-1", False)
 ])
 def test_speedup_bounds(speedup, valid):
