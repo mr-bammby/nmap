@@ -60,6 +60,10 @@ dkms.conf
 # config files
 *.conf
 
+# logging files
+*.log
+*.txt
+
 # VS Code settings
 .vscode/
 .vscode/*

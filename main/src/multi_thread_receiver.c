@@ -210,19 +210,6 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
                     //LOGD("Receiver adding scan for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan); 
                     uint8_t result = append_scan_receiver_run(current_addr->addr,  current_addr_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << current_scan), access);//const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
                     scan_result_t *row = results[current_addr_idx];
-                    if (argparse_port_find(&params->ports, port_value, &current_port) == 0 && current_port >= 0)
-                    {
-                        switch (1u << current_scan)
-                        {
-                            case SCAN_FLG_SYN:  row[current_port].response_syn  = RESPONSE_NO_RESPONSE; break;
-                            case SCAN_FLG_NULL: row[current_port].response_null = RESPONSE_NO_RESPONSE; break;
-                            case SCAN_FLG_ACK:  row[current_port].response_ack  = RESPONSE_NO_RESPONSE; break;
-                            case SCAN_FLG_FIN:  row[current_port].response_fin  = RESPONSE_NO_RESPONSE; break;
-                            case SCAN_FLG_XMAS: row[current_port].response_xmas = RESPONSE_NO_RESPONSE; break;
-                            case SCAN_FLG_UDP:  row[current_port].response_udp  = RESPONSE_NO_RESPONSE; break;
-                            default: break;
-                        }
-                    }
                     if (result == 0)
                     {
                         LOGD("Successfully appended address %s, port %d and scan id %d to command queue\n", current_addr->addr, port_value, current_scan);
@@ -239,13 +226,27 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
                         LOGD("Error while appending command in receiver thread\n");
                         return -1; //implement graceful termination
                     }
+                    if (argparse_port_find(&params->ports, port_value, &current_port) == 0 && current_port >= 0)
+                    {
+                        switch (1u << current_scan)
+                        {
+                            case SCAN_FLG_SYN:  row[current_port].response_syn  = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_NULL: row[current_port].response_null = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_ACK:  row[current_port].response_ack  = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_FIN:  row[current_port].response_fin  = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_XMAS: row[current_port].response_xmas = RESPONSE_NO_RESPONSE; break;
+                            case SCAN_FLG_UDP:  row[current_port].response_udp  = RESPONSE_NO_RESPONSE; break;
+                            default: break;
+                        }
+                    }
                 }
+                if (queue_full)
+                    break;
                 current_port++;
                 current_scan = 0;
                 if (port_it.set->count == current_port)
                     current_port = 0;
-                if (queue_full)
-                    break;
+                
             }
             if (queue_full)
                 break;
