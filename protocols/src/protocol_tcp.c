@@ -156,11 +156,11 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     }
     else if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_ACK)
     {
-        cookie = ack_num - 1;   // SYN / NULL / FIN / XMAS replies
+        cookie = ack_num;   // SYN / NULL / FIN / XMAS replies
     }
     else if (tcp_hdr.flags == 0)
     {
-        cookie = ack_num - 1;
+        cookie = ack_num;
     }
     LOGD("Cookie %u, ACK %u, Seq %u\n", cookie, ack_num, tcp_hdr.seq_num);
     if (!COOKIE_VALID(cookie))
