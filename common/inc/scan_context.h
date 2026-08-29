@@ -9,13 +9,13 @@
 #define RESULTS_CAPACITY PORT_NUMBER_OF_PORTS
 
 /* Define a magic number for validating scan context cookies. */
-#define COOKIE_MAGIC    0xA58UL
+#define COOKIE_MAGIC    0xA5UL
 /* Macro for cookie creation. */
 #define COOKIE_MAKE(scan_id, port) \
-    ((COOKIE_MAGIC << 20) | (((uint32_t)(scan_id) & 0xF) << 16) | ((port) & 0xFFFF))
+    ((COOKIE_MAGIC << 24) | (((uint32_t)(scan_id) & 0xF) << 20) | (((port) & 0xFFFF) << 4) | 0x0UL)
 /* Macros for extracting scan type and port number from a cookie. */
-#define COOKIE_SCAN(c)  (((c) >> 16) & 0x7)
-#define COOKIE_PORT(c)  ((c) & 0xFFFF)
-#define COOKIE_VALID(c) (((c) >> 20) == COOKIE_MAGIC)
+#define COOKIE_SCAN(c)  (((c) >> 20) & 0x7)
+#define COOKIE_PORT(c)  (((c) >> 4) & 0xFFFF)
+#define COOKIE_VALID(c) (((c) >> 24) == COOKIE_MAGIC)
 
 #endif /* SCAN_CONTEXT_H */
