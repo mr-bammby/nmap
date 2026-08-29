@@ -42,8 +42,7 @@ static int build_bpf_filter(const argparse_addr_node_t *addresses, const char *l
 
     written = snprintf(filter + used,
                        filter_size - used,
-                       ") and dst host %s and (tcp or udp or icmp)",
-                       local_ip);
+                       ")");
 
     if (written < 0 || (size_t)written >= (filter_size - used))
         return -1;
@@ -154,7 +153,7 @@ static argparse_addr_node_t *get_addr_node_by_idx(argparse_addr_node_t *address_
     return address_ptr;
 }
 
-static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, scan_result_t **results)
+static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, const argparse_params_t *params, const multi_thread_command_queue_state_t *queue_state, scan_result_t **results, uint64_t *sent_scan_count)
 {
     static uint8_t init_flag = 0;
     static nmap_timeout_t timeout;
@@ -168,6 +167,8 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
     static uint8_t end_added_successfully = 0;
 
     static uint8_t queue_full = 0;
+
+
     if (!access->queue->is_full)
         queue_full = 0;
 
@@ -189,6 +190,7 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
         init_flag = 1;
     }
 
+    sent_scan_count =  0;
 
     if (timeout_check(&timeout) && !end_added_successfully)
     {
@@ -201,6 +203,12 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
 
             while (argparse_port_iterator_next(&port_it, &port_value) == 0)
             {
+                if (atomic_load(&interrupt_flag))
+                {
+                    atomic_store(&abort_flag, true);
+                    LOGE("Abort flag set, exiting receiver\n");
+                    return; //implement graceful termination
+                }
                 //LOGD("Port iterator loop with port idx%d\n", port_it.index);
                 for (; current_scan < 6; current_scan++)
                 {
@@ -224,10 +232,12 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
                     else
                     {
                         LOGD("Error while appending command in receiver thread\n");
-                        return -1; //implement graceful termination
+                        atomic_store(&abort_flag, true);
+                        return; //implement graceful termination
                     }
                     if (argparse_port_find(&params->ports, port_value, &current_port) == 0 && current_port >= 0)
                     {
+                        sent_scan_count++;
                         switch (1u << current_scan)
                         {
                             case SCAN_FLG_SYN:  row[current_port].response_syn  = RESPONSE_NO_RESPONSE; break;
@@ -278,19 +288,23 @@ static uint8_t multi_thread_receiver_run_append_queue(th_queue_access_t *access,
             }
         }
     }
+    return;
 }
 
-uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols)
+uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, const addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, const multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols)
 {
     struct pcap_pkthdr *header;
     const unsigned char *packet;
     int8_t ret = 0;
+    uint64_t sent_count, all_sent_scan_count = queue_state->sent_scan_cnt;
+    uint64_t received_count = 0;
     
-
+    LOGD("Sender threads1 num %d\n", atomic_load(&thread_counter));
     while (atomic_load(&thread_counter) > 0)
     {
         //Append of command queue
-        multi_thread_receiver_run_append_queue(access, params, queue_state, results);
+        /*multi_thread_receiver_run_append_queue(access, params, queue_state, results, &sent_count);
+        all_sent_scan_count += sent_count;
 
         //LOGD("Receiver sniffing\n");
         if (atomic_load(&interrupt_flag))
@@ -301,22 +315,72 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
             break;
         }
         int res = pcap_next_ex(pcap_handle, &header, &packet);
+        if (atomic_load(&interrupt_flag) || atomic_load(&abort_flag))
+        {
+            atomic_store(&abort_flag, true);
+            LOGE("Abort flag set, exiting receiver\n");
+            ret = -1;
+            break;
+        }*/
+       int res = pcap_next_ex(pcap_handle, &header, &packet);
         if (res == 1)
         {
             LOGD("PACKET PROCESSING\n");
             LOGD("Header len: %d\n", header->len);
-            ret = multi_thread_process_packet(packet, header->caplen, link_header_len, results, hash_map, &(params->ports));
+            if (multi_thread_process_packet(packet, header->caplen, link_header_len, results, hash_map, &(params->ports)) == 1)
+            {
+                received_count++;
+            }
 
         }
     }
+    LOGD("Sender threads3 num %d\n", atomic_load(&thread_counter));
+    if (received_count < all_sent_scan_count)
+    {
+        LOGD("Receiver finished but not all sent scans were received. Sent: %llu, Received: %llu\n", (unsigned long long)all_sent_scan_count, (unsigned long long)received_count);
+        uint16_t cnt = 0;
+        // Wait for return packet for 1s
+        while (cnt < 1000)
+        {
+            if (atomic_load(&interrupt_flag) || atomic_load(&abort_flag) || ret == -1)
+            {
+                atomic_store(&abort_flag, true);
+                LOGE("Abort flag set, exiting receiver\n");
+                ret = -1;
+                break;
+            }
+            int res = pcap_next_ex(pcap_handle, &header, &packet);
+            if (atomic_load(&interrupt_flag) || atomic_load(&abort_flag))
+            {
+                atomic_store(&abort_flag, true);
+                LOGE("Abort flag set, exiting receiver\n");
+                ret = -1;
+                break;
+            }
+            if (res == 1)
+            {
+                LOGD("PACKET PROCESSING\n");
+                LOGD("Header len: %d\n", header->len);
+                if (multi_thread_process_packet(packet, header->caplen, link_header_len, results, hash_map, &(params->ports)) == 1)
+                {
+                    received_count++;
+                }
+
+            }
+            usleep(1000);
+            cnt++;
+        }
+    }
+
     if (ret < 0)
     {
-        uint8_t cnt = 0;
+        uint16_t cnt = 0;
+        atomic_store(&abort_flag, true);
         while (atomic_load(&thread_counter) > 0)
         {
             LOGD("Waiting for sender threads to finish...\n");
-            sleep(1);
-            if (cnt > 10)
+            usleep(100);
+            if (cnt > 1000)
             {
                 LOGE("Timeout waiting for sender threads to finish, forcing exit\n");
                 break;

@@ -81,7 +81,7 @@ int16_t protocol_icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pr
 }
 
 //TODO - Implement other scan types (ACK, NULL, FIN, Xmas) and their response processing logic
-int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports)
+int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports, uint16_t *ret_port_idx, uint8_t *ret_scan_flag)
 {
     (void)ip_hdr;
     protocol_icmp_header_t icmp_hdr;
@@ -99,6 +99,8 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
         const uint8_t *orig_transport;
         int16_t orig_ip_hl;
         uint16_t port;
+        uint8_t scan_flag;
+        int port_index = 0;
 
         if (ip_payload_len < PROTOCOL_ICMP_HEADER_LEN + PROTOCOL_IP_MIN_HEADER_LEN + 8)
             return 0;
@@ -118,7 +120,6 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
         {
             uint32_t cookie = ntohl(*(const uint32_t *)(orig_transport + 4));
             uint8_t scan_id;
-            uint8_t scan_flag;
 
             if (!COOKIE_VALID(cookie))
                 return 0;
@@ -131,9 +132,11 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
             scan_flag = (uint8_t)(1u << scan_id);
             LOGD("ScanID %d, ScanFlag %d and Port %d\n", scan_id, scan_flag, port);
 
-            int port_index = 0;
             if (ports == NULL || argparse_port_find(ports, port, &port_index) != 0)
                 return 0;
+
+            if (results[port_index].response_udp != RESPONSE_NO_RESPONSE)
+                return 0; // Already processed a response for this port
 
             if (scan_flag == SCAN_FLG_SYN)
                 results[port_index].response_syn = RESPONSE_ICMP_UNREACHABLE;
@@ -154,10 +157,12 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
             if (port < PORT_START || port > PORT_END)
                 return 0;
 
-            int port_index = 0;
             if (ports == NULL || argparse_port_find(ports, port, &port_index) != 0)
                 return 0;
 
+            if (results[port_index].response_udp != RESPONSE_NO_RESPONSE)
+                return 0; // Already processed a response for this port
+            scan_flag = SCAN_FLG_UDP;
             if (icmp_hdr.code == 3)
                 results[port_index].response_udp = RESPONSE_ICMP_UNREACHABLE;
             else if (icmp_hdr.code == 1 || icmp_hdr.code == 2 ||
@@ -169,7 +174,10 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
         }
         else
             return 0;
-
+        if (ret_port_idx != NULL)
+            *ret_port_idx = port_index;
+        if (ret_scan_flag != NULL)
+            *ret_scan_flag = scan_flag;
         return 1;
     }
 

@@ -16,6 +16,6 @@ void send_packet_ip(int sockfd, uint32_t target_ip, int port, uint32_t local_ip,
 int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t *results, const argparse_port_set_t *ports);
 
 /* Processes incoming packets in a multi-threaded environment and updates scan results. */
-int8_t multi_thread_process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t **results, addr_hashmap_t *hash_map, const argparse_port_set_t *ports);
+int8_t multi_thread_process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t link_header_len, scan_result_t **results, const addr_hashmap_t *hash_map, const argparse_port_set_t *ports);
 
 #endif /* PACKET_HANDLER_H */

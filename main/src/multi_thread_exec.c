@@ -89,7 +89,7 @@ void multi_thread_cleanup(void)
 uint8_t multi_thread_exec(const argparse_params_t *params, scan_result_t **results, uint32_t results_rows, uint32_t results_cols)
 {
 
-    multi_thread_command_queue_state_t queue_state;
+    multi_thread_command_queue_state_t queue_state = {0, 0, 0, 0};
     g_multi_thread_allocs.address_count = results_rows;
     g_multi_thread_allocs.thread_num = params->thread_num - 1; // -1 for receiver thread
     g_multi_thread_allocs.args = malloc(sizeof(multithread_sender_args_t *) * g_multi_thread_allocs.thread_num);

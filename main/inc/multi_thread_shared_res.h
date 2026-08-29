@@ -39,6 +39,7 @@ typedef struct multi_thread_command_queue_state
     uint16_t address_idx; // Index in the address list of the first scan not yet added to the queue
     uint16_t port_idx; // Index in the port list of the first scan not yet added to the queue
     uint8_t scan_idx; // Index of the first scan type not yet added to the queue
+    uint64_t sent_scan_cnt; // Total number of scans that were added to the queue (all addresses, all ports, all scan types)
 } multi_thread_command_queue_state_t;
 
 /* Special commands for multi-threaded command queue */

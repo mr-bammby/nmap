@@ -57,8 +57,9 @@ int16_t protocol_udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pro
  * @param ip_payload_len Length of the IP payload in bytes.
  * @param results Pointer to the scan results structure to update.
  * @param ports Pointer to the set of ports being scanned.
+ * @param ret_port_id Pointer to store the index of the port in the results array (optional).
  * @return 0 on success, or a negative error code on failure.
  */
-int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results, const argparse_port_set_t *ports);
+int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results, const argparse_port_set_t *ports, uint16_t *ret_port_id);
 
 #endif /* UDP_H */

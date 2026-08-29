@@ -159,7 +159,9 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
                         scan_result_t *row = results[queue_state->address_idx];
                         if (row != NULL && port_value >= PORT_START && port_value <= PORT_END) {
                             int port_index = -1;
-                            if (argparse_port_find(&params->ports, port_value, &port_index) == 0 && port_index >= 0) {
+                            if (argparse_port_find(&params->ports, port_value, &port_index) == 0 && port_index >= 0)
+                            {
+                                queue_state->sent_scan_cnt++;
                                 switch (scan_flag) {
                                     case SCAN_FLG_SYN:  row[port_index].response_syn  = RESPONSE_NO_RESPONSE; break;
                                     case SCAN_FLG_NULL: row[port_index].response_null = RESPONSE_NO_RESPONSE; break;

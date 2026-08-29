@@ -150,11 +150,11 @@ int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t 
     if (res == 1)
     {
         LOGD("PACKET PROCESSING\n");
-        process_packet(packet, header->caplen, link_header_len, results, ports);
-        /* Only stop when this specific probe got a conclusive response. */
-        if (*response_slot != RESPONSE_NO_RESPONSE)
-            return 1; // Stop receiving for this probe
+        if (process_packet(packet, header->caplen, link_header_len, results, ports) == 1)
+        {
+            return 1;
+        }
     }
     
-    return 0; // Continue receiving
+    return 0; 
 }

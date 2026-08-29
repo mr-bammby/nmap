@@ -34,16 +34,16 @@
 #define DEBUG_MULTI_COMMAND_QUEUE           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 #define DEBUG_MULTI_THREAD_EXEC             (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 #define DEBUG_MULTI_THREAD_INIT             (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
-#define DEBUG_MULTI_THREAD_RECEIVER         (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
-#define DEBUG_MULTI_THREAD_SENDER           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
-#define DEBUG_PACKET_RECEIVE                (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
+#define DEBUG_MULTI_THREAD_RECEIVER         (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_MULTI_THREAD_SENDER           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
+#define DEBUG_PACKET_RECEIVE                (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 #define DEBUG_PACKET_SEND                   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 #define DEBUG_RECEIVER                      (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
-#define DEBUG_SENDER                        (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
+#define DEBUG_SENDER                        (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 #define DEBUG_SINGLE_THREAD_EXEC            (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 #define DEBUG_TIMER_UTILS                   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 
-#define DEBUG_MULTI_THREAD_PACKET_RECEIVE   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
+#define DEBUG_MULTI_THREAD_PACKET_RECEIVE   (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 
 /* argument_parser */
@@ -62,7 +62,7 @@
 #define DEBUG_IP                            (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 #define DEBUG_PROTOCOL_UTILS                (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
 #define DEBUG_TCP                           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
-#define DEBUG_UDP                           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
+#define DEBUG_UDP                           (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 1)
 
 /* result_printer */
 #define DEBUG_PARSER_UTILS                  (DEBUG_LEVEL >= DEBUG_LEVEL_DEBUG && 0)
