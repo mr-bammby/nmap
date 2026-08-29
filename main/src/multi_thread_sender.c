@@ -17,13 +17,13 @@
 
 #define MAX_ERR_COUNT 10
 #define SLEEP_ERR_S 1
-#define SLEEP_EXIT_S 3
+#define SLEEP_EXIT_S 0
 #define SLEEP_TCP_S 0
-#define SLEEP_UDP_S 1
+#define SLEEP_UDP_S 0
 #define SLEEP_ERR_NS 0
-#define SLEEP_EXIT_NS 0
-#define SLEEP_TCP_NS 100000
-#define SLEEP_UDP_NS 0
+#define SLEEP_EXIT_NS 110000000
+#define SLEEP_TCP_NS 12000
+#define SLEEP_UDP_NS 1000
 
 #define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
 

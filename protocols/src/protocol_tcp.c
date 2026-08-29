@@ -149,6 +149,10 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)
     {
         cookie = tcp_hdr.seq_num;        // ACK scan RST reply
+        if (cookie == 0)
+        {
+            cookie = ack_num;
+        }
     }
     else if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_ACK)
     {
@@ -158,7 +162,7 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     {
         cookie = ack_num - 1;
     }
-
+    LOGD("Cookie %u, ACK %u, Seq %u\n", cookie, ack_num, tcp_hdr.seq_num);
     if (!COOKIE_VALID(cookie))
         return 0;
 
@@ -204,6 +208,10 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     case SCAN_FLG_NULL:
         if (tcp_hdr.flags == 0)        {
             results[port_index].response_null = RESPONSE_SYN_ACK; // Reuse RESPONSE_SYN_ACK to indicate open for NULL scan
+            return 1;
+        }
+        else if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
+            results[port_index].response_null = RESPONSE_RST;
             return 1;
         }
         else        {
