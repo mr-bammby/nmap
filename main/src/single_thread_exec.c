@@ -25,7 +25,6 @@
 
 
 #define NUMBER_OF_SCAN_TYPES SCAN_NUMBER_OF_SCAN_TYPES
-#define RESPONSE_WAIT_ATTEMPTS 500
 #define RESPONSE_POLL_TIMEOUT_TCP_US 100
 #define RESPONSE_POLL_TIMEOUT_UDP_US 1000
 #define RESPONSE_POLL_SLEEP_US_LOCAL 10 /* Local override renamed to avoid redefinition with main/inc/sender.h */
@@ -78,6 +77,8 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
     argparse_port_set_iterator_t port_it;
     unsigned int port_i;
     nmap_timeout_t timeout;
+    uint32_t receive_cnt = 0;
+    uint32_t send_cnt = 0;
 
     timeout_init(&timeout, 0, 0);
 
@@ -146,7 +147,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                     uint8_t done = 0;
                     uint32_t local_ip = inet_addr(g_single_thread_allocs.local_ip);
                     sender_run(g_single_thread_allocs.sender_socket, target_addr, port_i, local_ip, scan_flag, probe, response_slot);
-                    
+                    send_cnt++;
                     (scan_flag == SCAN_FLG_UDP) ? timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_UDP_US) : timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_TCP_US);
                     while (1)
                     {
@@ -163,6 +164,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                         if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, response_slot, results, &ports) == 1)
                         {
                             done = 1;
+                            receive_cnt++;
                             break;
                         }
                         usleep(RESPONSE_POLL_SLEEP_US_LOCAL);
@@ -177,14 +179,29 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
         }
     }
     /* Allow some extra time to collect any late responses before tearing down */
-    LOGD("Polling for late responses for %u us before cleanup\n", (unsigned)RESPONSE_FINAL_WAIT_US);
+    LOGD("Polling for late responses for %u us before cleanup, receive cnt %u, send cnt %u\n", (unsigned)RESPONSE_FINAL_WAIT_US, (unsigned)receive_cnt, (unsigned)send_cnt);
+    if (receive_cnt < send_cnt)
     {
         unsigned int waited_us = 0;
         /* Poll receiver_run repeatedly so packets arriving during this window are processed. */
         while (waited_us < RESPONSE_FINAL_WAIT_US)
         {
             response_type_t dummy_response = RESPONSE_NO_RESPONSE;
-            (void)receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, &dummy_response, results, &ports);
+            if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, &dummy_response, results, &ports) == 1)
+            {
+                receive_cnt++;
+            }
+            if (receive_cnt >= send_cnt)
+            {
+                LOGD("All sent probes have received responses, exiting final polling early\n");
+                break;
+            }
+            if (atomic_load(&interrupt_flag))
+            {
+                LOGE("Interrupt signal received during final response polling\n");
+                single_thread_cleanup();
+                return -1;
+            }
             usleep(RESPONSE_POLL_SLEEP_US_LOCAL);
             waited_us += RESPONSE_POLL_SLEEP_US_LOCAL;
         }
