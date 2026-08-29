@@ -250,12 +250,16 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                         }
                     }
                 }
+                current_scan++;
+                if (current_scan >= 6)
+                {
+                    current_port++;
+                    current_scan = 0;
+                }
+                if (port_it.set->count >= current_port)
+                    current_port = 0;
                 if (queue_full)
                     break;
-                current_port++;
-                current_scan = 0;
-                if (port_it.set->count == current_port)
-                    current_port = 0;
                 
             }
             if (queue_full)
