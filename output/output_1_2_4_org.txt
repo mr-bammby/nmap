@@ -1,0 +1,7 @@
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-08-29 21:50 CEST
+Nmap scan report for scanme.nmap.org (45.33.32.156)
+Host is up (0.000016s latency).
+All 250 scanned ports on scanme.nmap.org (45.33.32.156) are in ignored states.
+Not shown: 250 closed tcp ports (reset)
+
+Nmap done: 1 IP address (1 host up) scanned in 6.69 seconds

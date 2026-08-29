@@ -1,0 +1,15 @@
+Scan Configurations
+Target Ip-Address : 45.33.32.156     
+No of Ports to scan : 1
+Scans to be performed : XMAS 
+No of threads : 1
+Scanning..
+...................
+Scan took 0.16600 secs
+IP address: 45.33.32.156
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       XMAS(Closed)                                  Closed
+
