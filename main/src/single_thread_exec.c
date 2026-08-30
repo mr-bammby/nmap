@@ -28,7 +28,7 @@
 #define RESPONSE_POLL_TIMEOUT_TCP_US 100
 #define RESPONSE_POLL_TIMEOUT_UDP_US 1000
 #define RESPONSE_POLL_SLEEP_US_LOCAL 10 /* Local override renamed to avoid redefinition with main/inc/sender.h */
-#define RESPONSE_FINAL_WAIT_US 10000
+#define RESPONSE_FINAL_WAIT_US 1000000
 
 struct nmap_single_thread_allocs
 {

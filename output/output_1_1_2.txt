@@ -5,7 +5,7 @@ Scans to be performed : SYN
 No of threads : 1
 Scanning..
 ...................
-Scan took 0.83927 secs
+Scan took 7.15544 secs
 IP address: 45.33.32.156
 
 Closed/Filtered/Unfiltered ports:

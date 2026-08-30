@@ -5,13 +5,8 @@ Scans to be performed : UDP
 No of threads : 1
 Scanning..
 ...................
-Scan took 249.15422 secs
+Scan took 248.98865 secs
 IP address: 45.33.32.156
-
-Open ports:
-Port      Service Name (if applicable) Results                                       Conclusion
-------------------------------------------------------------------------------------------------------
-123       ntp                          UDP(Open)                                     Open
 
 Closed/Filtered/Unfiltered ports:
 Port      Service Name (if applicable) Results                                       Conclusion
@@ -40,7 +35,7 @@ Port      Service Name (if applicable) Results                                  
 22        ssh                          UDP(Closed)                                   Closed
 23        telnet                       UDP(Closed)                                   Closed
 24        priv-mail                    UDP(Closed)                                   Closed
-25        smtp                         UDP(Closed)                                   Closed
+25        smtp                         UDP(Open|Filtered)                            Open|Filtered
 26        rsftp                        UDP(Closed)                                   Closed
 27        nsw-fe                       UDP(Closed)                                   Closed
 28        unknown                      UDP(Closed)                                   Closed
@@ -82,7 +77,7 @@ Port      Service Name (if applicable) Results                                  
 64        covia                        UDP(Closed)                                   Closed
 65        tacacs-ds                    UDP(Closed)                                   Closed
 66        sqlnet                       UDP(Closed)                                   Closed
-67        dhcps                        UDP(Closed)                                   Closed
+67        dhcps                        UDP(Open|Filtered)                            Open|Filtered
 68        dhcpc                        UDP(Open|Filtered)                            Open|Filtered
 69        tftp                         UDP(Closed)                                   Closed
 70        gopher                       UDP(Closed)                                   Closed
@@ -138,6 +133,7 @@ Port      Service Name (if applicable) Results                                  
 120       cfdptkt                      UDP(Closed)                                   Closed
 121       erpc                         UDP(Closed)                                   Closed
 122       smakynet                     UDP(Closed)                                   Closed
+123       ntp                          UDP(Open|Filtered)                            Open|Filtered
 124       ansatrader                   UDP(Closed)                                   Closed
 125       locus-map                    UDP(Closed)                                   Closed
 126       unitary                      UDP(Closed)                                   Closed

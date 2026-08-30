@@ -5,7 +5,7 @@ Scans to be performed : SYN
 No of threads : 1
 Scanning..
 ...................
-Scan took 25.79314 secs
+Scan took 32.01252 secs
 IP address: 45.33.32.156
 
 Open ports:
@@ -40,7 +40,7 @@ Port      Service Name (if applicable) Results                                  
 21        ftp                          SYN(Closed)                                   Closed
 23        telnet                       SYN(Closed)                                   Closed
 24        priv-mail                    SYN(Closed)                                   Closed
-25        smtp                         SYN(Closed)                                   Closed
+25        smtp                         SYN(Filtered)                                 Filtered
 26        rsftp                        SYN(Closed)                                   Closed
 27        nsw-fe                       SYN(Closed)                                   Closed
 28        unknown                      SYN(Closed)                                   Closed
@@ -153,7 +153,7 @@ Port      Service Name (if applicable) Results                                  
 136       profile                      SYN(Closed)                                   Closed
 137       netbios-ns                   SYN(Closed)                                   Closed
 138       netbios-dgm                  SYN(Closed)                                   Closed
-139       netbios-ssn                  SYN(Closed)                                   Closed
+139       netbios-ssn                  SYN(Filtered)                                 Filtered
 140       emfis-data                   SYN(Closed)                                   Closed
 141       emfis-cntl                   SYN(Closed)                                   Closed
 142       bl-idm                       SYN(Closed)                                   Closed

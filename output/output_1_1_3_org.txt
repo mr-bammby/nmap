@@ -1,8 +1,10 @@
-Starting Nmap 7.95 ( https://nmap.org ) at 2026-08-29 21:37 CEST
+Starting Nmap 7.93 ( https://nmap.org ) at 2026-08-30 10:51 CEST
+Stats: 0:00:02 elapsed; 0 hosts completed (1 up), 1 undergoing NULL Scan
+NULL Scan Timing: About 50.00% done; ETC: 10:51 (0:00:02 remaining)
 Nmap scan report for scanme.nmap.org (45.33.32.156)
-Host is up (0.00044s latency).
+Host is up (0.45s latency).
 
-PORT  STATE  SERVICE
-1/tcp closed tcpmux
+PORT  STATE         SERVICE
+1/tcp open|filtered tcpmux
 
-Nmap done: 1 IP address (1 host up) scanned in 6.59 seconds
+Nmap done: 1 IP address (1 host up) scanned in 5.19 seconds

@@ -1,7 +1,11 @@
-Starting Nmap 7.95 ( https://nmap.org ) at 2026-08-29 21:50 CEST
+Starting Nmap 7.93 ( https://nmap.org ) at 2026-08-30 11:04 CEST
+Stats: 0:02:18 elapsed; 0 hosts completed (1 up), 1 undergoing XMAS Scan
+XMAS Scan Timing: About 76.00% done; ETC: 11:07 (0:00:44 remaining)
+Stats: 0:02:22 elapsed; 0 hosts completed (1 up), 1 undergoing XMAS Scan
+XMAS Scan Timing: About 78.00% done; ETC: 11:07 (0:00:40 remaining)
 Nmap scan report for scanme.nmap.org (45.33.32.156)
-Host is up (0.000016s latency).
+Host is up (0.72s latency).
 All 250 scanned ports on scanme.nmap.org (45.33.32.156) are in ignored states.
-Not shown: 250 closed tcp ports (reset)
+Not shown: 250 open|filtered tcp ports (no-response)
 
-Nmap done: 1 IP address (1 host up) scanned in 6.69 seconds
+Nmap done: 1 IP address (1 host up) scanned in 181.93 seconds

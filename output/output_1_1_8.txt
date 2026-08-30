@@ -5,11 +5,11 @@ Scans to be performed : NULL FIN UDP
 No of threads : 1
 Scanning..
 ...................
-Scan took 0.21557 secs
+Scan took 8.10805 secs
 IP address: 45.33.32.156
 
 Closed/Filtered/Unfiltered ports:
 Port      Service Name (if applicable) Results                                       Conclusion
 ------------------------------------------------------------------------------------------------------
-1         tcpmux                       NULL(Closed) FIN(Closed) UDP(Closed)          Closed
+1         tcpmux                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
 

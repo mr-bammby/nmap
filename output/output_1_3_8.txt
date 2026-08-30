@@ -1,0 +1,180 @@
+Scan Configurations
+Target Ip-Address : 45.33.32.156     
+No of Ports to scan : 163
+Scans to be performed : NULL FIN UDP 
+No of threads : 1
+Scanning..
+...................
+Scan took 165.95203 secs
+IP address: 45.33.32.156
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+2         compressnet                  NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+20        ftp-data                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+21        ftp                          NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+22        ssh                          NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+23        telnet                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+24        priv-mail                    NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+25        smtp                         NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+26        rsftp                        NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+27        nsw-fe                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+28        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+29        msg-icp                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+30        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+31        msg-auth                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+32        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+33        dsp                          NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+34        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+35        priv-print                   NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+36        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+37        time                         NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+38        rap                          NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+39        rlp                          NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+40        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+41        graphics                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+42        nameserver                   NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+43        whois                        NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+44        mpm-flags                    NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+45        mpm                          NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+46        mpm-snd                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+47        ni-ftp                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+48        auditd                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+49        tacacs                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+50        re-mail-ck                   NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+51        la-maint                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+52        xns-time                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+53        domain                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+54        xns-ch                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+55        isi-gl                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+56        xns-auth                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+57        priv-term                    NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+58        xns-mail                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+59        priv-file                    NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60        unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+61        ni-mail                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+62        acas                         NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+63        via-ftp                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+64        covia                        NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+65        tacacs-ds                    NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+66        sqlnet                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+67        dhcps                        NULL(Filtered) FIN(Filtered)                 
+                                       UDP(Open|Filtered)                            Open|Filtered
+68        dhcpc                        NULL(Filtered) FIN(Filtered)                 
+                                       UDP(Open|Filtered)                            Open|Filtered
+69        tftp                         NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+70        gopher                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+71        netrjs-1                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+72        netrjs-2                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+73        netrjs-3                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+74        netrjs-4                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+75        priv-dial                    NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+76        deos                         NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+77        priv-rje                     NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+78        vettcp                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+79        finger                       NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+80        http                         NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60000     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60001     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60002     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60003     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60004     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60005     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60006     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60007     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60008     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60009     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60010     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60011     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60012     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60013     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60014     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60015     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60016     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60017     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60018     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60019     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60020     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60021     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60022     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60023     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60024     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60025     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60026     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60027     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60028     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60029     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60030     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60031     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60032     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60033     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60034     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60035     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60036     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60037     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60038     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60039     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60040     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60041     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60042     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60043     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60044     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60045     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60046     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60047     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60048     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60049     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60050     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60051     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60052     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60053     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60054     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60055     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60056     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60057     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60058     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60059     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60060     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60061     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60062     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60063     unknown                      NULL(Filtered) FIN(Filtered)                 
+                                       UDP(Open|Filtered)                            Open|Filtered
+60064     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60065     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60066     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60067     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60068     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60069     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60070     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60071     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60072     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60073     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60074     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60075     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60076     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60077     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60078     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60079     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60080     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60081     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60082     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60083     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60084     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60085     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60086     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60087     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60088     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60089     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60090     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60091     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60092     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60093     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60094     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60095     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60096     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60097     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60098     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60099     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+60100     unknown                      NULL(Filtered) FIN(Filtered) UDP(Closed)      Closed
+
