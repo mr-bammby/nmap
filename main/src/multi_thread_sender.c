@@ -19,13 +19,18 @@
 #define SLEEP_ERR_S 1
 #define SLEEP_EXIT_S 0
 #define SLEEP_TCP_S 0
-#define SLEEP_UDP_S 10
+#define SLEEP_UDP_S 0
 #define SLEEP_ERR_NS 0
-#define SLEEP_EXIT_NS 110000000
+#define SLEEP_EXIT_NS 100
 #define SLEEP_TCP_NS 12000
-#define SLEEP_UDP_NS 1000000
+#define SLEEP_UDP_NS 10000000
+
+#define UDP_SLP_MAX_CNT 500
 
 #define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
+
+atomic_bool udp_sending = false;
+
 
 int is_normal_cmd(const TH_QUEUE_DATA_TYPE * data_ptr)
 {
@@ -49,10 +54,10 @@ void *multi_thread_sender(void *arg)
     int err_cnt = 0;
     struct timespec req_err, req_exit, req_tcp, req_udp;
 
-#if MODULE_DEBUG
+#if DEBUG_MULTI_THREAD_SENDER
                 char target_addr_str[INET_ADDRSTRLEN];
                 struct in_addr target_addr;
-    #endif
+#endif /* DEBUG_MULTI_THREAD_SENDER */
     req_err.tv_sec = SLEEP_ERR_S;
     req_err.tv_nsec = SLEEP_ERR_NS;
     req_exit.tv_sec = SLEEP_EXIT_S;
@@ -102,39 +107,77 @@ void *multi_thread_sender(void *arg)
                     th_flagging_array_init_access(&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
                 }
 
-#if MODULE_DEBUG
+#if DEBUG_MULTI_THREAD_SENDER
                 target_addr.s_addr = cmd.address;
                 inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
                 LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, target_addr_str, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
-#endif
+#endif /* DEBUG_MULTI_THREAD_SENDER */
+                if (cmd.scan == SCAN_FLG_UDP)
+                {
+                    LOGD("Thread %d: Waiting for any ongoing UDP sending to complete before sending UDP command\n", thread_id);
+                    while (atomic_load(&udp_sending))
+                    {
+                        if (atomic_load(&abort_flag))
+                        {
+                            LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
+                            THREAD_EXIT((void *)-1);
+                        }
+                        if(nanosleep(&req_err, NULL) != 0)
+                        {
+                            LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
+                            THREAD_EXIT((void *)-2);
+                        }
+                    }
+                    atomic_store(&udp_sending, true);
+                }
                 for (int probe = 0; probe < ((cmd.scan == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, probe, NULL);
                     struct timespec *sleep_time = (cmd.scan == SCAN_FLG_UDP) ? &req_udp : &req_tcp;
-                    if (nanosleep(sleep_time, NULL) != 0) // Sleep for a short duration to avoid overwhelming the network
+                    uint8_t sleep_cnt = 0;
+                    uint8_t max_sleep_cnt = (cmd.scan == SCAN_FLG_UDP) ? UDP_SLP_MAX_CNT : 1;
+                    while (sleep_cnt < max_sleep_cnt)
                     {
-                        LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
-                        THREAD_EXIT((void *)-2);
-                    }
-                    if (atomic_load(&abort_flag))
-                    {
-                        LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
-                        THREAD_EXIT((void *)-1);
-                    }
-
-                    if (cmd.scan == SCAN_FLG_UDP)
-                    {
-                        uint8_t udp_flag = 0;
-                        th_flagging_array_get(&flag_arr, cmd.udp_flag_arr_idx, &udp_flag); // Check if the UDP flag has been set
-                        if (udp_flag)
+                        if (nanosleep(sleep_time, NULL) != 0) // Sleep for a short duration to avoid overwhelming the network
                         {
-                            char done_addr_str[INET_ADDRSTRLEN];
-                            struct in_addr done_target_addr = { .s_addr = cmd.address };
-                            inet_ntop(AF_INET, &done_target_addr, done_addr_str, sizeof(done_addr_str));
-                            LOGD("Thread %d: UDP response received for address=%s, port=%d, stopping further probes\n", thread_id, done_addr_str, cmd.port);
-                            break;
+                            LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
+                            if (cmd.scan == SCAN_FLG_UDP)
+                            {
+                                atomic_store(&udp_sending, false);
+                            }
+                            THREAD_EXIT((void *)-2);
                         }
+                        if (atomic_load(&abort_flag))
+                        {
+                            if (cmd.scan == SCAN_FLG_UDP)
+                            {
+                                atomic_store(&udp_sending, false);
+                            }
+                            LOGE("Thread %d: Abort flag set, exiting thread\n", thread_id);
+                            THREAD_EXIT((void *)-1);
+                        }
+
+                        if (cmd.scan == SCAN_FLG_UDP)
+                        {
+                            uint8_t udp_flag = 0;
+                            th_flagging_array_get(&flag_arr, cmd.udp_flag_arr_idx, &udp_flag); // Check if the UDP flag has been set
+                            if (udp_flag)
+                            {
+    #if DEBUG_MULTI_THREAD_SENDER
+                                char done_addr_str[INET_ADDRSTRLEN];
+                                struct in_addr done_target_addr = { .s_addr = cmd.address };
+                                inet_ntop(AF_INET, &done_target_addr, done_addr_str, sizeof(done_addr_str));
+                                LOGD("Thread %d: UDP response received for address=%s, port=%d, stopping further probes\n", thread_id, done_addr_str, cmd.port);
+    #endif /* DEBUG_MULTI_THREAD_SENDER */
+                                break;
+                            }
+                        }
+                        sleep_cnt++;
                     }
+                }
+                if (cmd.scan == SCAN_FLG_UDP)
+                {
+                    atomic_store(&udp_sending, false);
                 }
                 break;
             case TH_QUEUE_OK_EMPTY_AFTER_ACCEPT:
@@ -144,11 +187,11 @@ void *multi_thread_sender(void *arg)
                     th_flagging_array_init_access(&flag_arr, &(flagging_array[cmd.udp_flag_row_idx]), TH_LOCK_PRIORITY_LOW);
                 }
 
-#if MODULE_DEBUG
+#if DEBUG_MULTI_THREAD_SENDER
                 target_addr.s_addr = cmd.address;
                 inet_ntop(AF_INET, &target_addr, target_addr_str, sizeof(target_addr_str));
                 LOGD("Thread %d: Received command: address=%s, port=%d, flag_arr_idx=%d, scan=%d\n", thread_id, target_addr_str, cmd.port, cmd.udp_flag_arr_idx, cmd.scan);
-#endif
+#endif /* DEBUG_MULTI_THREAD_SENDER */
                 for (int probe = 0; probe < ((cmd.scan == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, probe, NULL);
