@@ -15,17 +15,17 @@
 
 #include "sender.h"
 
-#define MAX_ERR_COUNT 10
-#define SLEEP_ERR_S 1
+#define MAX_ERR_COUNT 100
+#define SLEEP_ERR_S 0
 #define SLEEP_EXIT_S 0
 #define SLEEP_TCP_S 0
 #define SLEEP_UDP_S 0
-#define SLEEP_ERR_NS 0
-#define SLEEP_EXIT_NS 100
-#define SLEEP_TCP_NS 12000
+#define SLEEP_ERR_NS 100000
+#define SLEEP_EXIT_NS 1000
+#define SLEEP_TCP_NS 500
 #define SLEEP_UDP_NS 10000000
 
-#define UDP_SLP_MAX_CNT 500
+#define UDP_SLP_MAX_CNT 100
 
 #define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
 
@@ -58,8 +58,8 @@ void *multi_thread_sender(void *arg)
                 char target_addr_str[INET_ADDRSTRLEN];
                 struct in_addr target_addr;
 #endif /* DEBUG_MULTI_THREAD_SENDER */
-    req_err.tv_sec = SLEEP_ERR_S;
-    req_err.tv_nsec = SLEEP_ERR_NS;
+    req_err.tv_sec = SLEEP_ERR_S + thread_id/100;
+    req_err.tv_nsec = (SLEEP_ERR_NS * (thread_id/4));
     req_exit.tv_sec = SLEEP_EXIT_S;
     req_exit.tv_nsec = SLEEP_EXIT_NS;
     req_tcp.tv_sec = SLEEP_TCP_S;
@@ -236,7 +236,6 @@ void *multi_thread_sender(void *arg)
                         LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
                         THREAD_EXIT((void *)-2);
                     }
-                    err_cnt++;
                     continue;
                 }
                 else if (cmd.scan == MULTI_TH_SP_CMD_END)

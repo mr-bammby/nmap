@@ -15,7 +15,7 @@ void resprint_print_scan_header(const argparse_params_t *params)
     {
         printf("Scan Configurations\n");
         rp_print_address_helper("Target Ip-Address : ", params->address);
-        printf("No of Ports to scan : %u\n", params->ports.count);
+        printf("No of Ports to scan per address : %u\n", params->ports.count);
         
         printf("Scans to be performed : ");
         for (int scan_idx = 0; scan_idx < SCAN_NUMBER_OF_SCAN_TYPES; scan_idx++)
@@ -25,7 +25,7 @@ void resprint_print_scan_header(const argparse_params_t *params)
         }
         printf("\n");
         
-        printf("No of threads : %u\n", (uint32_t)params->thread_num);
+        printf("No of threads : %u\n", (uint32_t)params->thread_num -1);
         printf("Scanning..\n");
         printf("...................\n");
     }

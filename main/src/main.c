@@ -112,8 +112,14 @@ static void print_params(const argparse_params_t *params)
 /* Signal callback used by init_signal_handler -- must be async-signal-safe */
 static void signal_callback(void)
 {
+    static short sent = 0;
     /* Set the global interrupt flag observed by threads */
     atomic_store(&interrupt_flag, true);
+    if (sent == 0)
+    {
+        printf("\n--- interrupt received ---\n");
+        sent = 1;
+    }
 }
 
 static void main_arguments(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)

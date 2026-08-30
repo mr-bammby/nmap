@@ -18,7 +18,7 @@ uint8_t multi_thread_init(const argparse_params_t *params, multi_thread_command_
 int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **pcap_handle_out, char **local_ip_out, uint32_t *link_header_len_out);
 
 /* Multi-threaded execution of scanning */
-uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, const addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, const multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols);
+int8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, const addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, const multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols);
 
 /* Multi-threaded sender execution(thread function) */
 void *multi_thread_sender(void *arg);

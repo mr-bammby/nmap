@@ -9,6 +9,12 @@
 #include <packet_handler.h>
 #include "timer_utils.h"
 #include "exec.h"
+#include "time.h"
+
+#define ONE_MS_SLEEP_NS 1000000
+#define TEN_MS_SLEEP_NS 10000000
+#define HUNDRED_MS_SLEEP_NS 100000000
+
 
 static int build_bpf_filter(const argparse_addr_node_t *addresses, const char *local_ip, char *filter, size_t filter_size){
     const argparse_addr_node_t *node = addresses;
@@ -101,7 +107,6 @@ int multi_thread_receiver_init(const argparse_addr_node_t *addresses, pcap_t **p
         return -1;
     }
 
-    //pcap_setnonblock(*pcap_handle_out, 1, errbuf);
     if (pcap_setnonblock(*pcap_handle_out, 1, errbuf) < 0)
     {
         LOGE("Failed to set non-blocking mode: %s\n", errbuf);
@@ -296,7 +301,7 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
     return;
 }
 
-uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, const addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, const multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols)
+int8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, scan_result_t **results, const addr_hashmap_t *hash_map, th_queue_access_t *access, const argparse_params_t *params, const multi_thread_command_queue_state_t *queue_state, uint32_t results_rows, uint32_t results_cols)
 {
     struct pcap_pkthdr *header;
     const unsigned char *packet;
@@ -304,6 +309,19 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
     uint64_t sent_count, all_sent_scan_count = queue_state->sent_scan_cnt;
     uint64_t received_count = 0;
     uint16_t start_cnt = 0;
+
+    struct timespec req_one, req_ten, req_hundred; 
+
+    req_one.tv_sec = 0;
+    req_one.tv_nsec = ONE_MS_SLEEP_NS;
+
+    req_ten.tv_sec = 0;
+    req_ten.tv_nsec = TEN_MS_SLEEP_NS;
+
+    req_hundred.tv_sec = 0;
+    req_hundred.tv_nsec = HUNDRED_MS_SLEEP_NS;
+
+
     
     while (atomic_load(&thread_counter) == 0)
     {
@@ -314,7 +332,13 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
             ret = -1;
             break;
         }
-        usleep(1);
+        if(nanosleep(&req_one, NULL) != 0)
+        {
+            LOGE("Receiver: nanosleep interrupted while waiting for next command\n");
+            atomic_store(&abort_flag, true);
+            ret = -1;
+            break;
+        }
         if (start_cnt < 10000)
             start_cnt++;
         else
@@ -327,7 +351,6 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
         multi_thread_receiver_run_append_queue(access, params, queue_state, results, &sent_count);
         all_sent_scan_count += sent_count;
 
-        //LOGD("Receiver sniffing\n");
         if (atomic_load(&interrupt_flag))
         {
             atomic_store(&abort_flag, true);
@@ -351,7 +374,6 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
             {
                 received_count++;
             }
-
         }
     }
     LOGD("Receiver finished. Sent: %llu, Received: %llu\n", (unsigned long long)all_sent_scan_count, (unsigned long long)received_count);
@@ -360,7 +382,7 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
     {
         uint32_t cnt = 0;
         // Wait for return packet for 1s
-        while (cnt < 100000)
+        while (cnt < 100)
         {
             if (atomic_load(&interrupt_flag) || atomic_load(&abort_flag) || ret == -1)
             {
@@ -387,7 +409,13 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
                 }
 
             }
-            usleep(10);
+            if(nanosleep(&req_ten, NULL) != 0)
+            {
+                LOGE("Receiver: nanosleep interrupted while waiting for next command\n");
+                atomic_store(&abort_flag, true);
+                ret = -1;
+                break;
+            }
             cnt++;
         }
     }
@@ -399,7 +427,13 @@ uint8_t multi_thread_receiver_run(pcap_t *pcap_handle, uint32_t link_header_len,
         while (atomic_load(&thread_counter) > 0)
         {
             LOGD("Waiting for sender threads to finish...\n");
-            usleep(100);
+            if(nanosleep(&req_hundred, NULL) != 0)
+            {
+                LOGE("Receiver: nanosleep interrupted while waiting for next command\n");
+                atomic_store(&abort_flag, true);
+                ret = -1;
+                break;
+            }
             if (cnt > 1000)
             {
                 LOGE("Timeout waiting for sender threads to finish, forcing exit\n");

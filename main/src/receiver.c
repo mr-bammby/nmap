@@ -136,6 +136,7 @@ int receiver_cleanup(pcap_t *pcap_handle)
 {
     if (pcap_handle != NULL)
     {
+        LOGD("Pcap clean up\n");
         pcap_close(pcap_handle);
         pcap_handle = NULL;
     }
