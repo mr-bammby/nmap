@@ -1,0 +1,38 @@
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-08-30 15:31 CEST
+Nmap scan report for 192.168.1.1
+Host is up (0.00094s latency).
+All 250 scanned ports on 192.168.1.1 are in ignored states.
+Not shown: 250 filtered tcp ports (no-response)
+
+Nmap scan report for one.one.one.one (1.1.1.1)
+Host is up (0.0040s latency).
+Not shown: 248 filtered tcp ports (no-response)
+PORT   STATE SERVICE
+53/tcp open  domain
+80/tcp open  http
+
+Nmap scan report for dns.google (8.8.8.8)
+Host is up (0.0027s latency).
+Not shown: 246 filtered tcp ports (no-response)
+PORT    STATE  SERVICE
+53/tcp  open   domain
+65/tcp  closed tacacs-ds
+127/tcp closed locus-con
+201/tcp closed at-rtmp
+
+Nmap scan report for dns9.quad9.net (9.9.9.9)
+Host is up (0.0027s latency).
+Not shown: 247 filtered tcp ports (no-response)
+PORT    STATE  SERVICE
+53/tcp  open   domain
+65/tcp  closed tacacs-ds
+201/tcp closed at-rtmp
+
+Nmap scan report for scanme.nmap.org (45.33.32.156)
+Host is up (0.14s latency).
+Not shown: 248 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+Nmap done: 5 IP addresses (5 hosts up) scanned in 260.69 seconds

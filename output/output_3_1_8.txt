@@ -1,0 +1,44 @@
+Scan Configurations
+Target Ip-Address : 45.33.32.156     9.9.9.9          8.8.8.8          
+                    1.1.1.1          192.168.1.1      
+No of Ports to scan : 1
+Scans to be performed : NULL FIN UDP 
+No of threads : 1
+Scanning..
+...................
+Scan took 16.01463 secs
+IP address: 45.33.32.156
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Closed) FIN(Closed) UDP(Closed)          Closed
+
+IP address: 9.9.9.9
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Filtered) FIN(Closed) UDP(Open|Filtered) Closed
+
+IP address: 8.8.8.8
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Closed) FIN(Closed) UDP(Open|Filtered)   Closed
+
+IP address: 1.1.1.1
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Closed) FIN(Closed) UDP(Open|Filtered)   Closed
+
+IP address: 192.168.1.1
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Closed) FIN(Closed) UDP(Open|Filtered)   Closed
+

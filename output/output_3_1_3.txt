@@ -1,0 +1,44 @@
+Scan Configurations
+Target Ip-Address : 45.33.32.156     9.9.9.9          8.8.8.8          
+                    1.1.1.1          192.168.1.1      
+No of Ports to scan : 1
+Scans to be performed : NULL 
+No of threads : 1
+Scanning..
+...................
+Scan took 4.72810 secs
+IP address: 45.33.32.156
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Closed)                                  Closed
+
+IP address: 9.9.9.9
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Filtered)                                Open|Filtered
+
+IP address: 8.8.8.8
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Filtered)                                Open|Filtered
+
+IP address: 1.1.1.1
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Filtered)                                Open|Filtered
+
+IP address: 192.168.1.1
+
+Closed/Filtered/Unfiltered ports:
+Port      Service Name (if applicable) Results                                       Conclusion
+------------------------------------------------------------------------------------------------------
+1         tcpmux                       NULL(Filtered)                                Open|Filtered
+
