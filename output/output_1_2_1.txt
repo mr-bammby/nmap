@@ -5,7 +5,7 @@ Scans to be performed : ACK
 No of threads : 1
 Scanning..
 ...................
-Scan took 32.03640 secs
+Scan took 4.31000 secs
 IP address: 45.33.32.156
 
 Closed/Filtered/Unfiltered ports:
@@ -35,7 +35,7 @@ Port      Service Name (if applicable) Results                                  
 22        ssh                          ACK(Unfiltered)                               Unfiltered
 23        telnet                       ACK(Unfiltered)                               Unfiltered
 24        priv-mail                    ACK(Unfiltered)                               Unfiltered
-25        smtp                         ACK(Filtered)                                 Filtered
+25        smtp                         ACK(Unfiltered)                               Unfiltered
 26        rsftp                        ACK(Unfiltered)                               Unfiltered
 27        nsw-fe                       ACK(Unfiltered)                               Unfiltered
 28        unknown                      ACK(Unfiltered)                               Unfiltered
@@ -95,7 +95,7 @@ Port      Service Name (if applicable) Results                                  
 82        xfer                         ACK(Unfiltered)                               Unfiltered
 83        mit-ml-dev                   ACK(Unfiltered)                               Unfiltered
 84        ctf                          ACK(Unfiltered)                               Unfiltered
-85        mit-ml-dev                   ACK(Filtered)                                 Filtered
+85        mit-ml-dev                   ACK(Unfiltered)                               Unfiltered
 86        mfcobol                      ACK(Unfiltered)                               Unfiltered
 87        priv-term-l                  ACK(Unfiltered)                               Unfiltered
 88        kerberos-sec                 ACK(Unfiltered)                               Unfiltered
@@ -149,7 +149,7 @@ Port      Service Name (if applicable) Results                                  
 136       profile                      ACK(Unfiltered)                               Unfiltered
 137       netbios-ns                   ACK(Unfiltered)                               Unfiltered
 138       netbios-dgm                  ACK(Unfiltered)                               Unfiltered
-139       netbios-ssn                  ACK(Filtered)                                 Filtered
+139       netbios-ssn                  ACK(Unfiltered)                               Unfiltered
 140       emfis-data                   ACK(Unfiltered)                               Unfiltered
 141       emfis-cntl                   ACK(Unfiltered)                               Unfiltered
 142       bl-idm                       ACK(Unfiltered)                               Unfiltered

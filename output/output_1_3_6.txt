@@ -5,7 +5,7 @@ Scans to be performed : UDP
 No of threads : 1
 Scanning..
 ...................
-Scan took 163.73798 secs
+Scan took 152.76439 secs
 IP address: 45.33.32.156
 
 Closed/Filtered/Unfiltered ports:
@@ -59,7 +59,7 @@ Port      Service Name (if applicable) Results                                  
 64        covia                        UDP(Closed)                                   Closed
 65        tacacs-ds                    UDP(Closed)                                   Closed
 66        sqlnet                       UDP(Closed)                                   Closed
-67        dhcps                        UDP(Open|Filtered)                            Open|Filtered
+67        dhcps                        UDP(Closed)                                   Closed
 68        dhcpc                        UDP(Open|Filtered)                            Open|Filtered
 69        tftp                         UDP(Closed)                                   Closed
 70        gopher                       UDP(Closed)                                   Closed

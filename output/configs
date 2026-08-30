@@ -14,7 +14,6 @@ export SCAN_5="FIN"
 export SCAN_6="UDP"
 export SCAN_7="ACK,SYN,NULL"
 export SCAN_8="NULL,FIN,UDP"
-
 export SCAN_NMAP_1="-sA"
 export SCAN_NMAP_2="-sS"
 export SCAN_NMAP_3="-sN"
