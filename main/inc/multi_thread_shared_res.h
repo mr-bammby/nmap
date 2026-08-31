@@ -56,6 +56,6 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
 int8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access);
 
 /* Add a special command to the multi-threaded command queue while threads are running */
-uint8_t append_special_receiver_run(multi_thread_special_cmd_e sp_cmd, th_queue_access_t *access);
+int8_t append_special_receiver_run(multi_thread_special_cmd_e sp_cmd, th_queue_access_t *access);
 
 #endif /* MULTI_THREAD_SHARED_RES_H */

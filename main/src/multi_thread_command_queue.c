@@ -114,7 +114,7 @@ static uint8_t init_append_special(multi_thread_special_cmd_e sp_cmd)
     return init_append_scan("0.0.0.0", 0, 0, 0, sp_cmd);
 }
 
-uint8_t append_special_receiver_run(multi_thread_special_cmd_e sp_cmd, th_queue_access_t *access)
+int8_t append_special_receiver_run(multi_thread_special_cmd_e sp_cmd, th_queue_access_t *access)
 {
     if (sp_cmd != MULTI_TH_SP_CMD_SKIP && sp_cmd != MULTI_TH_SP_CMD_END)
     {

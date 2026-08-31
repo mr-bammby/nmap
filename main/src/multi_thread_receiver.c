@@ -247,14 +247,15 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                     {
                         LOGE("Queue is full while receiver is adding scan command for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan);
                         queue_full = 1;
-                        timeout_start(&timeout, 5000/(params->thread_num - 1));
+                        timeout_start(&timeout, 5000/((params->thread_num - 1)/2));
+                        current_scan++;
                         break;
                     }
                     else if (result == MULTI_TH_QUEUE_APPEND_ERR_FULL)
                     {
                         LOGE("Queue is full while receiver is adding scan command for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan);
-                        timeout_start(&timeout, 5000/(params->thread_num - 1));
-                        break;
+                        timeout_start(&timeout, 5000/((params->thread_num - 1)/2));
+                        return;
                     }
                     else
                     {
@@ -274,7 +275,7 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                         default: break;
                     }
                 }
-                current_scan++;
+                
                 if (current_scan >= 6)
                 {
                     current_port++;
@@ -298,22 +299,23 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
         if (current_addr == NULL)
         {
             LOGD("Adding end command\n");
-            uint8_t result = append_special_receiver_run(MULTI_TH_SP_CMD_END, access); // Add an end command to signal completion
-            if (result == 1)
-            {
-                LOGE("Failed to add end command to queue in receiver run\n");
-                //return 1; // Error, terminate gracefully
-            }
-            else if (result == 2)
-            {
-                LOGE("Queue is full while adding end command in receiver run\n");
-                timeout_start(&timeout, 1000);
-            }
-            else
+            int8_t result = append_special_receiver_run(MULTI_TH_SP_CMD_END, access); // Add an end command to signal completion
+            if (result == MULTI_TH_QUEUE_APPEND_OK_GENERIC || result == MULTI_TH_QUEUE_APPEND_OK_FULL_AFTER)
             {
                 end_added_successfully = 1;
                 timeout_stop(&timeout);
                 LOGD("All commands added to queue successfully.\n");
+            }
+            else if (result == MULTI_TH_QUEUE_APPEND_ERR_FULL)
+            {
+                LOGE("Queue is full while adding end command in receiver run\n");
+                timeout_start(&timeout, 5000/((params->thread_num - 1)/2));
+            }
+            else
+            {
+                LOGE("Error while appending command in receiver thread %d\n", result);
+                atomic_store(&abort_flag, true);
+                return; //implement graceful termination
             }
         }
     }

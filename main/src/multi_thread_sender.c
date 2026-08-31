@@ -23,10 +23,10 @@
 #define SLEEP_ERR_NS 1000000
 #define SLEEP_EXIT_NS 1000
 #define SLEEP_TCP_NS 500
-#define SLEEP_UDP_NS 10000000
+#define SLEEP_UDP_NS 100000000
 
-#define UDP_SLP_MAX_CNT 140
-#define UDP_SLP_CHK_CNT 138
+#define UDP_SLP_MAX_CNT 150
+#define UDP_SLP_CHK_CNT 148
 
 #define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
 
