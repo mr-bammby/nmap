@@ -29,6 +29,9 @@ int8_t multi_thread_process_packet(const unsigned char *packet, uint32_t packet_
     const uint8_t *transport;
     uint32_t ip_payload_len;
     th_flagging_array_access_t flag_arr;
+    uint16_t port_idx;
+    uint8_t scan_flag;
+    int ret;
 
     ip_hl = protocol_ip_header_parse(ip_buf, (uint8_t)(packet_len - link_header_len), &ip_hdr);
     if (ip_hl < 0)
@@ -56,19 +59,30 @@ int8_t multi_thread_process_packet(const unsigned char *packet, uint32_t packet_
     {
         case IPPROTO_TCP:
             LOGD("Received TCP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-            return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results[hash_idx], ports);
+            return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results[hash_idx], ports, NULL);
         case IPPROTO_ICMP:
             LOGD("Received ICMP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-            th_flagging_array_init_access(&flag_arr, &(multi_thread_shared_flagging_array[hash_idx]), TH_LOCK_PRIORITY_HIGH);
-            protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results[hash_idx], ports);
-            th_flagging_array_set(&flag_arr, results[hash_idx]->port, 1);
-            return 0;
+            
+            ret = protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results[hash_idx], ports, &port_idx, &scan_flag);
+            if (ret == 1)
+            {
+                if (scan_flag == SCAN_FLG_UDP)
+                {
+                    th_flagging_array_init_access(&flag_arr, &(multi_thread_shared_flagging_array[hash_idx]), TH_LOCK_PRIORITY_HIGH);
+                    th_flagging_array_set(&flag_arr, port_idx, 1);
+                }
+            }
+            return ret;
         case IPPROTO_UDP:
             LOGD("Received UDP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-            th_flagging_array_init_access(&flag_arr, &(multi_thread_shared_flagging_array[hash_idx]), TH_LOCK_PRIORITY_HIGH);
-            protocol_udp_response_process(transport, ip_payload_len, results[hash_idx], ports);
-            th_flagging_array_set(&flag_arr, results[hash_idx]->port, 1);
-            return 0;
+            
+            ret = protocol_udp_response_process(transport, ip_payload_len, results[hash_idx], ports, &port_idx);
+            if (ret == 1)
+            {
+                th_flagging_array_init_access(&flag_arr, &(multi_thread_shared_flagging_array[hash_idx]), TH_LOCK_PRIORITY_HIGH);
+                th_flagging_array_set(&flag_arr, port_idx, 1);
+            }
+            return ret;
         default:
             LOGD("No packet received from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
             return 0;

@@ -28,7 +28,7 @@
 #define RESPONSE_POLL_TIMEOUT_TCP_US 100
 #define RESPONSE_POLL_TIMEOUT_UDP_US 1000
 #define RESPONSE_POLL_SLEEP_US_LOCAL 10 /* Local override renamed to avoid redefinition with main/inc/sender.h */
-#define RESPONSE_FINAL_WAIT_US 10000
+#define RESPONSE_FINAL_WAIT_US 100000
 
 struct nmap_single_thread_allocs
 {
@@ -142,12 +142,12 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                     continue;
                 }
                 *response_slot = RESPONSE_NO_RESPONSE;
+                send_cnt++;
                 for (int probe = 0; probe < ((scan_flag == SCAN_FLG_UDP) ? PROTOCOL_UDP_TOTAL_PROBES : 1); probe++)
                 {
                     uint8_t done = 0;
                     uint32_t local_ip = inet_addr(g_single_thread_allocs.local_ip);
                     sender_run(g_single_thread_allocs.sender_socket, target_addr, port_i, local_ip, scan_flag, probe, response_slot);
-                    send_cnt++;
                     (scan_flag == SCAN_FLG_UDP) ? timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_UDP_US) : timeout_start(&timeout, RESPONSE_POLL_TIMEOUT_TCP_US);
                     while (1)
                     {
@@ -161,13 +161,25 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
                         {
                             break;
                         }
-                        if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, response_slot, results, &ports) == 1)
+                        while (receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, response_slot, results, &ports) == 1)
                         {
-                            done = 1;
+                            
                             receive_cnt++;
-                            break;
+                            if (scan_flag == SCAN_FLG_UDP)
+                            {
+                                if (*response_slot != RESPONSE_NO_RESPONSE)
+                                {
+                                    done = 1;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                done = 1;
+                                break;
+                            }
                         }
-                        usleep(RESPONSE_POLL_SLEEP_US_LOCAL);
+                        usleep(1);
                     }
                     if (done)
                     {
@@ -187,7 +199,7 @@ int single_thread_exec(const char *target_ip, argparse_port_set_t ports, scan_bi
         while (waited_us < RESPONSE_FINAL_WAIT_US)
         {
             response_type_t dummy_response = RESPONSE_NO_RESPONSE;
-            if(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, &dummy_response, results, &ports) == 1)
+            while(receiver_run(g_single_thread_allocs.pcap_handle, link_header_len, &dummy_response, results, &ports) == 1)
             {
                 receive_cnt++;
             }

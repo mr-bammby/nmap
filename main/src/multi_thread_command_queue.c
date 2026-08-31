@@ -25,7 +25,7 @@ static void init_queue_element(multi_thread_command_t *command, uint32_t address
     command->scan = scan_flag;
 }
 
-uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
+int8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
 {
     if (multi_thread_shared_cmd_queue.is_full)
     {
@@ -46,12 +46,11 @@ uint8_t append_scan_receiver_run(const char *address_str, uint16_t flag_row_idx,
     switch (th_queue_write(access, &command))
     {
     case TH_QUEUE_ERR_INVALID_PARAM:
-        exit (MULTI_TH_QUEUE_APPEND_ERR_INVALID_PARAM); //ToDo: terminate gracefully
+        exit (MULTI_TH_QUEUE_APPEND_ERR_INVALID_PARAM); 
     case TH_QUEUE_ERR_LOCK:
-        exit (MULTI_TH_QUEUE_APPEND_ERR_LOCK); //ToDo: terminate gracefully
+        exit (MULTI_TH_QUEUE_APPEND_ERR_LOCK);
     case TH_QUEUE_ERR_FULL:
-        return (MULTI_TH_QUEUE_APPEND_ERR_FULL); //ToDo: wait for 3 attempts and then terminate gracefully if unsuccessfull
-    default:
+        return (MULTI_TH_QUEUE_APPEND_ERR_FULL); 
         break;
     }
 
@@ -159,7 +158,9 @@ uint8_t multi_thread_command_queue_init(const argparse_params_t *params, multi_t
                         scan_result_t *row = results[queue_state->address_idx];
                         if (row != NULL && port_value >= PORT_START && port_value <= PORT_END) {
                             int port_index = -1;
-                            if (argparse_port_find(&params->ports, port_value, &port_index) == 0 && port_index >= 0) {
+                            if (argparse_port_find(&params->ports, port_value, &port_index) == 0 && port_index >= 0)
+                            {
+                                queue_state->sent_scan_cnt++;
                                 switch (scan_flag) {
                                     case SCAN_FLG_SYN:  row[port_index].response_syn  = RESPONSE_NO_RESPONSE; break;
                                     case SCAN_FLG_NULL: row[port_index].response_null = RESPONSE_NO_RESPONSE; break;

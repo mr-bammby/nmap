@@ -46,14 +46,13 @@ int8_t process_packet(const unsigned char *packet, uint32_t packet_len, uint32_t
     {
     case IPPROTO_TCP:
         LOGD("Received TCP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results, ports);
+        return protocol_tcp_response_process(transport, ip_payload_len, &ip_hdr, results, ports, NULL);
     case IPPROTO_ICMP:
         LOGD("Received ICMP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results, ports);
-    
+        return protocol_icmp_response_process(transport, ip_payload_len, &ip_hdr, results, ports, NULL, NULL);
     case IPPROTO_UDP:
         LOGD("Received UDP packet from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
-        return protocol_udp_response_process(transport, ip_payload_len, results, ports);
+        return protocol_udp_response_process(transport, ip_payload_len, results, ports, NULL);
     default:
         LOGD("No packet received from %s\n", inet_ntoa(*(struct in_addr *)&ip_hdr.src));
         return 0;

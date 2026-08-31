@@ -74,59 +74,119 @@ char* get_local_ip(const char *iface_name)
     return NULL;
 }
 
-int receiver_init(const char *target_ip, const argparse_port_set_iterator_t *port_it, pcap_t **pcap_handle_out, char **local_ip_out, uint32_t *link_header_len_out)
+#include <pcap.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+int receiver_init(const char *target_ip, 
+                  const argparse_port_set_iterator_t *port_it, 
+                  pcap_t **pcap_handle_out, 
+                  char **local_ip_out, 
+                  uint32_t *link_header_len_out)
 {
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t *alldevs;
+    pcap_if_t *alldevs = NULL;
     const char *device_name;
     struct bpf_program fp;
     int datalink;
+    int link_len;
     char filter[100];
 
-    if (pcap_findalldevs(&alldevs, errbuf) == -1)
+    (void)port_it; /* Unused iterator parameter */
+
+    if (pcap_findalldevs(&alldevs, errbuf) == -1 || alldevs == NULL)
     {
-        receiver_cleanup(*pcap_handle_out);
+        LOGE("Failed to find network devices: %s\n", errbuf);
         return -1;
     }
-    if (alldevs == NULL)
-    {
-        receiver_cleanup(*pcap_handle_out);
-        return -1;
-    }
+
     device_name = alldevs->name;
     LOGD("Using device: %s\n", device_name);
 
-    // Get the IP for this specific device
+    /* Get the IP for this specific device */
     *local_ip_out = get_local_ip(device_name);
     if (!*local_ip_out)
     {
         LOGE("Could not find IP for %s\n", device_name);
-        receiver_cleanup(*pcap_handle_out);
+        pcap_freealldevs(alldevs);
         return -1;
     }
     LOGD("Using Local IP: %s\n", *local_ip_out);
 
-    *pcap_handle_out = pcap_open_live(device_name, BUFSIZ, 1, 10, errbuf);
+    /* 1. Create capture handle (unactivated state) */
+    *pcap_handle_out = pcap_create(device_name, errbuf);
+    pcap_freealldevs(alldevs); /* Free early once device name string is copied/used */
+
     if (*pcap_handle_out == NULL)
     {
-        LOGE("Failed to open handle: %s\n", errbuf);
+        LOGE("Failed to create pcap handle: %s\n", errbuf);
+        free(*local_ip_out);
+        *local_ip_out = NULL;
         return -1;
     }
-    pcap_freealldevs(alldevs);
+
+    /* 2. Configure handle options BEFORE activation */
+    if (pcap_set_snaplen(*pcap_handle_out, BUFSIZ) != 0 ||
+        pcap_set_promisc(*pcap_handle_out, 1) != 0 ||
+        pcap_set_timeout(*pcap_handle_out, 10) != 0 ||
+        pcap_set_buffer_size(*pcap_handle_out, 67108864) != 0 || /* 64 MB buffer */
+        pcap_set_immediate_mode(*pcap_handle_out, 1) != 0)
+    {
+        LOGE("Failed to set pcap options\n");
+        receiver_cleanup(*pcap_handle_out);
+        *pcap_handle_out = NULL;
+        return -1;
+    }
+
+    /* 3. Activate capture handle */
+    if (pcap_activate(*pcap_handle_out) != 0)
+    {
+        LOGE("Failed to activate pcap handle: %s\n", pcap_geterr(*pcap_handle_out));
+        receiver_cleanup(*pcap_handle_out);
+        *pcap_handle_out = NULL;
+        return -1;
+    }
+
+    /* 4. Datalink validation (Check signed int before casting to uint32_t) */
     datalink = pcap_datalink(*pcap_handle_out);
-    *link_header_len_out = (uint32_t)get_link_header_len(datalink);
-    if (*link_header_len_out < 0)
+    link_len = get_link_header_len(datalink);
+    if (link_len < 0)
     {
         LOGE("Unsupported datalink type: %d\n", datalink);
         receiver_cleanup(*pcap_handle_out);
+        *pcap_handle_out = NULL;
+        return -1;
+    }
+    *link_header_len_out = (uint32_t)link_len;
+
+    /* 5. Set non-blocking mode AFTER activation */
+    if (pcap_setnonblock(*pcap_handle_out, 1, errbuf) != 0)
+    {
+        LOGE("Failed to set non-blocking mode: %s\n", errbuf);
+        receiver_cleanup(*pcap_handle_out);
+        *pcap_handle_out = NULL;
         return -1;
     }
 
-    pcap_setnonblock(*pcap_handle_out, 1, errbuf);
+    /* 6. Compile and apply BPF filter */
+    snprintf(filter, sizeof(filter), "src host %s and (tcp or udp or icmp)", target_ip);
+    if (pcap_compile(*pcap_handle_out, &fp, filter, 1, PCAP_NETMASK_UNKNOWN) != 0)
+    {
+        LOGE("Failed to compile BPF filter: %s\n", pcap_geterr(*pcap_handle_out));
+        receiver_cleanup(*pcap_handle_out);
+        *pcap_handle_out = NULL;
+        return -1;
+    }
 
-    sprintf(filter, "src host %s", target_ip);
-    pcap_compile(*pcap_handle_out, &fp, filter, 0, PCAP_NETMASK_UNKNOWN);
-    pcap_setfilter(*pcap_handle_out, &fp);
+    if (pcap_setfilter(*pcap_handle_out, &fp) != 0)
+    {
+        LOGE("Failed to set BPF filter: %s\n", pcap_geterr(*pcap_handle_out));
+        pcap_freecode(&fp);
+        receiver_cleanup(*pcap_handle_out);
+        *pcap_handle_out = NULL;
+        return -1;
+    }
     pcap_freecode(&fp);
 
     return 0;
@@ -136,6 +196,7 @@ int receiver_cleanup(pcap_t *pcap_handle)
 {
     if (pcap_handle != NULL)
     {
+        LOGD("Pcap clean up\n");
         pcap_close(pcap_handle);
         pcap_handle = NULL;
     }
@@ -150,11 +211,11 @@ int receiver_run(pcap_t *pcap_handle, uint32_t link_header_len, response_type_t 
     if (res == 1)
     {
         LOGD("PACKET PROCESSING\n");
-        process_packet(packet, header->caplen, link_header_len, results, ports);
-        /* Only stop when this specific probe got a conclusive response. */
-        if (*response_slot != RESPONSE_NO_RESPONSE)
-            return 1; // Stop receiving for this probe
+        if (process_packet(packet, header->caplen, link_header_len, results, ports) == 1)
+        {
+            return 1;
+        }
     }
     
-    return 0; // Continue receiving
+    return 0; 
 }
