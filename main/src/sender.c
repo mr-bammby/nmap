@@ -44,7 +44,7 @@ int sender_cleanup(int *sock)
 
 void sender_run(int sock, uint32_t target_ip, int port_i, uint32_t local_ip, uint8_t scan_flag, uint8_t probe, response_type_t *response_slot)
 {
-#if MODULE_DEBUG
+#if DEBUG_SENDER
     char target_ip_str[INET_ADDRSTRLEN];
     char local_ip_str[INET_ADDRSTRLEN];
     struct in_addr target_addr = { .s_addr = target_ip };
