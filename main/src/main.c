@@ -26,6 +26,8 @@ struct nmap_allocs
 
 struct nmap_allocs g_allocs = { {0}, NULL, NULL, 0 };
 
+static short done = 0;
+
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 atomic_bool interrupt_flag = false;
@@ -114,6 +116,11 @@ static void signal_callback(void)
 {
     /* Set the global interrupt flag observed by threads */
     atomic_store(&interrupt_flag, true);
+    if (done == 0)
+    {
+        printf("\n--- interrupt received ---\n");
+        done = 1;
+    }
 }
 
 static void main_arguments(int argc, const char *argv[], argparse_return_e ret, const argparse_params_t *params)
@@ -272,6 +279,7 @@ int main(int argc, const char *argv[])
             idx++;
         }
     }
+    done = 1;
     cleanup();
 
     return (parse_result == ARGPARSE_OK || parse_result == ARGPARSE_HELP_REQUEST) ? EXIT_SUCCESS : EXIT_FAILURE;
