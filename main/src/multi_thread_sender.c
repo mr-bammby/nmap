@@ -25,7 +25,8 @@
 #define SLEEP_TCP_NS 500
 #define SLEEP_UDP_NS 10000000
 
-#define UDP_SLP_MAX_CNT 120
+#define UDP_SLP_MAX_CNT 140
+#define UDP_SLP_CHK_CNT 138
 
 #define THREAD_EXIT(retval) do { sender_cleanup(&sock); atomic_fetch_add(&thread_counter, -1); return (retval); } while(0)
 
@@ -118,7 +119,7 @@ void *multi_thread_sender(void *arg)
                     if (cmd.scan == SCAN_FLG_UDP)
                     {
                         LOGD("Thread %d: Waiting for any ongoing UDP sending to complete before sending UDP command\n", thread_id);
-                        while (atomic_load(&udp_sending))
+                        while (1)
                         {
                             if (atomic_load(&abort_flag))
                             {
@@ -130,8 +131,13 @@ void *multi_thread_sender(void *arg)
                                 LOGE("Thread %d: nanosleep interrupted while waiting for next command\n", thread_id);
                                 THREAD_EXIT((void *)-2);
                             }
+                            if (atomic_load(&udp_sending) == false)
+                            {
+                                atomic_store(&udp_sending, true);
+                                break;
+                            }
                         }
-                        atomic_store(&udp_sending, true);
+                        
                     }
                     sender_run(sock, cmd.address, cmd.port, local_ip, cmd.scan, probe, NULL);
                     struct timespec *sleep_time = (cmd.scan == SCAN_FLG_UDP) ? &req_udp : &req_tcp;
@@ -174,7 +180,7 @@ void *multi_thread_sender(void *arg)
                                 break;
                             }
                         }
-                        if (cmd.scan == SCAN_FLG_UDP && sleep_cnt == 118)
+                        if (cmd.scan == SCAN_FLG_UDP && sleep_cnt == UDP_SLP_CHK_CNT)
                         {
                             atomic_store(&udp_sending, false);
                         }
