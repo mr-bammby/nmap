@@ -60,8 +60,10 @@ int16_t protocol_icmp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pr
  * @param ip_hdr Pointer to the parsed IP header.
  * @param results Pointer to the scan results structure to update.
  * @param ports Pointer to the set of ports being scanned.
+ * @param ret_port_idx Return port index
+ * @param ret_scan_flag Return scan flag
  * @return 0 on success, or a negative error code.
  */
-int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports);
+int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports, uint16_t *ret_port_idx, uint8_t *ret_scan_flag);
 
 #endif /* ICMP_H */

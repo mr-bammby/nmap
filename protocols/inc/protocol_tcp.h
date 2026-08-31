@@ -59,8 +59,9 @@ int16_t protocol_tcp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pro
  * @param ip_hdr Pointer to the parsed IP header.
  * @param results Pointer to the scan results structure to update.
  * @param ports Pointer to the set of ports being scanned.
+ * @param ret_port_idx Pointer to store the index of the port in the results array (optional).
  * @return 0 on success, or a negative error code on failure.
  */
-int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports);
+int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_payload_len, const protocol_ip_header_t *ip_hdr, scan_result_t *results, const argparse_port_set_t *ports, uint16_t *ret_port_idx);
 
 #endif /* TCP_H */

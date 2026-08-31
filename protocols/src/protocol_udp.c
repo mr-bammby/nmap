@@ -77,7 +77,7 @@ int16_t protocol_udp_header_parse(const uint8_t *buffer, uint8_t buffer_len, pro
     return PROTOCOL_UDP_HEADER_SIZE;
 }
 
-int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results, const argparse_port_set_t *ports)
+int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_payload_len, scan_result_t *results, const argparse_port_set_t *ports, uint16_t *ret_port_id)
 {
     if (transport == NULL || ip_payload_len < PROTOCOL_UDP_HEADER_SIZE || results == NULL || ports == NULL)
         return 0;
@@ -93,5 +93,7 @@ int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_paylo
         return 0;
 
     results[port_index].response_udp = RESPONSE_UDP_REPLY;
+    if (ret_port_id != NULL)
+        *ret_port_id = port_index;
     return 1;
 }
