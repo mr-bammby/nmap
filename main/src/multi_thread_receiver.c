@@ -230,12 +230,13 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                     LOGE("Abort flag set, exiting receiver\n");
                     return; //implement graceful termination
                 }
-                //LOGD("Port iterator loop with port idx%d\n", port_it.index);
-                for (; current_scan < 6; current_scan++)
+                while (current_scan < 6)
                 {
-                    //LOGD("Scan index loop with scan_i %d\n", current_scan);
                     if (!(params->scans & (1 << current_scan)))
+                    {
+                        current_scan++; // Skip this scan type if it's not enabled in the bitmap
                         continue;
+                    }
                     LOGD("Receiver adding scan for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan); 
                     int8_t result = append_scan_receiver_run(current_addr->addr,  current_addr_idx, (uint16_t)port_value, (uint16_t)port_it.index - 1, (uint8_t)(1u << current_scan), access);//const char *address_str, uint16_t flag_row_idx, uint16_t port, uint16_t flag_arr_idx, uint8_t scan_flag, th_queue_access_t *access)
                     scan_result_t *row = results[current_addr_idx];
@@ -248,8 +249,6 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                         LOGE("Queue is full while receiver is adding scan command for address %s, port %d and scan id %d\n", current_addr->addr, port_value, current_scan);
                         queue_full = 1;
                         timeout_start(&timeout, 5000/((params->thread_num - 1)/2));
-                        current_scan++;
-                        break;
                     }
                     else if (result == MULTI_TH_QUEUE_APPEND_ERR_FULL)
                     {
@@ -263,7 +262,8 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                         atomic_store(&abort_flag, true);
                         return; //implement graceful termination
                     }
-                    (*sent_scan_count)++;
+                    if (sent_scan_count != NULL)
+                        (*sent_scan_count)++;
                     switch (1u << current_scan)
                     {
                         case SCAN_FLG_SYN:  row[current_port].response_syn  = RESPONSE_NO_RESPONSE; break;
@@ -274,8 +274,11 @@ static void multi_thread_receiver_run_append_queue(th_queue_access_t *access, co
                         case SCAN_FLG_UDP:  row[current_port].response_udp  = RESPONSE_NO_RESPONSE; break;
                         default: break;
                     }
+                    current_scan++;
+                    if (queue_full)
+                        break;
                 }
-                
+               
                 if (current_scan >= 6)
                 {
                     current_port++;
