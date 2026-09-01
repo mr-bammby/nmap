@@ -91,6 +91,12 @@ int8_t protocol_udp_response_process(const uint8_t *transport, uint32_t ip_paylo
     int port_index = 0;
     if (argparse_port_find(ports, port, &port_index) != 0)
         return 0;
+    
+    if (results[port_index].response_udp != RESPONSE_NO_RESPONSE)
+    {
+        LOGD("Duplicate UDP response for port %d, ignoring.\n", port);
+        return 0;
+    }
 
     results[port_index].response_udp = RESPONSE_UDP_REPLY;
     if (ret_port_id != NULL)

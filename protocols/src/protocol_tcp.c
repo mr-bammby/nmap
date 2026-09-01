@@ -179,6 +179,11 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
     switch (scan_flag)
     {
     case SCAN_FLG_SYN:
+        if (results[port_index].response_syn != RESPONSE_NO_RESPONSE)
+        {
+            LOGD("Duplicate SYN response for port %d, ignoring.\n", port);
+            return 0;
+        }
         if ((tcp_hdr.flags & PROTOCOL_TCP_FLAG_SYN) && (tcp_hdr.flags & PROTOCOL_TCP_FLAG_ACK))
         {
             results[port_index].response_syn = RESPONSE_SYN_ACK;
@@ -200,6 +205,11 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         }
         break;
     case SCAN_FLG_ACK:
+        if (results[port_index].response_ack != RESPONSE_NO_RESPONSE)
+        {
+            LOGD("Duplicate ACK response for port %d, ignoring.\n", port);
+            return 0;
+        }
         if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
             results[port_index].response_ack = RESPONSE_RST;
             if (ret_port_idx != NULL)
@@ -212,6 +222,11 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         }
         break;
     case SCAN_FLG_NULL:
+        if (results[port_index].response_null != RESPONSE_NO_RESPONSE)
+        {
+            LOGD("Duplicate NULL response for port %d, ignoring.\n", port);
+            return 0;
+        }
         if (tcp_hdr.flags == 0)        {
             results[port_index].response_null = RESPONSE_SYN_ACK; // Reuse RESPONSE_SYN_ACK to indicate open for NULL scan
             if (ret_port_idx != NULL)
@@ -230,6 +245,11 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         }
         break;
     case SCAN_FLG_FIN:
+        if (results[port_index].response_fin != RESPONSE_NO_RESPONSE)
+        {
+            LOGD("Duplicate FIN response for port %d, ignoring.\n", port);
+            return 0;
+        }
         if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
             if (ret_port_idx != NULL)
                 *ret_port_idx = port_index;
@@ -242,6 +262,11 @@ int8_t protocol_tcp_response_process(const uint8_t *transport, uint32_t ip_paylo
         }
         break;
     case SCAN_FLG_XMAS:
+        if (results[port_index].response_xmas != RESPONSE_NO_RESPONSE)
+        {
+            LOGD("Duplicate XMAS response for port %d, ignoring.\n", port);
+            return 0;
+        }
         if (tcp_hdr.flags & PROTOCOL_TCP_FLAG_RST)        {
             if (ret_port_idx != NULL)
                 *ret_port_idx = port_index;

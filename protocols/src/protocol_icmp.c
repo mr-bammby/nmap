@@ -135,21 +135,56 @@ int protocol_icmp_response_process(const uint8_t *transport, uint32_t ip_payload
             if (ports == NULL || argparse_port_find(ports, port, &port_index) != 0)
                 return 0;
 
-            if (results[port_index].response_udp != RESPONSE_NO_RESPONSE)
-                return 0; // Already processed a response for this port
 
             if (scan_flag == SCAN_FLG_SYN)
+            {
+                if (results[port_index].response_syn != RESPONSE_NO_RESPONSE)
+                {
+                    LOGD("Duplicate SYN response for port %d, ignoring.\n", port);
+                    return 0;
+                }
                 results[port_index].response_syn = RESPONSE_ICMP_UNREACHABLE;
+            }
             else if (scan_flag == SCAN_FLG_ACK)
+            {
+                if (results[port_index].response_ack != RESPONSE_NO_RESPONSE)
+                {
+                    LOGD("Duplicate ACK response for port %d, ignoring.\n", port);
+                    return 0;
+                }
                 results[port_index].response_ack = RESPONSE_ICMP_UNREACHABLE;
+            }
             else if (scan_flag == SCAN_FLG_NULL)
+            {
+                if (results[port_index].response_null != RESPONSE_NO_RESPONSE)
+                {
+                    LOGD("Duplicate NULL response for port %d, ignoring.\n", port);
+                    return 0;
+                }
                 results[port_index].response_null = RESPONSE_ICMP_UNREACHABLE;
+            }
             else if (scan_flag == SCAN_FLG_FIN)
+            {
+                if (results[port_index].response_fin != RESPONSE_NO_RESPONSE)
+                {
+                    LOGD("Duplicate FIN response for port %d, ignoring.\n", port);
+                    return 0;
+                }
                 results[port_index].response_fin = RESPONSE_ICMP_UNREACHABLE;
+            }
             else if (scan_flag == SCAN_FLG_XMAS)
+            {
+                if (results[port_index].response_xmas != RESPONSE_NO_RESPONSE)
+                {
+                    LOGD("Duplicate XMAS response for port %d, ignoring.\n", port);
+                    return 0;
+                }
                 results[port_index].response_xmas = RESPONSE_ICMP_UNREACHABLE;
+            }
             else
-                return 0;
+            {
+                return 0; // Unknown scan type
+            }
         }
         else if (inner_ip_hdr.protocol == IPPROTO_UDP)
         {
